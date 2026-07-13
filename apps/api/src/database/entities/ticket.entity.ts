@@ -82,6 +82,20 @@ export class TicketEntity {
   resolvedAt: Date | null;
 
   @Column({
+    name: 'first_response_overdue_notified_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  firstResponseOverdueNotifiedAt: Date | null;
+
+  @Column({
+    name: 'resolution_overdue_notified_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  resolutionOverdueNotifiedAt: Date | null;
+
+  @Column({
     type: 'enum',
     enum: ['email', 'web_form', 'whatsapp', 'chat', 'api', 'alert'],
     enumName: 'ticket_source_enum',

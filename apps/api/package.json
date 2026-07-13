@@ -27,7 +27,8 @@
     "notifications:verify": "ts-node -r dotenv/config src/notifications/scripts/verify-notifications.ts",
     "tickets-api:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-tickets-api.ts",
     "email-intake:verify": "ts-node -r dotenv/config src/modules/ticketing/email-intake/scripts/verify-email-intake.ts",
-    "sla-calc:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-sla-calculation.ts"
+    "sla-calc:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-sla-calculation.ts",
+    "overdue-sweep:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-overdue-sweep.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

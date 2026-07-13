@@ -12,6 +12,14 @@ const templates: Record<string, TemplateRenderer> = {
     subject: 'Cloud Ops Tool test notification',
     body: `This is a Sprint 0 test notification. Message: ${payload.message ?? ''}`,
   }),
+  'ticket.overdue': (payload) => {
+    const label =
+      payload.overdueType === 'resolution' ? 'Resolution' : 'First response';
+    return {
+      subject: `Ticket #${payload.ticketNumber} is ${label.toLowerCase()} overdue`,
+      body: `${label} SLA breached for ticket #${payload.ticketNumber}: "${payload.subject}". It was due at ${payload.dueAt}.`,
+    };
+  },
 };
 
 export function renderTemplate(
