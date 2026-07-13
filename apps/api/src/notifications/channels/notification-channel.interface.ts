@@ -19,7 +19,9 @@ export function stubChannel(channel: string): NotificationChannel {
   return {
     channel,
     async send() {
-      throw new Error(`Notification channel "${channel}" is not implemented yet (Phase 2, per the architecture plan)`);
+      throw new Error(
+        `Notification channel "${channel}" is not implemented yet (Phase 2, per the architecture plan)`,
+      );
     },
   };
 }

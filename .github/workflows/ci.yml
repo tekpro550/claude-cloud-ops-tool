@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cloud_ops_tool
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: cloud_ops_tool
+      DB_MIGRATOR_USER: postgres
+      DB_MIGRATOR_PASSWORD: postgres
+      DB_APP_USER: app_user
+      DB_APP_PASSWORD: app_user_ci_password
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      EMAIL_TRANSPORT: json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @cloud-ops-tool/api build
+
+      - name: Lint
+        run: pnpm --filter @cloud-ops-tool/api exec eslint "{src,apps,libs,test}/**/*.ts"
+
+      - name: Unit tests
+        run: pnpm --filter @cloud-ops-tool/api test
+
+      # Everything below exercises Sprint 0's Foundation guarantees against
+      # real Postgres + Redis service containers, not just compiled code:
+      # RLS enforcement, event bus delivery, and notification dispatch.
+      - name: Run migrations
+        run: pnpm --filter @cloud-ops-tool/api migration:run
+
+      - name: Verify RLS is enforced at the database layer
+        run: pnpm --filter @cloud-ops-tool/api rls:verify
+
+      - name: Verify a test event flows end to end through Redis Streams
+        run: pnpm --filter @cloud-ops-tool/api eventbus:verify
+
+      - name: Verify the notification dispatcher
+        run: pnpm --filter @cloud-ops-tool/api notifications:verify
+
+  web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @cloud-ops-tool/web lint
+
+      - name: Build
+        run: pnpm --filter @cloud-ops-tool/web build

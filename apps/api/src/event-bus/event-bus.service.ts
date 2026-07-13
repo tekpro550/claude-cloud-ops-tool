@@ -1,13 +1,15 @@
-import { randomUUID } from "crypto";
-import { Inject, Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import Redis from "ioredis";
-import { DataSource } from "typeorm";
-import { withTenantContext } from "../database/context/tenant-context";
-import { EVENTS_STREAM_KEY, REDIS_CLIENT } from "./redis.constants";
-import { DomainEventMessage, PublishEventInput } from "./event-bus.types";
+import { randomUUID } from 'crypto';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import Redis from 'ioredis';
+import { DataSource } from 'typeorm';
+import { withTenantContext } from '../database/context/tenant-context';
+import { EVENTS_STREAM_KEY, REDIS_CLIENT } from './redis.constants';
+import { DomainEventMessage, PublishEventInput } from './event-bus.types';
 
-type XReadGroupResult = Array<[stream: string, entries: Array<[id: string, fields: string[]]>]> | null;
+type XReadGroupResult = Array<
+  [stream: string, entries: Array<[id: string, fields: string[]]>]
+> | null;
 
 /**
  * Thin wrapper over a single Redis Stream (`cloud-ops-tool:events`) shared by
@@ -30,29 +32,45 @@ export class EventBusService implements OnModuleDestroy {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
 
-    await withTenantContext(this.dataSource, event.tenantId, async (queryRunner) => {
-      await queryRunner.query(
-        `INSERT INTO events (id, tenant_id, event_type, payload, created_at) VALUES ($1, $2, $3, $4, $5)`,
-        [id, event.tenantId, event.eventType, JSON.stringify(event.payload), createdAt],
-      );
-    });
+    await withTenantContext(
+      this.dataSource,
+      event.tenantId,
+      async (queryRunner) => {
+        await queryRunner.query(
+          `INSERT INTO events (id, tenant_id, event_type, payload, created_at) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            id,
+            event.tenantId,
+            event.eventType,
+            JSON.stringify(event.payload),
+            createdAt,
+          ],
+        );
+      },
+    );
 
     await this.redis.xadd(
       EVENTS_STREAM_KEY,
-      "*",
-      "id",
+      '*',
+      'id',
       id,
-      "tenantId",
+      'tenantId',
       event.tenantId,
-      "eventType",
+      'eventType',
       event.eventType,
-      "payload",
+      'payload',
       JSON.stringify(event.payload),
-      "createdAt",
+      'createdAt',
       createdAt,
     );
 
-    return { id, tenantId: event.tenantId, eventType: event.eventType, payload: event.payload, createdAt };
+    return {
+      id,
+      tenantId: event.tenantId,
+      eventType: event.eventType,
+      payload: event.payload,
+      createdAt,
+    };
   }
 
   /**
@@ -60,19 +78,33 @@ export class EventBusService implements OnModuleDestroy {
    * (XREADGROUP blocks the connection it runs on, so it can't share the
    * publisher's client) and calls `handler` for each message, XACKing only
    * after `handler` resolves.
+   *
+   * `startId` controls where a newly-created group begins reading: "0"
+   * (default) replays the whole stream so a durable consumer never misses an
+   * event across restarts; "$" starts from "now", which matters for
+   * short-lived verification consumers sharing this stream with other
+   * groups' backlog.
    */
   async consume(
     groupName: string,
     handler: (event: DomainEventMessage) => Promise<void>,
-    consumerName: string = `${groupName}-${process.pid}`,
+    options: { consumerName?: string; startId?: string } = {},
   ): Promise<void> {
+    const consumerName = options.consumerName ?? `${groupName}-${process.pid}`;
+    const startId = options.startId ?? '0';
     const client = this.redis.duplicate();
     this.consumerClients.push(client);
 
     try {
-      await client.xgroup("CREATE", EVENTS_STREAM_KEY, groupName, "0", "MKSTREAM");
+      await client.xgroup(
+        'CREATE',
+        EVENTS_STREAM_KEY,
+        groupName,
+        startId,
+        'MKSTREAM',
+      );
     } catch (err) {
-      if (!(err as Error).message?.includes("BUSYGROUP")) {
+      if (!(err as Error).message?.includes('BUSYGROUP')) {
         throw err;
       }
     }
@@ -86,25 +118,27 @@ export class EventBusService implements OnModuleDestroy {
     consumerName: string,
     handler: (event: DomainEventMessage) => Promise<void>,
   ): Promise<void> {
-    while (client.status !== "end") {
+    while (client.status !== 'end') {
       let result: XReadGroupResult;
       try {
         result = (await client.xreadgroup(
-          "GROUP",
+          'GROUP',
           groupName,
           consumerName,
-          "COUNT",
+          'COUNT',
           10,
-          "BLOCK",
+          'BLOCK',
           5000,
-          "STREAMS",
+          'STREAMS',
           EVENTS_STREAM_KEY,
-          ">",
+          '>',
         )) as XReadGroupResult;
       } catch (err) {
         const status: string = client.status;
-        if (status === "end") return;
-        this.logger.error(`consumer ${consumerName} read error: ${(err as Error).message}`);
+        if (status === 'end') return;
+        this.logger.error(
+          `consumer ${consumerName} read error: ${(err as Error).message}`,
+        );
         continue;
       }
 
@@ -117,7 +151,9 @@ export class EventBusService implements OnModuleDestroy {
           await handler(event);
           await client.xack(EVENTS_STREAM_KEY, groupName, messageId);
         } catch (err) {
-          this.logger.error(`handler failed for message ${messageId}: ${(err as Error).message}`);
+          this.logger.error(
+            `handler failed for message ${messageId}: ${(err as Error).message}`,
+          );
         }
       }
     }

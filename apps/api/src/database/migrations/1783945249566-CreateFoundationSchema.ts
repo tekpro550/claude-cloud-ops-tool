@@ -1,9 +1,9 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-const RLS_TABLES = ["users", "resources", "events", "notifications"];
+const RLS_TABLES = ['users', 'resources', 'events', 'notifications'];
 
 export class CreateFoundationSchema1783945249566 implements MigrationInterface {
-  name = "CreateFoundationSchema1783945249566";
+  name = 'CreateFoundationSchema1783945249566';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -91,8 +91,10 @@ export class CreateFoundationSchema1783945249566 implements MigrationInterface {
     // ALTER ROLE ... PASSWORD is DDL and doesn't accept bound $1 parameters,
     // so dollar-quote the value instead of interpolating it as a plain
     // string literal (avoids breaking on an embedded quote character).
-    const appPassword = process.env.DB_APP_PASSWORD ?? "app_user_dev_password";
-    await queryRunner.query(`ALTER ROLE app_user PASSWORD $pw$${appPassword}$pw$`);
+    const appPassword = process.env.DB_APP_PASSWORD ?? 'app_user_dev_password';
+    await queryRunner.query(
+      `ALTER ROLE app_user PASSWORD $pw$${appPassword}$pw$`,
+    );
     await queryRunner.query(`
       DO $$
       BEGIN

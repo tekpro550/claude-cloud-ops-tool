@@ -9,5 +9,5 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@10.33.0"
 }

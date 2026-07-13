@@ -1,13 +1,13 @@
-import { randomUUID } from "crypto";
-import { Injectable } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import { withTenantContext } from "../database/context/tenant-context";
-import { EventBusService } from "../event-bus/event-bus.service";
+import { randomUUID } from 'crypto';
+import { Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { withTenantContext } from '../database/context/tenant-context';
+import { EventBusService } from '../event-bus/event-bus.service';
 
 export interface EnqueueNotificationInput {
   tenantId: string;
-  channel: "email" | "whatsapp" | "voice" | "in_app";
+  channel: 'email' | 'whatsapp' | 'voice' | 'in_app';
   recipient: string;
   templateName: string;
   payload: Record<string, unknown>;
@@ -30,17 +30,28 @@ export class NotificationsService {
   async enqueue(input: EnqueueNotificationInput): Promise<{ id: string }> {
     const id = randomUUID();
 
-    await withTenantContext(this.dataSource, input.tenantId, async (queryRunner) => {
-      await queryRunner.query(
-        `INSERT INTO notifications (id, tenant_id, channel, recipient, template_name, payload, status)
+    await withTenantContext(
+      this.dataSource,
+      input.tenantId,
+      async (queryRunner) => {
+        await queryRunner.query(
+          `INSERT INTO notifications (id, tenant_id, channel, recipient, template_name, payload, status)
          VALUES ($1, $2, $3, $4, $5, $6, 'queued')`,
-        [id, input.tenantId, input.channel, input.recipient, input.templateName, JSON.stringify(input.payload)],
-      );
-    });
+          [
+            id,
+            input.tenantId,
+            input.channel,
+            input.recipient,
+            input.templateName,
+            JSON.stringify(input.payload),
+          ],
+        );
+      },
+    );
 
     await this.eventBus.publish({
       tenantId: input.tenantId,
-      eventType: "notification.requested",
+      eventType: 'notification.requested',
       payload: { notificationId: id },
     });
 

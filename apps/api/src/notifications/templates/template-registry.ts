@@ -1,4 +1,4 @@
-import { RenderedMessage } from "../channels/notification-channel.interface";
+import { RenderedMessage } from '../channels/notification-channel.interface';
 
 type TemplateRenderer = (payload: Record<string, unknown>) => RenderedMessage;
 
@@ -8,13 +8,16 @@ type TemplateRenderer = (payload: Record<string, unknown>) => RenderedMessage;
  * alongside the modules that need them.
  */
 const templates: Record<string, TemplateRenderer> = {
-  "sprint0.test_email": (payload) => ({
-    subject: "Cloud Ops Tool test notification",
-    body: `This is a Sprint 0 test notification. Message: ${payload.message ?? ""}`,
+  'sprint0.test_email': (payload) => ({
+    subject: 'Cloud Ops Tool test notification',
+    body: `This is a Sprint 0 test notification. Message: ${payload.message ?? ''}`,
   }),
 };
 
-export function renderTemplate(templateName: string, payload: Record<string, unknown>): RenderedMessage {
+export function renderTemplate(
+  templateName: string,
+  payload: Record<string, unknown>,
+): RenderedMessage {
   const renderer = templates[templateName];
   if (!renderer) {
     throw new Error(`Unknown notification template: "${templateName}"`);

@@ -1,4 +1,4 @@
-import { DataSource, QueryRunner } from "typeorm";
+import { DataSource, QueryRunner } from 'typeorm';
 
 /**
  * Runs `work` inside a transaction with `app.current_tenant` set via
@@ -15,7 +15,10 @@ export async function withTenantContext<T>(
   await queryRunner.connect();
   await queryRunner.startTransaction();
   try {
-    await queryRunner.query("SELECT set_config('app.current_tenant', $1, true)", [tenantId]);
+    await queryRunner.query(
+      "SELECT set_config('app.current_tenant', $1, true)",
+      [tenantId],
+    );
     const result = await work(queryRunner);
     await queryRunner.commitTransaction();
     return result;
