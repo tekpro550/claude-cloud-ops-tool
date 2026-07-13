@@ -21,7 +21,8 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
-    "rls:verify": "ts-node -r dotenv/config src/database/scripts/verify-rls.ts"
+    "rls:verify": "ts-node -r dotenv/config src/database/scripts/verify-rls.ts",
+    "eventbus:verify": "ts-node -r dotenv/config src/event-bus/scripts/verify-event-bus.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -30,6 +31,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/typeorm": "^11.0.3",
     "dotenv": "^17.4.2",
+    "ioredis": "^5.11.1",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
