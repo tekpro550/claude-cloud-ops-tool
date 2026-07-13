@@ -88,6 +88,9 @@ jobs:
       - name: Verify the ticket API over real HTTP requests
         run: pnpm --filter @cloud-ops-tool/api tickets-api:verify
 
+      - name: Verify email intake (mail -> ticket) against synthetic messages
+        run: pnpm --filter @cloud-ops-tool/api email-intake:verify
+
   web:
     runs-on: ubuntu-latest
 

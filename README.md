@@ -45,14 +45,23 @@ pnpm --filter @cloud-ops-tool/api ticketing-rls:verify     # same, for the ticke
 pnpm --filter @cloud-ops-tool/api eventbus:verify          # a test event flows end to end through Redis Streams
 pnpm --filter @cloud-ops-tool/api notifications:verify     # notification dispatcher, email channel
 pnpm --filter @cloud-ops-tool/api tickets-api:verify       # ticket API over real HTTP requests
+pnpm --filter @cloud-ops-tool/api email-intake:verify      # mail -> ticket, against synthetic messages
 ```
+
+### Email intake
+
+Polls one IMAP mailbox (`EMAIL_INTAKE_ENABLED=true`, `IMAP_*` + `EMAIL_INTAKE_TENANT_ID` env vars)
+and turns unseen messages into tickets — pilot mailbox is `cloud.support@tekprocloud.com` per
+section 8 of the Module 1 doc. Disabled by default, since no real mailbox credentials are wired in
+yet; `email-intake:verify` proves the mail-to-ticket logic against synthetic messages instead of a
+live mailbox.
 
 ## CI/CD
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push/PR to `main`: builds and lints both
 apps, runs API unit tests, then spins up real Postgres + Redis service containers to run migrations
-and all five verification scripts above — so a broken RLS policy, event bus wiring, dispatcher, or
-ticket API regression fails CI, not just a passing `build`.
+and all six verification scripts above — so a broken RLS policy, event bus wiring, dispatcher,
+ticket API, or email intake regression fails CI, not just a passing `build`.
 
 ## Current status
 
@@ -61,5 +70,5 @@ scaffolding, the Foundation Postgres schema with database-layer RLS, the Redis S
 the notification dispatcher skeleton (email only), and CI/CD with the four-service modular monolith
 boundary (Platform, Ticketing, Monitoring, Cost).
 
-Sprint 1 (Ticket core) is in progress: the ticketing data model + RLS + initial agent seed, the
-core ticket API, and a minimal ticket list/detail UI are done. Email intake is next.
+Sprint 1 (Ticket core) is complete: the ticketing data model + RLS + initial agent seed, the core
+ticket API, a minimal ticket list/detail UI, and IMAP-based email intake.

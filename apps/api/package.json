@@ -25,7 +25,8 @@
     "ticketing-rls:verify": "ts-node -r dotenv/config src/database/scripts/verify-ticketing-rls.ts",
     "eventbus:verify": "ts-node -r dotenv/config src/event-bus/scripts/verify-event-bus.ts",
     "notifications:verify": "ts-node -r dotenv/config src/notifications/scripts/verify-notifications.ts",
-    "tickets-api:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-tickets-api.ts"
+    "tickets-api:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-tickets-api.ts",
+    "email-intake:verify": "ts-node -r dotenv/config src/modules/ticketing/email-intake/scripts/verify-email-intake.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -36,7 +37,9 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
+    "imapflow": "^1.4.7",
     "ioredis": "^5.11.1",
+    "mailparser": "^3.9.14",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.0",
@@ -49,6 +52,7 @@
     "@nestjs/testing": "^10.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.2",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^20.3.1",
     "@types/nodemailer": "^8.0.1",
     "@types/supertest": "^6.0.0",

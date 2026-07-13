@@ -207,6 +207,17 @@ export class TicketsService {
     });
   }
 
+  /** Used by email intake to correlate a reply's "[Ticket #N]" subject tag back to the ticket. */
+  async findByTicketNumber(tenantId: string, ticketNumber: number) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [ticket] = await queryRunner.query(
+        `SELECT * FROM tickets WHERE ticket_number = $1`,
+        [ticketNumber],
+      );
+      return ticket ?? null;
+    });
+  }
+
   async update(tenantId: string, id: string, dto: UpdateTicketDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(

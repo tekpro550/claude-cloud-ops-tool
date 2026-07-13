@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PlatformModule } from '../platform/platform.module';
+import { EmailIntakeService } from './email-intake/email-intake.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 
@@ -10,6 +11,6 @@ import { TicketsService } from './tickets.service';
 @Module({
   imports: [PlatformModule],
   controllers: [TicketsController],
-  providers: [TicketsService],
+  providers: [TicketsService, EmailIntakeService],
 })
 export class TicketingModule {}
