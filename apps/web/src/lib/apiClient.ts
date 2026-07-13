@@ -1,4 +1,6 @@
 import type {
+  Agent,
+  Group,
   Ticket,
   TicketList,
   TicketMessage,
@@ -6,6 +8,7 @@ import type {
   TicketMessageType,
   TicketPriority,
   TicketStatus,
+  TicketType,
 } from "../types/ticket";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
@@ -71,10 +74,25 @@ export function createTicket(tenantId: string, input: CreateTicketInput): Promis
 export interface UpdateTicketInput {
   status?: TicketStatus;
   priority?: TicketPriority;
+  groupId?: string;
+  agentId?: string;
+  ticketTypeId?: string;
 }
 
 export function updateTicket(tenantId: string, id: string, input: UpdateTicketInput): Promise<Ticket> {
   return request(tenantId, "PATCH", `/tickets/${id}`, input);
+}
+
+export function listGroups(tenantId: string): Promise<Group[]> {
+  return request(tenantId, "GET", "/groups");
+}
+
+export function listAgents(tenantId: string): Promise<Agent[]> {
+  return request(tenantId, "GET", "/agents");
+}
+
+export function listTicketTypes(tenantId: string): Promise<TicketType[]> {
+  return request(tenantId, "GET", "/ticket-types");
 }
 
 export function listTicketMessages(tenantId: string, ticketId: string): Promise<TicketMessage[]> {

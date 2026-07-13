@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { addTicketMessage, ApiError, getTicket, listTicketMessages, updateTicket } from "../lib/apiClient";
+import {
+  addTicketMessage,
+  ApiError,
+  getTicket,
+  listAgents,
+  listGroups,
+  listTicketMessages,
+  listTicketTypes,
+  updateTicket,
+  type UpdateTicketInput,
+} from "../lib/apiClient";
+import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { useTenant } from "../lib/tenant";
-import type { Ticket, TicketMessage, TicketMessageType, TicketPriority, TicketStatus } from "../types/ticket";
+import type { Agent, Group, Ticket, TicketMessage, TicketMessageType, TicketPriority, TicketStatus, TicketType } from "../types/ticket";
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -14,6 +25,9 @@ export default function TicketDetailPage() {
   const { tenantId } = useTenant();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -37,7 +51,21 @@ export default function TicketDetailPage() {
 
   useEffect(load, [tenantId, id]);
 
-  const handlePropertyChange = (field: "status" | "priority", value: string) => {
+  useEffect(() => {
+    if (!tenantId) return;
+    Promise.all([listGroups(tenantId), listAgents(tenantId), listTicketTypes(tenantId)])
+      .then(([groupsRes, agentsRes, typesRes]) => {
+        setGroups(groupsRes);
+        setAgents(agentsRes);
+        setTicketTypes(typesRes);
+      })
+      .catch(() => {
+        // Reference data is only needed to populate dropdown options; a
+        // failure here shouldn't block viewing/editing the ticket itself.
+      });
+  }, [tenantId]);
+
+  const handlePropertyChange = (field: keyof UpdateTicketInput, value: string) => {
     if (!tenantId || !id) return;
     setSaving(true);
     setError(null);
@@ -122,8 +150,71 @@ export default function TicketDetailPage() {
             ))}
           </select>
         </label>
+        <label>
+          Group
+          <select
+            value={ticket.group_id ?? ""}
+            disabled={saving}
+            onChange={(e) => handlePropertyChange("groupId", e.target.value)}
+          >
+            <option value="" disabled>
+              Unassigned
+            </option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Agent
+          <select
+            value={ticket.agent_id ?? ""}
+            disabled={saving}
+            onChange={(e) => handlePropertyChange("agentId", e.target.value)}
+          >
+            <option value="" disabled>
+              Unassigned
+            </option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Ticket type
+          <select
+            value={ticket.ticket_type_id ?? ""}
+            disabled={saving}
+            onChange={(e) => handlePropertyChange("ticketTypeId", e.target.value)}
+          >
+            <option value="" disabled>
+              None
+            </option>
+            {ticketTypes.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <span className="hint">Source: {ticket.source}</span>
-        {ticket.resolved_at && <span className="hint">Resolved: {new Date(ticket.resolved_at).toLocaleString()}</span>}
+      </div>
+
+      <div className="sla-panel">
+        {ticket.first_response_at ? (
+          <span className="hint">First response: {relativeTime(ticket.first_response_at)}</span>
+        ) : (
+          ticket.first_response_due_at && <SlaDueBadge label="First response" iso={ticket.first_response_due_at} />
+        )}
+        {ticket.resolved_at ? (
+          <span className="hint">Resolved: {relativeTime(ticket.resolved_at)}</span>
+        ) : (
+          ticket.resolution_due_at && <SlaDueBadge label="Resolution" iso={ticket.resolution_due_at} />
+        )}
       </div>
 
       <h3>Messages</h3>
@@ -160,4 +251,9 @@ export default function TicketDetailPage() {
       </form>
     </div>
   );
+}
+
+function SlaDueBadge({ label, iso }: { label: string; iso: string }) {
+  const { text, overdue } = dueLabel(iso);
+  return <span className={`hint sla-due${overdue ? " overdue" : ""}`}>{label} {text}</span>;
 }

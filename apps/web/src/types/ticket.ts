@@ -49,3 +49,21 @@ export interface TicketMessage {
   cc: string[];
   created_at: string;
 }
+
+export interface Group {
+  id: string;
+  name: string;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface TicketType {
+  id: string;
+  name: string;
+  default_group_id: string | null;
+  default_sla_policy_id: string | null;
+}

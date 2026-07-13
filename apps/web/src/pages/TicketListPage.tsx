@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, createTicket, listTickets } from "../lib/apiClient";
+import { relativeTime } from "../lib/relativeTime";
 import { useTenant } from "../lib/tenant";
 import type { Ticket, TicketPriority, TicketStatus } from "../types/ticket";
 
@@ -141,7 +142,7 @@ export default function TicketListPage() {
                 <td>
                   <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
                 </td>
-                <td>{new Date(ticket.created_at).toLocaleString()}</td>
+                <td title={new Date(ticket.created_at).toLocaleString()}>{relativeTime(ticket.created_at)}</td>
               </tr>
             ))}
           </tbody>
