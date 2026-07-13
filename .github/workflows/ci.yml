@@ -66,20 +66,27 @@ jobs:
       - name: Unit tests
         run: pnpm --filter @cloud-ops-tool/api test
 
-      # Everything below exercises Sprint 0's Foundation guarantees against
-      # real Postgres + Redis service containers, not just compiled code:
-      # RLS enforcement, event bus delivery, and notification dispatch.
+      # Everything below exercises Sprint 0/1 guarantees against real
+      # Postgres + Redis service containers, not just compiled code: RLS
+      # enforcement, event bus delivery, notification dispatch, and the
+      # ticket API's HTTP surface (including its own cross-tenant checks).
       - name: Run migrations
         run: pnpm --filter @cloud-ops-tool/api migration:run
 
       - name: Verify RLS is enforced at the database layer
         run: pnpm --filter @cloud-ops-tool/api rls:verify
 
+      - name: Verify ticketing tables' RLS is enforced at the database layer
+        run: pnpm --filter @cloud-ops-tool/api ticketing-rls:verify
+
       - name: Verify a test event flows end to end through Redis Streams
         run: pnpm --filter @cloud-ops-tool/api eventbus:verify
 
       - name: Verify the notification dispatcher
         run: pnpm --filter @cloud-ops-tool/api notifications:verify
+
+      - name: Verify the ticket API over real HTTP requests
+        run: pnpm --filter @cloud-ops-tool/api tickets-api:verify
 
   web:
     runs-on: ubuntu-latest
