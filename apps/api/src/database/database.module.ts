@@ -7,6 +7,13 @@ import {
   ResourceEntity,
   TenantEntity,
   UserEntity,
+  GroupEntity,
+  AgentEntity,
+  CompanyEntity,
+  ContactEntity,
+  TicketTypeEntity,
+  TicketEntity,
+  TicketMessageEntity,
 } from './entities';
 
 /**
@@ -36,6 +43,13 @@ import {
           ResourceEntity,
           EventEntity,
           NotificationEntity,
+          GroupEntity,
+          AgentEntity,
+          CompanyEntity,
+          ContactEntity,
+          TicketTypeEntity,
+          TicketEntity,
+          TicketMessageEntity,
         ],
         synchronize: false,
       }),

@@ -6,6 +6,13 @@ import {
   ResourceEntity,
   EventEntity,
   NotificationEntity,
+  GroupEntity,
+  AgentEntity,
+  CompanyEntity,
+  ContactEntity,
+  TicketTypeEntity,
+  TicketEntity,
+  TicketMessageEntity,
 } from './entities';
 
 /**
@@ -27,6 +34,13 @@ export const AppDataSource = new DataSource({
     ResourceEntity,
     EventEntity,
     NotificationEntity,
+    GroupEntity,
+    AgentEntity,
+    CompanyEntity,
+    ContactEntity,
+    TicketTypeEntity,
+    TicketEntity,
+    TicketMessageEntity,
   ],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,
