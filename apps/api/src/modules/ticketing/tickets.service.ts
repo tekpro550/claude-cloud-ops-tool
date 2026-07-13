@@ -10,6 +10,7 @@ import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { calculateDueDates, SlaTargets } from './sla/calculate-due-dates';
 
 /**
  * Postgres FK constraints don't consult RLS when checking referential
@@ -65,6 +66,18 @@ async function nextTicketNumber(
   return row.ticket_number;
 }
 
+async function fetchSlaPolicy(
+  queryRunner: QueryRunner,
+  slaPolicyId: string | null,
+): Promise<SlaTargets | null> {
+  if (!slaPolicyId) return null;
+  const [policy] = await queryRunner.query(
+    `SELECT first_response_target_minutes, resolution_target_minutes, business_hours_only FROM sla_policies WHERE id = $1`,
+    [slaPolicyId],
+  );
+  return policy ?? null;
+}
+
 @Injectable()
 export class TicketsService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
@@ -94,7 +107,11 @@ export class TicketsService {
         );
       }
 
+      // SLA policy is only ever derived from the ticket type's default, not
+      // settable directly -- matches the documented PATCH contract (section
+      // 4), which lists ticket_type_id as editable but not sla_policy_id.
       let groupId = dto.groupId ?? null;
+      let slaPolicyId: string | null = null;
       if (dto.ticketTypeId) {
         await assertBelongsToTenant(
           queryRunner,
@@ -102,13 +119,12 @@ export class TicketsService {
           dto.ticketTypeId,
           'ticket type',
         );
-        if (!groupId) {
-          const [ticketType] = await queryRunner.query(
-            `SELECT default_group_id FROM ticket_types WHERE id = $1`,
-            [dto.ticketTypeId],
-          );
-          groupId = ticketType?.default_group_id ?? null;
-        }
+        const [ticketType] = await queryRunner.query(
+          `SELECT default_group_id, default_sla_policy_id FROM ticket_types WHERE id = $1`,
+          [dto.ticketTypeId],
+        );
+        if (!groupId) groupId = ticketType?.default_group_id ?? null;
+        slaPolicyId = ticketType?.default_sla_policy_id ?? null;
       }
       if (groupId) {
         await assertBelongsToTenant(queryRunner, 'groups', groupId, 'group');
@@ -130,11 +146,20 @@ export class TicketsService {
         );
       }
 
+      const slaPolicy = await fetchSlaPolicy(queryRunner, slaPolicyId);
       const ticketNumber = await nextTicketNumber(queryRunner, tenantId);
+      // Computed from the same Date instance used for the created_at column
+      // below, so the due dates are never a few milliseconds off from what
+      // "created_at + target_minutes" would say if recomputed later.
+      const createdAt = new Date();
+      const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
+        createdAt,
+        slaPolicy,
+      );
 
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
          RETURNING *`,
         [
           tenantId,
@@ -147,6 +172,10 @@ export class TicketsService {
           dto.resourceId ?? null,
           dto.priority ?? 'medium',
           dto.source,
+          slaPolicyId,
+          firstResponseDueAt,
+          resolutionDueAt,
+          createdAt,
         ],
       );
       return ticket;
@@ -221,7 +250,7 @@ export class TicketsService {
   async update(tenantId: string, id: string, dto: UpdateTicketDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(
-        `SELECT id FROM tickets WHERE id = $1`,
+        `SELECT * FROM tickets WHERE id = $1`,
         [id],
       );
       if (!existing) {
@@ -265,13 +294,34 @@ export class TicketsService {
       if (dto.priority !== undefined) assign('priority', dto.priority);
       if (dto.groupId !== undefined) assign('group_id', dto.groupId);
       if (dto.agentId !== undefined) assign('agent_id', dto.agentId);
-      if (dto.ticketTypeId !== undefined)
+      if (dto.ticketTypeId !== undefined) {
         assign('ticket_type_id', dto.ticketTypeId);
 
+        // Changing ticket type can change which SLA policy applies (section
+        // 5: "recalculates ... whenever a ticket's SLA policy ... changes").
+        // Due dates stay anchored to the ticket's original created_at, not
+        // the moment of this update.
+        const [ticketType] = await queryRunner.query(
+          `SELECT default_sla_policy_id FROM ticket_types WHERE id = $1`,
+          [dto.ticketTypeId],
+        );
+        const newSlaPolicyId: string | null =
+          ticketType?.default_sla_policy_id ?? null;
+
+        if (newSlaPolicyId !== existing.sla_policy_id) {
+          const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
+          const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
+            existing.created_at,
+            slaPolicy,
+          );
+          assign('sla_policy_id', newSlaPolicyId);
+          assign('first_response_due_at', firstResponseDueAt);
+          assign('resolution_due_at', resolutionDueAt);
+        }
+      }
+
       if (sets.length === 0) {
-        return queryRunner
-          .query(`SELECT * FROM tickets WHERE id = $1`, [id])
-          .then((rows) => rows[0]);
+        return existing;
       }
 
       sets.push('updated_at = now()');
@@ -296,7 +346,7 @@ export class TicketsService {
   ) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [ticket] = await queryRunner.query(
-        `SELECT id FROM tickets WHERE id = $1`,
+        `SELECT id, first_response_at FROM tickets WHERE id = $1`,
         [ticketId],
       );
       if (!ticket) {
@@ -334,6 +384,21 @@ export class TicketsService {
           dto.cc ?? [],
         ],
       );
+
+      // First-response tracking for SLA purposes: the first agent reply
+      // specifically, not the first message of any kind -- a system note or
+      // the contact's own initial message (from email intake) shouldn't count.
+      if (
+        dto.type === 'reply' &&
+        dto.authorType === 'agent' &&
+        !ticket.first_response_at
+      ) {
+        await queryRunner.query(
+          `UPDATE tickets SET first_response_at = now() WHERE id = $1`,
+          [ticketId],
+        );
+      }
+
       return message;
     });
   }
