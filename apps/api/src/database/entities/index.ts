@@ -10,3 +10,4 @@ export * from './contact.entity';
 export * from './ticket-type.entity';
 export * from './ticket.entity';
 export * from './ticket-message.entity';
+export * from './sla-policy.entity';

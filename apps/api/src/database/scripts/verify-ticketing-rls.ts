@@ -138,10 +138,37 @@ async function main() {
       'cross-tenant ticket_message insert (context=A, tenant_id=B) rejected by WITH CHECK',
     );
 
+    await appUser.query('BEGIN');
+    await appUser.query("SELECT set_config('app.current_tenant', $1, true)", [
+      tenantA.id,
+    ]);
+    await appUser.query(
+      `INSERT INTO sla_policies (tenant_id, name, first_response_target_minutes, resolution_target_minutes) VALUES ($1, $2, 60, 480)`,
+      [tenantA.id, 'Tenant A SLA'],
+    );
+    await appUser.query('COMMIT');
+
+    await appUser.query('BEGIN');
+    await appUser.query("SELECT set_config('app.current_tenant', $1, true)", [
+      tenantB.id,
+    ]);
+    const { rows: slaPoliciesAsB } = await appUser.query(
+      `SELECT tenant_id, name FROM sla_policies`,
+    );
+    await appUser.query('COMMIT');
+    assert(
+      slaPoliciesAsB.length === 0,
+      "tenant B sees zero SLA policies via an unfiltered SELECT * (tenant A's policy is invisible)",
+    );
+
     console.log(
-      '\nAll ticketing RLS checks passed. groups/contacts/tickets/ticket_messages are tenant-isolated at the database layer.',
+      '\nAll ticketing RLS checks passed. groups/contacts/tickets/ticket_messages/sla_policies are tenant-isolated at the database layer.',
     );
   } finally {
+    await migrator.query(
+      `DELETE FROM sla_policies WHERE tenant_id IN ($1, $2)`,
+      [tenantA.id, tenantB.id],
+    );
     await migrator.query(
       `DELETE FROM ticket_messages WHERE tenant_id IN ($1, $2)`,
       [tenantA.id, tenantB.id],

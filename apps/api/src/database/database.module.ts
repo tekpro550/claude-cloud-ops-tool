@@ -14,6 +14,7 @@ import {
   TicketTypeEntity,
   TicketEntity,
   TicketMessageEntity,
+  SlaPolicyEntity,
 } from './entities';
 
 /**
@@ -50,6 +51,7 @@ import {
           TicketTypeEntity,
           TicketEntity,
           TicketMessageEntity,
+          SlaPolicyEntity,
         ],
         synchronize: false,
       }),
