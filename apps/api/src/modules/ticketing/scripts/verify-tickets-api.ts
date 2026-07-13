@@ -63,6 +63,11 @@ async function main() {
     logger: false,
   });
   app.setGlobalPrefix('api/v1');
+  app.enableCors({
+    origin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(','),
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'X-Tenant-Id'],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -189,6 +194,16 @@ async function main() {
       messageRes.status === 201 &&
         messageRes.body.body === 'Sprint 1.2 verification note',
       'POST /tickets/:id/messages adds a message',
+    );
+
+    const listMessagesRes = await request(server)
+      .get(`/api/v1/tickets/${ticketId}/messages`)
+      .set('X-Tenant-Id', tenantA.id);
+    assert(
+      listMessagesRes.status === 200 &&
+        listMessagesRes.body.length === 1 &&
+        listMessagesRes.body[0].body === 'Sprint 1.2 verification note',
+      'GET /tickets/:id/messages lists the messages just added',
     );
 
     console.log('\nAll ticket API checks passed.');

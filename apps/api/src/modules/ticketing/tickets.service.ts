@@ -326,4 +326,27 @@ export class TicketsService {
       return message;
     });
   }
+
+  /**
+   * Sprint 4 owns the full merged timeline (messages + property changes +
+   * time logs). Until then, the ticket detail UI needs some way to show the
+   * message thread it can already post to, so this lists just the messages,
+   * oldest first.
+   */
+  async listMessages(tenantId: string, ticketId: string) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [ticket] = await queryRunner.query(
+        `SELECT id FROM tickets WHERE id = $1`,
+        [ticketId],
+      );
+      if (!ticket) {
+        throw new NotFoundException(`Ticket ${ticketId} not found`);
+      }
+
+      return queryRunner.query(
+        `SELECT * FROM ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC`,
+        [ticketId],
+      );
+    });
+  }
 }

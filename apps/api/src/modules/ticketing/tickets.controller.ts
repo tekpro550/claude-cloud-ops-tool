@@ -60,4 +60,12 @@ export class TicketsController {
   ) {
     return this.ticketsService.addMessage(tenantId, id, dto);
   }
+
+  @Get(':id/messages')
+  listMessages(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.ticketsService.listMessages(tenantId, id);
+  }
 }
