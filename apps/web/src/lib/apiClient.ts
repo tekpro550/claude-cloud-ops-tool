@@ -1,7 +1,12 @@
 import type {
   Agent,
   CannedResponse,
+  DashboardSlaSummary,
+  DashboardSummary,
+  DashboardTrendPoint,
   Group,
+  NeedsAttentionItem,
+  SetupStatus,
   Ticket,
   TicketList,
   TicketMessage,
@@ -151,4 +156,24 @@ export function createTicketTimeLog(
 
 export function deleteTicketTimeLog(tenantId: string, ticketId: string, logId: string): Promise<void> {
   return request(tenantId, "DELETE", `/tickets/${ticketId}/time-logs/${logId}`);
+}
+
+export function getDashboardSummary(tenantId: string): Promise<DashboardSummary> {
+  return request(tenantId, "GET", "/dashboard/summary");
+}
+
+export function getDashboardTrends(tenantId: string, days = 14): Promise<DashboardTrendPoint[]> {
+  return request(tenantId, "GET", `/dashboard/trends?days=${days}`);
+}
+
+export function getDashboardSlaSummary(tenantId: string): Promise<DashboardSlaSummary> {
+  return request(tenantId, "GET", "/dashboard/sla-summary");
+}
+
+export function getNeedsAttention(tenantId: string): Promise<{ items: NeedsAttentionItem[] }> {
+  return request(tenantId, "GET", "/dashboard/needs-attention");
+}
+
+export function getSetupStatus(tenantId: string): Promise<SetupStatus> {
+  return request(tenantId, "GET", "/admin/setup-status");
 }

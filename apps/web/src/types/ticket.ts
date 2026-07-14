@@ -96,3 +96,50 @@ export interface TicketTimeLogList {
   items: TicketTimeLog[];
   totalMinutes: number;
 }
+
+export interface DashboardSummary {
+  byStatus: Record<TicketStatus, number>;
+  byPriority: Record<TicketPriority, number>;
+  overdueFirstResponse: number;
+  overdueResolution: number;
+  totalOpen: number;
+}
+
+export interface DashboardTrendPoint {
+  date: string;
+  created: number;
+  resolved: number;
+}
+
+export interface SlaBucket {
+  met: number;
+  breached: number;
+  pending: number;
+}
+
+export interface DashboardSlaSummary {
+  totalWithSla: number;
+  firstResponse: SlaBucket;
+  resolution: SlaBucket;
+}
+
+export interface NeedsAttentionItem {
+  id: string;
+  severity: "warning" | "critical";
+  message: string;
+  count: number;
+}
+
+export interface SetupStatusItem {
+  key: string;
+  label: string;
+  count: number;
+  complete: boolean;
+}
+
+export interface SetupStatus {
+  items: SetupStatusItem[];
+  complete: boolean;
+  completedCount: number;
+  totalCount: number;
+}

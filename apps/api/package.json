@@ -32,7 +32,10 @@
     "automation-rules:verify": "ts-node -r dotenv/config src/modules/ticketing/automation/scripts/verify-automation-rules.ts",
     "canned-responses:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-canned-responses.ts",
     "ticket-todos:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-todos.ts",
-    "ticket-time-logs:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-time-logs.ts"
+    "ticket-time-logs:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-time-logs.ts",
+    "dashboard:verify": "ts-node -r dotenv/config src/modules/ticketing/dashboard/scripts/verify-dashboard.ts",
+    "admin:verify": "ts-node -r dotenv/config src/modules/ticketing/admin/scripts/verify-admin.ts",
+    "internal-tickets:verify": "ts-node -r dotenv/config src/modules/ticketing/internal/scripts/verify-internal-tickets.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
