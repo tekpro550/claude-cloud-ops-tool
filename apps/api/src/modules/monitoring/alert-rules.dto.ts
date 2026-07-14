@@ -17,6 +17,10 @@ export class CreateAlertRuleDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  escalationPolicyId?: string;
 }
 
 export class UpdateAlertRuleDto {
@@ -31,4 +35,8 @@ export class UpdateAlertRuleDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  escalationPolicyId?: string | null;
 }

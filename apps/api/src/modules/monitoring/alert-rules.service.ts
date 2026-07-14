@@ -32,8 +32,8 @@ export class AlertRulesService {
 
       try {
         const [rule] = await queryRunner.query(
-          `INSERT INTO alert_rules (tenant_id, monitor_id, condition, severity, is_enabled)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO alert_rules (tenant_id, monitor_id, condition, severity, is_enabled, escalation_policy_id)
+           VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING *`,
           [
             tenantId,
@@ -41,6 +41,7 @@ export class AlertRulesService {
             JSON.stringify(dto.condition ?? { statusIn: ['down', 'critical'] }),
             dto.severity ?? 'critical',
             dto.isEnabled ?? true,
+            dto.escalationPolicyId ?? null,
           ],
         );
         return rule;
@@ -75,6 +76,8 @@ export class AlertRulesService {
         assign('condition', JSON.stringify(dto.condition));
       if (dto.severity !== undefined) assign('severity', dto.severity);
       if (dto.isEnabled !== undefined) assign('is_enabled', dto.isEnabled);
+      if (dto.escalationPolicyId !== undefined)
+        assign('escalation_policy_id', dto.escalationPolicyId);
 
       if (sets.length === 0) {
         const [rule] = await queryRunner.query(

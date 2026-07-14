@@ -20,6 +20,14 @@ const templates: Record<string, TemplateRenderer> = {
       body: `${label} SLA breached for ticket #${payload.ticketNumber}: "${payload.subject}". It was due at ${payload.dueAt}.`,
     };
   },
+  // EscalationSweepService (Module 2) does its own notification_templates
+  // lookup and $VARIABLE substitution before enqueueing, so this renderer is
+  // just a passthrough for the already-rendered subject/body -- the DB-backed
+  // template system lives alongside this code-based one, not instead of it.
+  'monitoring.escalation': (payload) => ({
+    subject: String(payload.subject ?? 'Alert escalation'),
+    body: String(payload.body ?? ''),
+  }),
 };
 
 export function renderTemplate(

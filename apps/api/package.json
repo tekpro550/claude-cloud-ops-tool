@@ -52,7 +52,8 @@
     "monitor-engine:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitor-engine.ts",
     "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts",
     "agent:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-agent.ts",
-    "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts"
+    "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts",
+    "escalation:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-escalation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.1086.0",

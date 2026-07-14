@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EventBusModule } from '../../event-bus/event-bus.module';
+import { NotificationsModule } from '../../notifications/notifications.module';
 import { PlatformModule } from '../platform/platform.module';
 import { AgentIngestionController } from './agent-ingestion.controller';
 import { AgentIngestionService } from './agent-ingestion.service';
@@ -17,9 +18,18 @@ import { CLOUD_PROVIDER_CLIENT_FACTORY } from './cloud/cloud-provider-client';
 import { CloudCredentialsController } from './cloud-credentials.controller';
 import { CloudCredentialsService } from './cloud-credentials.service';
 import { CloudResourcePollerService } from './cloud-resource-poller.service';
+import { DowntimeEventsController } from './downtime-events.controller';
+import { DowntimeEventsService } from './downtime-events.service';
+import { EscalationPoliciesController } from './escalation-policies.controller';
+import { EscalationPoliciesService } from './escalation-policies.service';
+import { EscalationSweepService } from './escalation-sweep.service';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
 import { MonitorsController } from './monitors.controller';
 import { MonitorsService } from './monitors.service';
+import { NotificationTemplatesController } from './notification-templates.controller';
+import { NotificationTemplatesService } from './notification-templates.service';
+import { OnCallSchedulesController } from './on-call-schedules.controller';
+import { OnCallSchedulesService } from './on-call-schedules.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -31,7 +41,7 @@ import { MonitorsService } from './monitors.service';
  * intends.
  */
 @Module({
-  imports: [PlatformModule, EventBusModule],
+  imports: [PlatformModule, EventBusModule, NotificationsModule],
   controllers: [
     MonitorsController,
     AlertRulesController,
@@ -39,6 +49,10 @@ import { MonitorsService } from './monitors.service';
     AgentTokensController,
     AgentIngestionController,
     CloudCredentialsController,
+    EscalationPoliciesController,
+    OnCallSchedulesController,
+    NotificationTemplatesController,
+    DowntimeEventsController,
   ],
   providers: [
     MonitorsService,
@@ -51,6 +65,11 @@ import { MonitorsService } from './monitors.service';
     AgentTokenGuard,
     CloudCredentialsService,
     CloudResourcePollerService,
+    EscalationPoliciesService,
+    EscalationSweepService,
+    OnCallSchedulesService,
+    NotificationTemplatesService,
+    DowntimeEventsService,
     {
       // The real AWS/Azure clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,
