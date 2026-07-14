@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import { promises as fs } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
 import { Client } from 'pg';
 import { AppModule } from '../../../../app.module';
@@ -36,6 +39,14 @@ function migratorClient() {
 async function main() {
   const migrator = migratorClient();
   await migrator.connect();
+
+  // Isolated storage dir so the attachment-migration path can be exercised
+  // for real (data: URLs, no live Freshdesk account needed) without racing
+  // whatever the running dev server's storage dir points at.
+  const storageDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'freshdesk-mapping-verify-'),
+  );
+  process.env.ATTACHMENTS_STORAGE_DIR = storageDir;
 
   const slug = `freshdesk-mapping-verify-${Date.now()}`;
   const {
@@ -262,7 +273,28 @@ async function main() {
           private: false,
           user_id: 9003,
           created_at: '2026-01-17T09:00:00Z',
-          attachments: [{ id: 1 }],
+          // A data: URL stands in for Freshdesk's real (pre-signed S3)
+          // attachment_url -- decodes to "hello world", 11 bytes -- so the
+          // download+re-upload path is exercised for real, with no live
+          // Freshdesk account needed.
+          attachments: [
+            {
+              id: 1,
+              name: 'log.txt',
+              size: 11,
+              attachment_url: 'data:text/plain;base64,aGVsbG8gd29ybGQ=',
+            },
+          ],
+        },
+      ],
+      // A deliberately unreachable URL, to prove one failed attachment
+      // produces a warning instead of aborting the whole ticket import.
+      attachments: [
+        {
+          id: 2,
+          name: 'unreachable.txt',
+          size: 5,
+          attachment_url: 'https://attachments.invalid.example/nope.txt',
         },
       ],
     };
@@ -281,11 +313,36 @@ async function main() {
       result3.warnings.some((w) => w.includes('did not match a seeded agent')),
       'an unmapped responder_id produces a warning rather than failing',
     );
+    const {
+      rows: [ticket3Ticket],
+    } = await migrator.query(
+      `SELECT id FROM tickets WHERE tenant_id = $1 AND legacy_ticket_number = $2`,
+      [tenant.id, ticket3.id],
+    );
+    const { rows: migratedAttachments } = await migrator.query(
+      `SELECT a.file_name, a.file_size_bytes, a.storage_path FROM ticket_attachments a
+       JOIN ticket_messages m ON m.id = a.ticket_message_id
+       WHERE m.ticket_id = $1`,
+      [ticket3Ticket.id],
+    );
     assert(
-      result3.warnings.some((w) =>
-        w.includes('attachment re-upload is not implemented'),
+      migratedAttachments.length === 1 &&
+        migratedAttachments[0].file_name === 'log.txt',
+      `a conversation attachment is actually downloaded and re-uploaded, not just logged as unmigrated (got ${migratedAttachments.length} row(s))`,
+    );
+    const onDiskContents = await fs.readFile(
+      path.join(storageDir, migratedAttachments[0].storage_path),
+      'utf8',
+    );
+    assert(
+      onDiskContents === 'hello world',
+      'the re-uploaded file on disk has the exact original bytes',
+    );
+    assert(
+      result3.warnings.some(
+        (w) => w.includes('unreachable.txt') && w.includes('failed to migrate'),
       ),
-      'a conversation with attachments produces an explicit not-migrated warning instead of silently dropping them',
+      'a top-level attachment whose URL fails to download produces a warning instead of aborting the ticket import',
     );
 
     const {
@@ -337,6 +394,7 @@ async function main() {
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();
+    await fs.rm(storageDir, { recursive: true, force: true });
   }
 }
 

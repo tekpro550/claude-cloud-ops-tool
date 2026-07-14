@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export interface FreshdeskAttachment {
+  id: number;
+  name: string;
+  size: number;
+  attachment_url: string;
+}
+
 export interface FreshdeskConversation {
   id: number;
   body_text: string;
@@ -8,7 +15,7 @@ export interface FreshdeskConversation {
   private: boolean;
   user_id: number;
   created_at: string;
-  attachments?: unknown[];
+  attachments?: FreshdeskAttachment[];
 }
 
 export interface FreshdeskTicket {
@@ -24,7 +31,7 @@ export interface FreshdeskTicket {
   created_at: string;
   updated_at: string;
   conversations?: FreshdeskConversation[];
-  attachments?: unknown[];
+  attachments?: FreshdeskAttachment[];
 }
 
 export interface FreshdeskAgent {
@@ -106,5 +113,22 @@ export class FreshdeskClient {
         `Freshdesk API error fetching agents: ${res.status} ${res.statusText}`,
       );
     return res.json();
+  }
+
+  /**
+   * Per section 9: attachments are pulled from Freshdesk's attachment URLs
+   * and re-uploaded to this app's own object storage, since Freshdesk access
+   * isn't guaranteed to persist after cutover. attachment_url is already a
+   * pre-signed, time-limited URL Freshdesk returns inline on the
+   * ticket/conversation payload -- no separate auth needed to fetch it.
+   */
+  async downloadAttachment(attachmentUrl: string): Promise<Buffer> {
+    const res = await fetch(attachmentUrl);
+    if (!res.ok) {
+      throw new Error(
+        `Failed to download Freshdesk attachment: ${res.status} ${res.statusText}`,
+      );
+    }
+    return Buffer.from(await res.arrayBuffer());
   }
 }

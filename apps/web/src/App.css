@@ -42,6 +42,30 @@
   font-family: monospace;
 }
 
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.header-auth-form input {
+  width: 130px;
+}
+
+.header-auth-user {
+  white-space: nowrap;
+}
+
+.header-auth-role {
+  color: #666;
+}
+
+.header-auth-error {
+  color: #b3261e;
+  font-size: 0.8rem;
+}
+
 .toolbar {
   display: flex;
   gap: 0.5rem;
@@ -194,6 +218,20 @@ td {
 
 .message-body {
   white-space: pre-wrap;
+}
+
+.message-attachments {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.message-attachments .link-button {
+  text-decoration: underline;
 }
 
 .message-composer {

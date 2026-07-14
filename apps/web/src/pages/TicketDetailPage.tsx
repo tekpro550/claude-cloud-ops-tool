@@ -4,14 +4,17 @@ import { Link, useParams } from "react-router-dom";
 import {
   addTicketMessage,
   ApiError,
+  downloadTicketAttachment,
   getTicket,
   listAgents,
   listCannedResponseFolders,
   listCannedResponses,
   listGroups,
+  listTicketAttachments,
   listTicketMessages,
   listTicketTypes,
   updateTicket,
+  uploadTicketAttachment,
   type UpdateTicketInput,
 } from "../lib/apiClient";
 import { platformLabel, PLATFORMS } from "../lib/platform";
@@ -30,6 +33,7 @@ import type {
   CannedResponseFolder,
   Group,
   Ticket,
+  TicketAttachment,
   TicketMessage,
   TicketMessageType,
   TicketPriority,
@@ -46,6 +50,7 @@ export default function TicketDetailPage() {
   const { tenantId } = useTenant();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -57,6 +62,7 @@ export default function TicketDetailPage() {
 
   const [messageType, setMessageType] = useState<TicketMessageType>("note");
   const [messageBody, setMessageBody] = useState("");
+  const [messageFile, setMessageFile] = useState<File | null>(null);
   const [posting, setPosting] = useState(false);
   const [timelineRefreshSignal, setTimelineRefreshSignal] = useState(0);
   const bumpTimeline = () => setTimelineRefreshSignal((s) => s + 1);
@@ -65,10 +71,11 @@ export default function TicketDetailPage() {
     if (!tenantId || !id) return;
     setLoading(true);
     setError(null);
-    Promise.all([getTicket(tenantId, id), listTicketMessages(tenantId, id)])
-      .then(([ticketRes, messagesRes]) => {
+    Promise.all([getTicket(tenantId, id), listTicketMessages(tenantId, id), listTicketAttachments(tenantId, id)])
+      .then(([ticketRes, messagesRes, attachmentsRes]) => {
         setTicket(ticketRes);
         setMessages(messagesRes);
+        setAttachments(attachmentsRes);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load ticket"))
       .finally(() => setLoading(false));
@@ -120,16 +127,26 @@ export default function TicketDetailPage() {
     // authorType is fixed to "system" rather than pretending it's a
     // specific logged-in agent (see lib/tenant.tsx).
     addTicketMessage(tenantId, id, { type: messageType, authorType: "system", body: messageBody })
+      .then((message) => (messageFile ? uploadTicketAttachment(tenantId, id, message.id, messageFile) : null))
       .then(() => {
         setMessageBody("");
-        return listTicketMessages(tenantId, id);
+        setMessageFile(null);
+        return Promise.all([listTicketMessages(tenantId, id), listTicketAttachments(tenantId, id)]);
       })
-      .then((res) => {
-        setMessages(res);
+      .then(([messagesRes, attachmentsRes]) => {
+        setMessages(messagesRes);
+        setAttachments(attachmentsRes);
         bumpTimeline();
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to add message"))
       .finally(() => setPosting(false));
+  };
+
+  const handleDownloadAttachment = (attachment: TicketAttachment) => {
+    if (!tenantId || !id) return;
+    downloadTicketAttachment(tenantId, id, attachment).catch((err) =>
+      setError(err instanceof ApiError ? err.message : "Failed to download attachment"),
+    );
   };
 
   const handlePickCannedResponse = (id: string) => {
@@ -323,14 +340,28 @@ export default function TicketDetailPage() {
           <h3>Messages</h3>
           {messages.length === 0 && <p className="hint">No messages yet.</p>}
           <ul className="message-thread">
-            {messages.map((message) => (
-              <li key={message.id} className={`message message-${message.type}`}>
-                <div className="message-meta">
-                  <strong>{message.type}</strong> by {message.author_type} · {new Date(message.created_at).toLocaleString()}
-                </div>
-                <div className="message-body">{message.body}</div>
-              </li>
-            ))}
+            {messages.map((message) => {
+              const messageAttachments = attachments.filter((a) => a.ticket_message_id === message.id);
+              return (
+                <li key={message.id} className={`message message-${message.type}`}>
+                  <div className="message-meta">
+                    <strong>{message.type}</strong> by {message.author_type} · {new Date(message.created_at).toLocaleString()}
+                  </div>
+                  <div className="message-body">{message.body}</div>
+                  {messageAttachments.length > 0 && (
+                    <ul className="message-attachments">
+                      {messageAttachments.map((a) => (
+                        <li key={a.id}>
+                          <button type="button" className="link-button" onClick={() => handleDownloadAttachment(a)}>
+                            {a.file_name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           <form className="message-composer" onSubmit={handleAddMessage}>
@@ -375,6 +406,11 @@ export default function TicketDetailPage() {
               onChange={(e) => setMessageBody(e.target.value)}
               rows={3}
               required
+            />
+            <input
+              type="file"
+              onChange={(e) => setMessageFile(e.target.files?.[0] ?? null)}
+              aria-label="Attach a file"
             />
             <button type="submit" disabled={posting}>
               {posting ? "Posting…" : "Add message"}

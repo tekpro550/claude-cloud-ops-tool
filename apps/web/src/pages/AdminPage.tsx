@@ -6,6 +6,7 @@ import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
 import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
+import SolutionsAdmin from "../components/admin/SolutionsAdmin";
 import TicketTypesAdmin from "../components/admin/TicketTypesAdmin";
 import { getSetupStatus } from "../lib/apiClient";
 import { useTenant } from "../lib/tenant";
@@ -72,6 +73,11 @@ export default function AdminPage() {
         <ScenariosAdmin tenantId={tenantId} onChange={handleChange} />
         <CannedResponseFoldersAdmin tenantId={tenantId} onChange={handleChange} />
         <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
+      </section>
+
+      <section className="admin-group">
+        <h3>Knowledge base</h3>
+        <SolutionsAdmin tenantId={tenantId} onChange={handleChange} />
       </section>
     </div>
   );

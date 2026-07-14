@@ -5,7 +5,7 @@ import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import type { SearchResults, SearchScope } from "../types/ticket";
 
-const SCOPES: SearchScope[] = ["all", "tickets", "contacts", "companies"];
+const SCOPES: SearchScope[] = ["all", "tickets", "contacts", "companies", "solutions"];
 
 export default function SearchPage() {
   const { tenantId } = useTenant();
@@ -34,7 +34,9 @@ export default function SearchPage() {
     return <p className="hint">Set a tenant id above to search.</p>;
   }
 
-  const totalResults = results ? results.tickets.length + results.contacts.length + results.companies.length : 0;
+  const totalResults = results
+    ? results.tickets.length + results.contacts.length + results.companies.length + results.solutions.length
+    : 0;
 
   return (
     <div>
@@ -96,6 +98,20 @@ export default function SearchPage() {
               <li key={c.id}>
                 <strong>{c.name}</strong>
                 {c.domain && <span className="hint"> — {c.domain}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {results && results.solutions.length > 0 && (
+        <div className="admin-entity">
+          <h4>Solutions</h4>
+          <ul className="admin-list">
+            {results.solutions.map((s) => (
+              <li key={s.id}>
+                <strong>{s.title}</strong>
+                {!s.is_published && <span className="hint"> (draft)</span>}
               </li>
             ))}
           </ul>

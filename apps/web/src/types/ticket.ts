@@ -193,6 +193,23 @@ export interface CannedResponse {
   folder_id: string | null;
 }
 
+export interface TicketAttachment {
+  id: string;
+  ticket_message_id: string;
+  file_name: string;
+  file_size_bytes: string;
+  created_at: string;
+}
+
+export interface Solution {
+  id: string;
+  title: string;
+  body: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TicketTodo {
   id: string;
   ticket_id: string;
@@ -216,12 +233,13 @@ export interface TicketTimeLogList {
   totalMinutes: number;
 }
 
-export type SearchScope = "all" | "tickets" | "contacts" | "companies";
+export type SearchScope = "all" | "tickets" | "contacts" | "companies" | "solutions";
 
 export interface SearchResults {
   tickets: Ticket[];
   contacts: Contact[];
   companies: Company[];
+  solutions: Solution[];
 }
 
 export interface DashboardSummary {

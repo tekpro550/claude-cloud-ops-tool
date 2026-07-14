@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
+import { ApiError } from "./lib/apiClient";
+import { useAuth } from "./lib/auth";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
 import CompaniesPage from "./pages/CompaniesPage";
@@ -26,6 +28,74 @@ function HeaderSearch() {
   return (
     <form className="header-search" onSubmit={handleSubmit}>
       <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
+    </form>
+  );
+}
+
+function HeaderAuth() {
+  const { tenantId } = useTenant();
+  const { user, login, logout } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (user) {
+    return (
+      <div className="header-auth">
+        <span className="header-auth-user">
+          {user.name} <span className="header-auth-role">({user.role})</span>
+        </span>
+        <button type="button" onClick={logout}>
+          Log out
+        </button>
+      </div>
+    );
+  }
+
+  if (!expanded) {
+    return (
+      <div className="header-auth">
+        <button type="button" onClick={() => setExpanded(true)}>
+          Log in
+        </button>
+      </div>
+    );
+  }
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(tenantId, email, password);
+      setExpanded(false);
+      setEmail("");
+      setPassword("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Login failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="header-auth header-auth-form" onSubmit={handleSubmit}>
+      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button type="submit" disabled={submitting}>
+        {submitting ? "Logging in…" : "Log in"}
+      </button>
+      <button type="button" onClick={() => setExpanded(false)}>
+        Cancel
+      </button>
+      {error && <span className="header-auth-error">{error}</span>}
     </form>
   );
 }
@@ -54,6 +124,7 @@ function App() {
             onChange={(e) => setTenantId(e.target.value.trim())}
           />
         </label>
+        <HeaderAuth />
       </header>
 
       <NeedsAttentionBanner />

@@ -3,7 +3,13 @@ import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
 import { SearchScope, SearchService } from './search.service';
 
-const VALID_SCOPES: SearchScope[] = ['all', 'tickets', 'contacts', 'companies'];
+const VALID_SCOPES: SearchScope[] = [
+  'all',
+  'tickets',
+  'contacts',
+  'companies',
+  'solutions',
+];
 
 @UseGuards(TenantHeaderGuard)
 @Controller('search')

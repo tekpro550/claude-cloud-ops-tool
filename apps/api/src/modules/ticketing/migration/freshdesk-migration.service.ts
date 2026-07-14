@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
+import { LocalDiskStorage } from '../attachments/object-storage';
 import {
   FreshdeskAgent,
+  FreshdeskAttachment,
+  FreshdeskClient,
   FreshdeskGroup,
   FreshdeskTicket,
 } from './freshdesk-client';
@@ -118,7 +121,42 @@ export interface MigrationContext {
 export class FreshdeskMigrationService {
   private readonly logger = new Logger(FreshdeskMigrationService.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly freshdeskClient: FreshdeskClient,
+    private readonly storage: LocalDiskStorage,
+  ) {}
+
+  /**
+   * Downloads one Freshdesk attachment and inserts its ticket_attachments
+   * row, tied to `messageId`. Failures (a since-expired attachment_url, a
+   * network blip) are caught and turned into a warning rather than aborting
+   * the whole ticket import -- losing one attachment shouldn't lose the rest
+   * of a ticket's history.
+   */
+  private async migrateAttachment(
+    queryRunner: QueryRunner,
+    tenantId: string,
+    messageId: string,
+    attachment: FreshdeskAttachment,
+    warnings: string[],
+  ): Promise<void> {
+    try {
+      const buffer = await this.freshdeskClient.downloadAttachment(
+        attachment.attachment_url,
+      );
+      const storagePath = await this.storage.save(buffer, attachment.name);
+      await queryRunner.query(
+        `INSERT INTO ticket_attachments (tenant_id, ticket_message_id, file_name, file_size_bytes, storage_path)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [tenantId, messageId, attachment.name, attachment.size, storagePath],
+      );
+    } catch (err) {
+      warnings.push(
+        `attachment "${attachment.name}" (Freshdesk id ${attachment.id}) failed to migrate: ${(err as Error).message}`,
+      );
+    }
+  }
 
   /**
    * Builds the id/name lookup tables importTicket() needs: Freshdesk group
@@ -294,15 +332,16 @@ export class FreshdeskMigrationService {
         ],
       );
 
+      let firstMessageId: string | null = null;
       for (const conv of ticket.conversations ?? []) {
         const authorType = conv.private
           ? 'system'
           : conv.incoming
             ? 'contact'
             : 'agent';
-        await queryRunner.query(
+        const [message] = await queryRunner.query(
           `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [
             tenantId,
             inserted.id,
@@ -313,17 +352,40 @@ export class FreshdeskMigrationService {
           ],
         );
         messagesImported += 1;
-        if (conv.attachments && conv.attachments.length > 0) {
-          warnings.push(
-            `ticket ${ticket.id}, conversation ${conv.id} has ${conv.attachments.length} attachment(s) -- attachment re-upload is not implemented (no object storage exists in this codebase yet); they were not migrated`,
+        firstMessageId ??= message.id;
+
+        for (const attachment of conv.attachments ?? []) {
+          await this.migrateAttachment(
+            queryRunner,
+            tenantId,
+            message.id,
+            attachment,
+            warnings,
           );
         }
       }
 
+      // Attachments on the ticket itself (not tied to any conversation --
+      // typically ones added on the original description) need a message to
+      // hang off of, since ticket_attachments.ticket_message_id is required.
+      // The first imported conversation is the closest stand-in; if the
+      // ticket has no conversations at all there's nowhere to attach them.
       if (ticket.attachments && ticket.attachments.length > 0) {
-        warnings.push(
-          `ticket ${ticket.id} has ${ticket.attachments.length} top-level attachment(s) -- not migrated, same object-storage gap as above`,
-        );
+        if (firstMessageId) {
+          for (const attachment of ticket.attachments) {
+            await this.migrateAttachment(
+              queryRunner,
+              tenantId,
+              firstMessageId,
+              attachment,
+              warnings,
+            );
+          }
+        } else {
+          warnings.push(
+            `ticket ${ticket.id} has ${ticket.attachments.length} top-level attachment(s) but no conversations to attach them to -- not migrated`,
+          );
+        }
       }
 
       imported = true;

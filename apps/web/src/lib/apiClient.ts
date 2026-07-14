@@ -18,8 +18,10 @@ import type {
   SearchScope,
   SetupStatus,
   SlaPolicy,
+  Solution,
   Ticket,
   TicketActivity,
+  TicketAttachment,
   TicketList,
   TicketMessage,
   TicketMessageAuthorType,
@@ -44,13 +46,27 @@ export class ApiError extends Error {
   }
 }
 
+// Set by AuthProvider on login/logout. Kept as a module-level variable rather
+// than threaded through every one of the ~40 API functions below -- once set,
+// every request attaches it, and the backend guard prefers a valid Bearer
+// token over X-Tenant-Id when both are present.
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
 async function request<T>(tenantId: string, method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Tenant-Id": tenantId,
+  };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Tenant-Id": tenantId,
-    },
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
@@ -153,6 +169,58 @@ export function listTicketActivities(tenantId: string, ticketId: string): Promis
 
 export function getTicketTimeline(tenantId: string, ticketId: string): Promise<TicketTimelineItem[]> {
   return request(tenantId, "GET", `/tickets/${ticketId}/timeline`);
+}
+
+export function listTicketAttachments(tenantId: string, ticketId: string): Promise<TicketAttachment[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/attachments`);
+}
+
+// Multipart upload -- can't go through request(), which always sends
+// Content-Type: application/json.
+export async function uploadTicketAttachment(
+  tenantId: string,
+  ticketId: string,
+  messageId: string,
+  file: File,
+): Promise<TicketAttachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const headers: Record<string, string> = { "X-Tenant-Id": tenantId };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}/messages/${messageId}/attachments`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    const message = payload?.message ?? res.statusText;
+    throw new ApiError(Array.isArray(message) ? message.join(", ") : message, res.status);
+  }
+  return res.json();
+}
+
+// Downloading needs the same auth headers as any other request, so a plain
+// <a href> won't work -- fetch the bytes and trigger a browser download via
+// a temporary blob URL instead.
+export async function downloadTicketAttachment(tenantId: string, ticketId: string, attachment: TicketAttachment): Promise<void> {
+  const headers: Record<string, string> = { "X-Tenant-Id": tenantId };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}/attachments/${attachment.id}/download`, { headers });
+  if (!res.ok) {
+    throw new ApiError("Failed to download attachment", res.status);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = attachment.file_name;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export interface AddTicketMessageInput {
@@ -470,4 +538,47 @@ export function updateCompany(
 
 export function deleteCompany(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/companies/${id}`);
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "agent" | "viewer";
+}
+
+export interface LoginResult {
+  token: string;
+  user: AuthUser;
+}
+
+export function login(tenantId: string, email: string, password: string): Promise<LoginResult> {
+  return request(tenantId, "POST", "/auth/login", { email, password });
+}
+
+export function getCurrentUser(tenantId: string): Promise<AuthUser> {
+  return request(tenantId, "GET", "/auth/me");
+}
+
+export function listSolutions(tenantId: string): Promise<Solution[]> {
+  return request(tenantId, "GET", "/admin/solutions");
+}
+
+export function createSolution(
+  tenantId: string,
+  input: { title: string; body: string; isPublished?: boolean },
+): Promise<Solution> {
+  return request(tenantId, "POST", "/admin/solutions", input);
+}
+
+export function updateSolution(
+  tenantId: string,
+  id: string,
+  input: { title?: string; body?: string; isPublished?: boolean },
+): Promise<Solution> {
+  return request(tenantId, "PATCH", `/admin/solutions/${id}`, input);
+}
+
+export function deleteSolution(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/admin/solutions/${id}`);
 }
