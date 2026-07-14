@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, createTicket, listTickets } from "../lib/apiClient";
 import { relativeTime } from "../lib/relativeTime";
+import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import type { Ticket, TicketPriority, TicketStatus } from "../types/ticket";
 
@@ -132,7 +133,7 @@ export default function TicketListPage() {
           <tbody>
             {tickets.map((ticket) => (
               <tr key={ticket.id}>
-                <td>{ticket.ticket_number}</td>
+                <td>{formatTicketNumber(ticket)}</td>
                 <td>
                   <Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link>
                 </td>

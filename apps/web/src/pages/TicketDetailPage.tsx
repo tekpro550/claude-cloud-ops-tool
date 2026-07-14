@@ -14,6 +14,7 @@ import {
   type UpdateTicketInput,
 } from "../lib/apiClient";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
+import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import SidePanel from "../components/SidePanel";
 import TicketTodos from "../components/TicketTodos";
@@ -240,7 +241,7 @@ export default function TicketDetailPage() {
       </p>
 
       <h2>
-        #{ticket.ticket_number} {ticket.subject}
+        #{formatTicketNumber(ticket)} {ticket.subject}
       </h2>
 
       {error && <p className="error">{error}</p>}
