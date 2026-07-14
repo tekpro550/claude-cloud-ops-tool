@@ -1,11 +1,12 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
+import {
+  AutomationAction,
+  applyAction,
+  assertActionTargetsBelongToTenant,
+} from './apply-action';
 import {
   CreateAutomationRuleDto,
   UpdateAutomationRuleDto,
@@ -26,17 +27,6 @@ interface AutomationCondition {
   value: string;
 }
 
-interface AutomationAction {
-  type:
-    | 'set_status'
-    | 'set_priority'
-    | 'set_group'
-    | 'set_agent'
-    | 'set_platform'
-    | 'add_note';
-  value: string;
-}
-
 function conditionMatches(
   ticket: Record<string, any>,
   condition: AutomationCondition,
@@ -45,36 +35,6 @@ function conditionMatches(
   const actual = raw === null || raw === undefined ? '' : String(raw);
   if (condition.operator === 'equals') return actual === condition.value;
   return actual.toLowerCase().includes(condition.value.toLowerCase());
-}
-
-async function assertActionTargetsBelongToTenant(
-  queryRunner: QueryRunner,
-  actions: AutomationAction[],
-): Promise<void> {
-  for (const action of actions) {
-    if (action.type === 'set_group') {
-      const rows = await queryRunner.query(
-        `SELECT 1 FROM groups WHERE id = $1`,
-        [action.value],
-      );
-      if (rows.length === 0) {
-        throw new BadRequestException(
-          `set_group action references group ${action.value}, which does not exist for this tenant`,
-        );
-      }
-    }
-    if (action.type === 'set_agent') {
-      const rows = await queryRunner.query(
-        `SELECT 1 FROM agents WHERE id = $1`,
-        [action.value],
-      );
-      if (rows.length === 0) {
-        throw new BadRequestException(
-          `set_agent action references agent ${action.value}, which does not exist for this tenant`,
-        );
-      }
-    }
-  }
 }
 
 /**
@@ -205,70 +165,9 @@ export class AutomationRulesService {
       if (!conditionsMet) continue;
 
       for (const action of rule.actions) {
-        current = await this.applyAction(
-          tenantId,
-          current,
-          action,
-          queryRunner,
-        );
+        current = await applyAction(tenantId, current, action, queryRunner);
       }
     }
     return current;
-  }
-
-  private async applyAction(
-    tenantId: string,
-    ticket: Record<string, any>,
-    action: AutomationAction,
-    queryRunner: QueryRunner,
-  ): Promise<Record<string, any>> {
-    switch (action.type) {
-      case 'set_status': {
-        const closing =
-          action.value === 'resolved' || action.value === 'closed';
-        const [rows] = await queryRunner.query(
-          `UPDATE tickets SET status = $1, resolved_at = $2, updated_at = now() WHERE id = $3 RETURNING *`,
-          [action.value, closing ? new Date() : null, ticket.id],
-        );
-        return rows[0];
-      }
-      case 'set_priority': {
-        const [rows] = await queryRunner.query(
-          `UPDATE tickets SET priority = $1, updated_at = now() WHERE id = $2 RETURNING *`,
-          [action.value, ticket.id],
-        );
-        return rows[0];
-      }
-      case 'set_group': {
-        const [rows] = await queryRunner.query(
-          `UPDATE tickets SET group_id = $1, updated_at = now() WHERE id = $2 RETURNING *`,
-          [action.value, ticket.id],
-        );
-        return rows[0];
-      }
-      case 'set_agent': {
-        const [rows] = await queryRunner.query(
-          `UPDATE tickets SET agent_id = $1, updated_at = now() WHERE id = $2 RETURNING *`,
-          [action.value, ticket.id],
-        );
-        return rows[0];
-      }
-      case 'set_platform': {
-        const [rows] = await queryRunner.query(
-          `UPDATE tickets SET platform = $1, updated_at = now() WHERE id = $2 RETURNING *`,
-          [action.value, ticket.id],
-        );
-        return rows[0];
-      }
-      case 'add_note': {
-        await queryRunner.query(
-          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body) VALUES ($1, $2, 'note', 'system', $3)`,
-          [tenantId, ticket.id, action.value],
-        );
-        return ticket;
-      }
-      default:
-        return ticket;
-    }
   }
 }

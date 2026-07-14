@@ -8,6 +8,8 @@ import { AgentsController } from './agents.controller';
 import { AgentsService } from './agents.service';
 import { AutomationRulesController } from './automation/automation-rules.controller';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { CannedResponseFoldersController } from './canned-response-folders.controller';
+import { CannedResponseFoldersService } from './canned-response-folders.service';
 import { CannedResponsesController } from './canned-responses.controller';
 import { CannedResponsesService } from './canned-responses.service';
 import { CompaniesController } from './companies.controller';
@@ -22,6 +24,10 @@ import { GroupsService } from './groups.service';
 import { InternalTicketsController } from './internal/internal-tickets.controller';
 import { FreshdeskClient } from './migration/freshdesk-client';
 import { FreshdeskMigrationService } from './migration/freshdesk-migration.service';
+import { ScenariosController } from './scenarios.controller';
+import { ScenariosService } from './scenarios.service';
+import { SearchController } from './search/search.controller';
+import { SearchService } from './search/search.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
@@ -48,8 +54,11 @@ import { TicketsService } from './tickets.service';
     SlaPoliciesController,
     AutomationRulesController,
     CannedResponsesController,
+    CannedResponseFoldersController,
     ContactsController,
     CompaniesController,
+    ScenariosController,
+    SearchController,
     TicketTodosController,
     TicketTimeLogsController,
     DashboardController,
@@ -66,8 +75,11 @@ import { TicketsService } from './tickets.service';
     SlaPoliciesService,
     AutomationRulesService,
     CannedResponsesService,
+    CannedResponseFoldersService,
     ContactsService,
     CompaniesService,
+    ScenariosService,
+    SearchService,
     TicketTodosService,
     TicketTimeLogsService,
     DashboardService,

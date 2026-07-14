@@ -20,8 +20,12 @@ export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
   @Get()
-  list(@CurrentTenantId() tenantId: string, @Query('search') search?: string) {
-    return this.contactsService.list(tenantId, search);
+  list(
+    @CurrentTenantId() tenantId: string,
+    @Query('search') search?: string,
+    @Query('needsAction') needsAction?: string,
+  ) {
+    return this.contactsService.list(tenantId, search, needsAction === 'true');
   }
 
   @Get(':id')

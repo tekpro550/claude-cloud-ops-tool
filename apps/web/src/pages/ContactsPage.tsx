@@ -9,6 +9,7 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
+  const [needsActionOnly, setNeedsActionOnly] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function ContactsPage() {
 
   const load = () => {
     if (!tenantId) return;
-    Promise.all([listContacts(tenantId, search || undefined), listCompanies(tenantId)])
+    Promise.all([listContacts(tenantId, search || undefined, needsActionOnly), listCompanies(tenantId)])
       .then(([contactsRes, companiesRes]) => {
         setContacts(contactsRes);
         setCompanies(companiesRes);
@@ -33,7 +34,7 @@ export default function ContactsPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load contacts"));
   };
 
-  useEffect(load, [tenantId, search]);
+  useEffect(load, [tenantId, search, needsActionOnly]);
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? null;
 
@@ -94,6 +95,14 @@ export default function ContactsPage() {
       <h2>Contacts</h2>
       <div className="toolbar">
         <input placeholder="Search by name or email" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <label className="side-panel-toggle">
+          <input
+            type="checkbox"
+            checked={needsActionOnly}
+            onChange={(e) => setNeedsActionOnly(e.target.checked)}
+          />
+          Needs action only
+        </label>
       </div>
       {error && <p className="error">{error}</p>}
       {contacts.length === 0 && <p className="hint">No contacts found.</p>}
@@ -131,6 +140,7 @@ export default function ContactsPage() {
                   <span className="hint">
                     {[contact.email, contact.phone, companyName(contact.company_id)].filter(Boolean).join(" · ")}
                   </span>
+                  {!contact.email_valid && <span className="badge sla-state-breached"> invalid email</span>}
                 </span>
                 <button type="button" className="link-button" onClick={() => startEdit(contact)}>
                   Edit

@@ -5,7 +5,7 @@
 
 export type TicketStatus = "new" | "open" | "pending" | "resolved" | "closed";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
-export type TicketSource = "email" | "web_form" | "whatsapp" | "chat" | "api" | "alert";
+export type TicketSource = "email" | "web_form" | "web_portal" | "agent_outbound" | "whatsapp" | "chat" | "api" | "alert";
 export type TicketPlatform = "aws" | "azure" | "alibaba_cloud" | "microsoft_365" | "tittu_marketing_platform" | "other";
 
 export interface Ticket {
@@ -28,6 +28,7 @@ export interface Ticket {
   resolution_due_at: string | null;
   resolved_at: string | null;
   source: TicketSource;
+  source_detail: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -70,6 +71,7 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   company_id: string | null;
+  email_valid: boolean;
 }
 
 export interface TicketActivity {
@@ -80,6 +82,34 @@ export interface TicketActivity {
   new_value: string | null;
   created_at: string;
 }
+
+export interface TicketTimelineActivityItem {
+  kind: "activity";
+  id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  timestamp: string;
+}
+
+export interface TicketTimelineMessageItem {
+  kind: "message";
+  id: string;
+  type: TicketMessageType;
+  author_type: TicketMessageAuthorType;
+  body: string;
+  timestamp: string;
+}
+
+export interface TicketTimelineTimeLogItem {
+  kind: "time_log";
+  id: string;
+  minutes: number;
+  note: string | null;
+  timestamp: string;
+}
+
+export type TicketTimelineItem = TicketTimelineActivityItem | TicketTimelineMessageItem | TicketTimelineTimeLogItem;
 
 export interface Agent {
   id: string;
@@ -143,10 +173,24 @@ export interface AutomationRule {
   actions: AutomationAction[];
 }
 
+export interface Scenario {
+  id: string;
+  name: string;
+  agent_id: string | null;
+  actions: AutomationAction[];
+}
+
+export interface CannedResponseFolder {
+  id: string;
+  name: string;
+  agent_id: string | null;
+}
+
 export interface CannedResponse {
   id: string;
   title: string;
   body: string;
+  folder_id: string | null;
 }
 
 export interface TicketTodo {
@@ -170,6 +214,14 @@ export interface TicketTimeLog {
 export interface TicketTimeLogList {
   items: TicketTimeLog[];
   totalMinutes: number;
+}
+
+export type SearchScope = "all" | "tickets" | "contacts" | "companies";
+
+export interface SearchResults {
+  tickets: Ticket[];
+  contacts: Contact[];
+  companies: Company[];
 }
 
 export interface DashboardSummary {

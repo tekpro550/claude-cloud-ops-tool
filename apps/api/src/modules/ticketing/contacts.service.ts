@@ -6,6 +6,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { isEmailValid } from './contact-email-validation';
 import { CreateContactDto, UpdateContactDto } from './contacts.dto';
 
 async function assertCompanyBelongsToTenant(
@@ -27,15 +28,26 @@ async function assertCompanyBelongsToTenant(
 export class ContactsService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  list(tenantId: string, search?: string) {
+  list(tenantId: string, search?: string, needsAction?: boolean) {
     return withTenantContext(this.dataSource, tenantId, (queryRunner) => {
+      const conditions: string[] = [];
+      const params: unknown[] = [];
       if (search) {
-        return queryRunner.query(
-          `SELECT * FROM contacts WHERE name ILIKE $1 OR email ILIKE $1 ORDER BY name LIMIT 50`,
-          [`%${search}%`],
+        params.push(`%${search}%`);
+        conditions.push(
+          `(name ILIKE $${params.length} OR email ILIKE $${params.length})`,
         );
       }
-      return queryRunner.query(`SELECT * FROM contacts ORDER BY name LIMIT 50`);
+      if (needsAction) {
+        conditions.push(`email_valid = false`);
+      }
+      const where = conditions.length
+        ? `WHERE ${conditions.join(' AND ')}`
+        : '';
+      return queryRunner.query(
+        `SELECT * FROM contacts ${where} ORDER BY name LIMIT 50`,
+        params,
+      );
     });
   }
 
@@ -58,13 +70,14 @@ export class ContactsService {
         await assertCompanyBelongsToTenant(queryRunner, dto.companyId);
       }
       const [contact] = await queryRunner.query(
-        `INSERT INTO contacts (tenant_id, name, email, phone, company_id) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        `INSERT INTO contacts (tenant_id, name, email, phone, company_id, email_valid) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
         [
           tenantId,
           dto.name,
           dto.email ?? null,
           dto.phone ?? null,
           dto.companyId ?? null,
+          isEmailValid(dto.email),
         ],
       );
       return contact;
@@ -91,7 +104,10 @@ export class ContactsService {
         sets.push(`${column} = $${params.length}`);
       };
       if (dto.name !== undefined) assign('name', dto.name);
-      if (dto.email !== undefined) assign('email', dto.email);
+      if (dto.email !== undefined) {
+        assign('email', dto.email);
+        assign('email_valid', isEmailValid(dto.email));
+      }
       if (dto.phone !== undefined) assign('phone', dto.phone);
       if (dto.companyId !== undefined) assign('company_id', dto.companyId);
 

@@ -8,6 +8,7 @@ import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
+import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -162,8 +163,8 @@ export class TicketsService {
       );
 
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16)
          RETURNING *`,
         [
           tenantId,
@@ -176,6 +177,7 @@ export class TicketsService {
           dto.resourceId ?? null,
           dto.priority ?? 'medium',
           dto.source,
+          dto.sourceDetail ?? null,
           slaPolicyId,
           firstResponseDueAt,
           resolutionDueAt,
@@ -190,6 +192,36 @@ export class TicketsService {
         queryRunner,
       );
     });
+  }
+
+  /**
+   * The agent-initiated outbound path from section 1: an agent proactively
+   * emails a contact and a ticket gets created and associated with that
+   * contact automatically, reusing the same create()/addMessage() logic the
+   * customer-facing paths use rather than a separate code path. Unlike a
+   * regular reply, the very first message is the ticket's opening move, not
+   * a response to something the contact sent in.
+   */
+  async composeOutbound(tenantId: string, dto: ComposeOutboundDto) {
+    if (!dto.contactId && !dto.contact) {
+      throw new BadRequestException(
+        'Either contactId or contact { name, email } is required',
+      );
+    }
+    const ticket = await this.create(tenantId, {
+      subject: dto.subject,
+      contactId: dto.contactId,
+      contact: dto.contact,
+      source: 'agent_outbound',
+      groupId: dto.groupId,
+      agentId: dto.agentId,
+    });
+    await this.addMessage(tenantId, ticket.id, {
+      type: 'reply',
+      authorType: 'agent',
+      body: dto.body,
+    });
+    return this.get(tenantId, ticket.id);
   }
 
   async list(tenantId: string, query: ListTicketsQueryDto) {
@@ -505,6 +537,64 @@ export class TicketsService {
         `SELECT * FROM ticket_activities WHERE ticket_id = $1 ORDER BY created_at ASC`,
         [ticketId],
       );
+    });
+  }
+
+  /**
+   * Merged view of messages, property changes, and time logs (section 4's
+   * GET /tickets/:id/timeline), each tagged with a `kind` discriminator so
+   * the frontend can render each differently while sharing one chronological
+   * feed. Time logs sort by logged_at (when the work happened) rather than
+   * created_at (when the log entry was recorded), which can differ if an
+   * agent logs time after the fact.
+   */
+  async getTimeline(tenantId: string, ticketId: string) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [ticket] = await queryRunner.query(
+        `SELECT id FROM tickets WHERE id = $1`,
+        [ticketId],
+      );
+      if (!ticket) {
+        throw new NotFoundException(`Ticket ${ticketId} not found`);
+      }
+
+      // Sequential, not Promise.all: queryRunner holds one connection, and
+      // node-postgres doesn't support concurrent queries on the same client.
+      const messages = await queryRunner.query(
+        `SELECT * FROM ticket_messages WHERE ticket_id = $1`,
+        [ticketId],
+      );
+      const activities = await queryRunner.query(
+        `SELECT * FROM ticket_activities WHERE ticket_id = $1`,
+        [ticketId],
+      );
+      const timeLogs = await queryRunner.query(
+        `SELECT * FROM ticket_time_logs WHERE ticket_id = $1`,
+        [ticketId],
+      );
+
+      const items = [
+        ...messages.map((m: Record<string, any>) => ({
+          kind: 'message' as const,
+          timestamp: m.created_at,
+          ...m,
+        })),
+        ...activities.map((a: Record<string, any>) => ({
+          kind: 'activity' as const,
+          timestamp: a.created_at,
+          ...a,
+        })),
+        ...timeLogs.map((t: Record<string, any>) => ({
+          kind: 'time_log' as const,
+          timestamp: t.logged_at,
+          ...t,
+        })),
+      ];
+      items.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+      return items;
     });
   }
 }

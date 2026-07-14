@@ -1,13 +1,34 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
 import CompaniesPage from "./pages/CompaniesPage";
+import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
 import DashboardPage from "./pages/DashboardPage";
+import SearchPage from "./pages/SearchPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import TicketListPage from "./pages/TicketListPage";
+
+function HeaderSearch() {
+  const [q, setQ] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!q.trim()) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
+
+  return (
+    <form className="header-search" onSubmit={handleSubmit}>
+      <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
+    </form>
+  );
+}
 
 function App() {
   const { tenantId, setTenantId } = useTenant();
@@ -21,8 +42,10 @@ function App() {
           <Link to="/dashboard">Dashboard</Link>
           <Link to="/contacts">Contacts</Link>
           <Link to="/companies">Companies</Link>
+          <Link to="/compose">Compose email</Link>
           <Link to="/admin">Admin</Link>
         </nav>
+        <HeaderSearch />
         <label className="tenant-input">
           X-Tenant-Id
           <input
@@ -42,6 +65,8 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/compose" element={<ComposeOutboundPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>

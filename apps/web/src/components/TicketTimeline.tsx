@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { listTicketActivities } from "../lib/apiClient";
+import { getTicketTimeline } from "../lib/apiClient";
 import { platformLabel } from "../lib/platform";
 import { relativeTime } from "../lib/relativeTime";
-import type { Agent, Group, TicketActivity, TicketPlatform, TicketType } from "../types/ticket";
+import type { Agent, Group, TicketPlatform, TicketTimelineItem, TicketType } from "../types/ticket";
 
 const FIELD_LABELS: Record<string, string> = {
   status: "Status",
@@ -16,27 +16,24 @@ const FIELD_LABELS: Record<string, string> = {
 export default function TicketTimeline({
   tenantId,
   ticketId,
-  updatedAt,
+  refreshSignal,
   groups,
   agents,
   ticketTypes,
 }: {
   tenantId: string;
   ticketId: string;
-  updatedAt: string;
+  /** Bump whenever a message, time log, or property change could have landed, to refetch. */
+  refreshSignal: number;
   groups: Group[];
   agents: Agent[];
   ticketTypes: TicketType[];
 }) {
-  const [activities, setActivities] = useState<TicketActivity[]>([]);
+  const [items, setItems] = useState<TicketTimelineItem[]>([]);
 
-  // updatedAt changes every time a property change lands (see
-  // tickets.service.ts update()), so this refetches whenever a new activity
-  // row could exist -- otherwise the list would only ever reflect whatever
-  // existed when the ticket detail page first mounted.
   useEffect(() => {
-    listTicketActivities(tenantId, ticketId).then(setActivities);
-  }, [tenantId, ticketId, updatedAt]);
+    getTicketTimeline(tenantId, ticketId).then(setItems);
+  }, [tenantId, ticketId, refreshSignal]);
 
   const resolveValue = (field: string, value: string | null) => {
     if (value === null) return "unset";
@@ -47,20 +44,35 @@ export default function TicketTimeline({
     return value;
   };
 
-  if (activities.length === 0) {
-    return <p className="hint">No property changes yet.</p>;
+  if (items.length === 0) {
+    return <p className="hint">Nothing here yet.</p>;
   }
 
   return (
     <ul className="timeline-list">
-      {activities.map((activity) => (
-        <li key={activity.id}>
-          <span className="hint" title={new Date(activity.created_at).toLocaleString()}>
-            {relativeTime(activity.created_at)}
+      {items.map((item) => (
+        <li key={`${item.kind}-${item.id}`}>
+          <span className="hint" title={new Date(item.timestamp).toLocaleString()}>
+            {relativeTime(item.timestamp)}
           </span>{" "}
-          <strong>{FIELD_LABELS[activity.field] ?? activity.field}</strong> changed from{" "}
-          <em>{resolveValue(activity.field, activity.old_value)}</em> to{" "}
-          <em>{resolveValue(activity.field, activity.new_value)}</em>
+          {item.kind === "activity" && (
+            <>
+              <strong>{FIELD_LABELS[item.field] ?? item.field}</strong> changed from{" "}
+              <em>{resolveValue(item.field, item.old_value)}</em> to <em>{resolveValue(item.field, item.new_value)}</em>
+            </>
+          )}
+          {item.kind === "message" && (
+            <>
+              <strong className="hint">{item.type}</strong> by {item.author_type}: {item.body.slice(0, 120)}
+              {item.body.length > 120 ? "…" : ""}
+            </>
+          )}
+          {item.kind === "time_log" && (
+            <>
+              logged <strong>{item.minutes} min</strong>
+              {item.note ? ` — ${item.note}` : ""}
+            </>
+          )}
         </li>
       ))}
     </ul>

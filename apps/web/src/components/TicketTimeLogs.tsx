@@ -3,7 +3,15 @@ import type { FormEvent } from "react";
 import { createTicketTimeLog, deleteTicketTimeLog, listTicketTimeLogs } from "../lib/apiClient";
 import type { TicketTimeLog } from "../types/ticket";
 
-export default function TicketTimeLogs({ tenantId, ticketId }: { tenantId: string; ticketId: string }) {
+export default function TicketTimeLogs({
+  tenantId,
+  ticketId,
+  onChange,
+}: {
+  tenantId: string;
+  ticketId: string;
+  onChange?: () => void;
+}) {
   const [logs, setLogs] = useState<TicketTimeLog[]>([]);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [minutes, setMinutes] = useState("");
@@ -29,12 +37,16 @@ export default function TicketTimeLogs({ tenantId, ticketId }: { tenantId: strin
         setMinutes("");
         setNote("");
         load();
+        onChange?.();
       })
       .finally(() => setBusy(false));
   };
 
   const remove = (logId: string) => {
-    deleteTicketTimeLog(tenantId, ticketId, logId).then(load);
+    deleteTicketTimeLog(tenantId, ticketId, logId).then(() => {
+      load();
+      onChange?.();
+    });
   };
 
   return (

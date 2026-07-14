@@ -5,6 +5,7 @@ import type {
   AutomationRule,
   AutomationTrigger,
   CannedResponse,
+  CannedResponseFolder,
   Company,
   Contact,
   DashboardSlaSummary,
@@ -12,6 +13,9 @@ import type {
   DashboardTrendPoint,
   Group,
   NeedsAttentionItem,
+  Scenario,
+  SearchResults,
+  SearchScope,
   SetupStatus,
   SlaPolicy,
   Ticket,
@@ -23,6 +27,7 @@ import type {
   TicketPlatform,
   TicketPriority,
   TicketStatus,
+  TicketTimelineItem,
   TicketTimeLogList,
   TicketTodo,
   TicketType,
@@ -95,6 +100,24 @@ export function createTicket(tenantId: string, input: CreateTicketInput): Promis
   return request(tenantId, "POST", "/tickets", input);
 }
 
+export interface ComposeOutboundInput {
+  contactId?: string;
+  contact?: { name: string; email: string };
+  subject: string;
+  body: string;
+  groupId?: string;
+  agentId?: string;
+}
+
+export function composeOutbound(tenantId: string, input: ComposeOutboundInput): Promise<Ticket> {
+  return request(tenantId, "POST", "/tickets/compose-outbound", input);
+}
+
+export function search(tenantId: string, q: string, scope: SearchScope = "all"): Promise<SearchResults> {
+  const params = new URLSearchParams({ q, scope });
+  return request(tenantId, "GET", `/search?${params.toString()}`);
+}
+
 export interface UpdateTicketInput {
   status?: TicketStatus;
   priority?: TicketPriority;
@@ -126,6 +149,10 @@ export function listTicketMessages(tenantId: string, ticketId: string): Promise<
 
 export function listTicketActivities(tenantId: string, ticketId: string): Promise<TicketActivity[]> {
   return request(tenantId, "GET", `/tickets/${ticketId}/activities`);
+}
+
+export function getTicketTimeline(tenantId: string, ticketId: string): Promise<TicketTimelineItem[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/timeline`);
 }
 
 export interface AddTicketMessageInput {
@@ -315,16 +342,73 @@ export function deleteAutomationRule(tenantId: string, id: string): Promise<void
   return request(tenantId, "DELETE", `/automation-rules/${id}`);
 }
 
+// ---- Scenarios (one-click macros) ----
+
+export function listScenarios(tenantId: string): Promise<Scenario[]> {
+  return request(tenantId, "GET", "/scenarios");
+}
+
+export function createScenario(
+  tenantId: string,
+  input: { name: string; agentId?: string; actions: AutomationAction[] },
+): Promise<Scenario> {
+  return request(tenantId, "POST", "/scenarios", input);
+}
+
+export function updateScenario(
+  tenantId: string,
+  id: string,
+  input: { name?: string; agentId?: string; actions?: AutomationAction[] },
+): Promise<Scenario> {
+  return request(tenantId, "PATCH", `/scenarios/${id}`, input);
+}
+
+export function deleteScenario(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/scenarios/${id}`);
+}
+
+export function applyScenario(tenantId: string, scenarioId: string, ticketId: string): Promise<Ticket> {
+  return request(tenantId, "POST", `/scenarios/${scenarioId}/apply`, { ticketId });
+}
+
+// ---- Canned response folders ----
+
+export function listCannedResponseFolders(tenantId: string): Promise<CannedResponseFolder[]> {
+  return request(tenantId, "GET", "/canned-response-folders");
+}
+
+export function createCannedResponseFolder(
+  tenantId: string,
+  input: { name: string; agentId?: string },
+): Promise<CannedResponseFolder> {
+  return request(tenantId, "POST", "/canned-response-folders", input);
+}
+
+export function updateCannedResponseFolder(
+  tenantId: string,
+  id: string,
+  input: { name?: string; agentId?: string },
+): Promise<CannedResponseFolder> {
+  return request(tenantId, "PATCH", `/canned-response-folders/${id}`, input);
+}
+
+export function deleteCannedResponseFolder(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/canned-response-folders/${id}`);
+}
+
 // ---- Canned responses (create/update/delete; list already defined above) ----
 
-export function createCannedResponse(tenantId: string, input: { title: string; body: string }): Promise<CannedResponse> {
+export function createCannedResponse(
+  tenantId: string,
+  input: { title: string; body: string; folderId?: string },
+): Promise<CannedResponse> {
   return request(tenantId, "POST", "/canned-responses", input);
 }
 
 export function updateCannedResponse(
   tenantId: string,
   id: string,
-  input: { title?: string; body?: string },
+  input: { title?: string; body?: string; folderId?: string },
 ): Promise<CannedResponse> {
   return request(tenantId, "PATCH", `/canned-responses/${id}`, input);
 }
@@ -335,9 +419,12 @@ export function deleteCannedResponse(tenantId: string, id: string): Promise<void
 
 // ---- Contacts ----
 
-export function listContacts(tenantId: string, search?: string): Promise<Contact[]> {
-  const query = search ? `?search=${encodeURIComponent(search)}` : "";
-  return request(tenantId, "GET", `/contacts${query}`);
+export function listContacts(tenantId: string, search?: string, needsAction?: boolean): Promise<Contact[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (needsAction) params.set("needsAction", "true");
+  const query = params.toString();
+  return request(tenantId, "GET", `/contacts${query ? `?${query}` : ""}`);
 }
 
 export function getContact(tenantId: string, id: string): Promise<Contact> {

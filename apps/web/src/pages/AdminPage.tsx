@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
 import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
+import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFoldersAdmin";
 import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
+import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
 import TicketTypesAdmin from "../components/admin/TicketTypesAdmin";
 import { getSetupStatus } from "../lib/apiClient";
@@ -67,7 +69,9 @@ export default function AdminPage() {
       <section className="admin-group">
         <h3>Workflows</h3>
         <AutomationRulesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-        <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} />
+        <ScenariosAdmin tenantId={tenantId} onChange={handleChange} />
+        <CannedResponseFoldersAdmin tenantId={tenantId} onChange={handleChange} />
+        <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
       </section>
     </div>
   );

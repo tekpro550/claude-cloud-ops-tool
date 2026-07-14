@@ -12,6 +12,7 @@ import {
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
+import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -25,6 +26,14 @@ export class TicketsController {
   @Post()
   create(@CurrentTenantId() tenantId: string, @Body() dto: CreateTicketDto) {
     return this.ticketsService.create(tenantId, dto);
+  }
+
+  @Post('compose-outbound')
+  composeOutbound(
+    @CurrentTenantId() tenantId: string,
+    @Body() dto: ComposeOutboundDto,
+  ) {
+    return this.ticketsService.composeOutbound(tenantId, dto);
   }
 
   @Get()
@@ -75,5 +84,13 @@ export class TicketsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.ticketsService.listActivities(tenantId, id);
+  }
+
+  @Get(':id/timeline')
+  getTimeline(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.ticketsService.getTimeline(tenantId, id);
   }
 }

@@ -6,6 +6,7 @@ import {
   ApiError,
   getTicket,
   listAgents,
+  listCannedResponseFolders,
   listCannedResponses,
   listGroups,
   listTicketMessages,
@@ -19,12 +20,14 @@ import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
+import TicketScenarios from "../components/TicketScenarios";
 import TicketTimeline from "../components/TicketTimeline";
 import TicketTodos from "../components/TicketTodos";
 import TicketTimeLogs from "../components/TicketTimeLogs";
 import type {
   Agent,
   CannedResponse,
+  CannedResponseFolder,
   Group,
   Ticket,
   TicketMessage,
@@ -47,6 +50,7 @@ export default function TicketDetailPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
+  const [cannedResponseFolders, setCannedResponseFolders] = useState<CannedResponseFolder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,6 +58,8 @@ export default function TicketDetailPage() {
   const [messageType, setMessageType] = useState<TicketMessageType>("note");
   const [messageBody, setMessageBody] = useState("");
   const [posting, setPosting] = useState(false);
+  const [timelineRefreshSignal, setTimelineRefreshSignal] = useState(0);
+  const bumpTimeline = () => setTimelineRefreshSignal((s) => s + 1);
 
   const load = () => {
     if (!tenantId || !id) return;
@@ -72,12 +78,19 @@ export default function TicketDetailPage() {
 
   useEffect(() => {
     if (!tenantId) return;
-    Promise.all([listGroups(tenantId), listAgents(tenantId), listTicketTypes(tenantId), listCannedResponses(tenantId)])
-      .then(([groupsRes, agentsRes, typesRes, cannedRes]) => {
+    Promise.all([
+      listGroups(tenantId),
+      listAgents(tenantId),
+      listTicketTypes(tenantId),
+      listCannedResponses(tenantId),
+      listCannedResponseFolders(tenantId),
+    ])
+      .then(([groupsRes, agentsRes, typesRes, cannedRes, foldersRes]) => {
         setGroups(groupsRes);
         setAgents(agentsRes);
         setTicketTypes(typesRes);
         setCannedResponses(cannedRes);
+        setCannedResponseFolders(foldersRes);
       })
       .catch(() => {
         // Reference data is only needed to populate dropdown options; a
@@ -90,7 +103,10 @@ export default function TicketDetailPage() {
     setSaving(true);
     setError(null);
     updateTicket(tenantId, id, { [field]: value })
-      .then(setTicket)
+      .then((updated) => {
+        setTicket(updated);
+        bumpTimeline();
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update ticket"))
       .finally(() => setSaving(false));
   };
@@ -108,7 +124,10 @@ export default function TicketDetailPage() {
         setMessageBody("");
         return listTicketMessages(tenantId, id);
       })
-      .then(setMessages)
+      .then((res) => {
+        setMessages(res);
+        bumpTimeline();
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to add message"))
       .finally(() => setPosting(false));
   };
@@ -230,6 +249,20 @@ export default function TicketDetailPage() {
       ),
     },
     {
+      id: "scenarios",
+      title: "Scenarios",
+      content: (
+        <TicketScenarios
+          tenantId={tenantId}
+          ticketId={ticket.id}
+          onApplied={(updated) => {
+            setTicket(updated);
+            bumpTimeline();
+          }}
+        />
+      ),
+    },
+    {
       id: "sla",
       title: "SLA",
       content: (
@@ -254,7 +287,7 @@ export default function TicketDetailPage() {
         <TicketTimeline
           tenantId={tenantId}
           ticketId={ticket.id}
-          updatedAt={ticket.updated_at}
+          refreshSignal={timelineRefreshSignal}
           groups={groups}
           agents={agents}
           ticketTypes={ticketTypes}
@@ -269,7 +302,7 @@ export default function TicketDetailPage() {
     {
       id: "time-logs",
       title: "Time logs",
-      content: <TicketTimeLogs tenantId={tenantId} ticketId={ticket.id} />,
+      content: <TicketTimeLogs tenantId={tenantId} ticketId={ticket.id} onChange={bumpTimeline} />,
     },
   ];
 
@@ -314,11 +347,25 @@ export default function TicketDetailPage() {
                   <option value="" disabled>
                     Insert canned response…
                   </option>
-                  {cannedResponses.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title}
-                    </option>
-                  ))}
+                  {cannedResponseFolders.length === 0
+                    ? cannedResponses.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.title}
+                        </option>
+                      ))
+                    : [...cannedResponseFolders, null].map((folder) => {
+                        const inFolder = cannedResponses.filter((r) => r.folder_id === (folder?.id ?? null));
+                        if (inFolder.length === 0) return null;
+                        return (
+                          <optgroup key={folder?.id ?? "unfiled"} label={folder?.name ?? "Unfiled"}>
+                            {inFolder.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
                 </select>
               )}
             </div>

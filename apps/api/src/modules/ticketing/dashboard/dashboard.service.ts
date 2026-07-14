@@ -191,6 +191,18 @@ export class DashboardService {
         });
       }
 
+      const [{ invalid_email: invalidEmail }] = await queryRunner.query(
+        `SELECT count(*)::int AS invalid_email FROM contacts WHERE email_valid = false`,
+      );
+      if (invalidEmail > 0) {
+        items.push({
+          id: 'contacts_needing_action',
+          severity: 'warning',
+          message: `${invalidEmail} contact${invalidEmail === 1 ? '' : 's'} with an invalid email address`,
+          count: invalidEmail,
+        });
+      }
+
       return { items };
     });
   }

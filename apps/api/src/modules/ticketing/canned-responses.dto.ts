@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateCannedResponseDto {
   @IsString()
@@ -6,6 +6,10 @@ export class CreateCannedResponseDto {
 
   @IsString()
   body: string;
+
+  @IsOptional()
+  @IsUUID()
+  folderId?: string;
 }
 
 export class UpdateCannedResponseDto {
@@ -16,4 +20,8 @@ export class UpdateCannedResponseDto {
   @IsOptional()
   @IsString()
   body?: string;
+
+  @IsOptional()
+  @IsUUID()
+  folderId?: string;
 }

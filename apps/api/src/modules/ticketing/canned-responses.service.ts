@@ -14,8 +14,8 @@ export class CannedResponsesService {
   create(tenantId: string, dto: CreateCannedResponseDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [response] = await queryRunner.query(
-        `INSERT INTO canned_responses (tenant_id, title, body) VALUES ($1, $2, $3) RETURNING *`,
-        [tenantId, dto.title, dto.body],
+        `INSERT INTO canned_responses (tenant_id, title, body, folder_id) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [tenantId, dto.title, dto.body, dto.folderId ?? null],
       );
       return response;
     });
@@ -45,6 +45,7 @@ export class CannedResponsesService {
       };
       if (dto.title !== undefined) assign('title', dto.title);
       if (dto.body !== undefined) assign('body', dto.body);
+      if (dto.folderId !== undefined) assign('folder_id', dto.folderId);
 
       if (sets.length === 0) {
         const [response] = await queryRunner.query(

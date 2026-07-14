@@ -10,6 +10,8 @@ import {
 const TICKET_SOURCES = [
   'email',
   'web_form',
+  'web_portal',
+  'agent_outbound',
   'whatsapp',
   'chat',
   'api',
@@ -49,6 +51,10 @@ export class CreateTicketDto {
 
   @IsIn(TICKET_SOURCES)
   source: (typeof TICKET_SOURCES)[number];
+
+  @IsOptional()
+  @IsString()
+  sourceDetail?: string;
 
   @IsOptional()
   @IsUUID()
