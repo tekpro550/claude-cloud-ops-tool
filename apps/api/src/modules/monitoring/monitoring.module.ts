@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { EventBusModule } from '../../event-bus/event-bus.module';
 import { PlatformModule } from '../platform/platform.module';
+import { AgentIngestionController } from './agent-ingestion.controller';
+import { AgentIngestionService } from './agent-ingestion.service';
+import { AgentTokenGuard } from './agent-token.guard';
+import { AgentTokensController } from './agent-tokens.controller';
+import { AgentTokensService } from './agent-tokens.service';
 import { AlertEvaluationService } from './alert-evaluation.service';
 import { AlertRulesController } from './alert-rules.controller';
 import { AlertRulesService } from './alert-rules.service';
@@ -21,13 +26,22 @@ import { MonitorsService } from './monitors.service';
  */
 @Module({
   imports: [PlatformModule, EventBusModule],
-  controllers: [MonitorsController, AlertRulesController, AlertsController],
+  controllers: [
+    MonitorsController,
+    AlertRulesController,
+    AlertsController,
+    AgentTokensController,
+    AgentIngestionController,
+  ],
   providers: [
     MonitorsService,
     MonitorSchedulerService,
     AlertEvaluationService,
     AlertRulesService,
     AlertsService,
+    AgentTokensService,
+    AgentIngestionService,
+    AgentTokenGuard,
   ],
 })
 export class MonitoringModule {}

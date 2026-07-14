@@ -10,9 +10,13 @@ import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { EventBusService } from '../../event-bus/event-bus.service';
 import { AlertEvaluationService } from './alert-evaluation.service';
+import { checkAgentStaleness } from './checks/agent-staleness-check';
 import { CheckResult, runCheck } from './checks';
 
 const ACTIVELY_POLLED_TYPES = ['http', 'ping', 'port', 'dns', 'ssl'];
+// How many missed intervals before a server_agent monitor is considered
+// stale -- one missed report alone could just be a slightly late tick.
+const STALENESS_MULTIPLIER = 3;
 
 interface DueMonitor {
   id: string;
@@ -23,12 +27,29 @@ interface DueMonitor {
   consecutive_failures_to_alert: number;
 }
 
+interface DueAgentMonitor extends DueMonitor {
+  interval_seconds: number;
+  last_seen_at: string | null;
+}
+
+interface CheckedEntry {
+  monitor: DueMonitor;
+  result: CheckResult;
+}
+
 /**
  * Polls every tenant on a fixed tick (much finer-grained than the SLA
- * sweep's 60s, since monitor interval_seconds can be as low as 30s) and,
- * within each tenant, finds every enabled http/ping/port/dns/ssl monitor
- * whose interval has elapsed since its last recorded check. 'server_agent'
- * and 'cloud_metric' monitors are never selected here -- see checks/index.ts.
+ * sweep's 60s, since monitor interval_seconds can be as low as 30s). Two
+ * independent phases per tenant:
+ *
+ *  1. Actively polled monitors (http/ping/port/dns/ssl) -- runs the real
+ *     checker for each one due.
+ *  2. server_agent monitors -- never actively polled (there's nothing to
+ *     poll; the device pushes to /agent/heartbeat and /agent/report
+ *     instead), so "due" here means "time to check whether we've heard from
+ *     it recently enough", using agent_tokens.last_seen_at.
+ *
+ * 'cloud_metric' monitors are handled by Sprint 4's poller, not here.
  *
  * Mirrors OverdueSweepService's structure (per-tenant transaction, timer +
  * an exposed runSweepOnce for deterministic tests) rather than introducing a
@@ -72,7 +93,8 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let checkedCount = 0;
       for (const tenant of tenants) {
-        checkedCount += await this.sweepTenant(tenant.id);
+        checkedCount += await this.sweepActivelyPolled(tenant.id);
+        checkedCount += await this.sweepStaleAgents(tenant.id);
       }
       return checkedCount;
     } finally {
@@ -80,7 +102,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async sweepTenant(tenantId: string): Promise<number> {
+  private async sweepActivelyPolled(tenantId: string): Promise<number> {
     const dueMonitors = await withTenantContext(
       this.dataSource,
       tenantId,
@@ -100,29 +122,76 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
           [ACTIVELY_POLLED_TYPES],
         ) as Promise<DueMonitor[]>,
     );
-
     if (dueMonitors.length === 0) return 0;
 
-    const results = await Promise.all(
-      dueMonitors.map(async (monitor) => {
-        try {
-          const result = await runCheck(
-            monitor.monitor_type as Parameters<typeof runCheck>[0],
-            monitor.config,
-          );
-          return { monitor, result };
-        } catch (err) {
-          this.logger.error(
-            `check failed for monitor ${monitor.id}: ${(err as Error).message}`,
-          );
-          return null;
-        }
-      }),
+    const entries = (
+      await Promise.all(
+        dueMonitors.map(async (monitor): Promise<CheckedEntry | null> => {
+          try {
+            const result = await runCheck(
+              monitor.monitor_type as Parameters<typeof runCheck>[0],
+              monitor.config,
+            );
+            return { monitor, result };
+          } catch (err) {
+            this.logger.error(
+              `check failed for monitor ${monitor.id}: ${(err as Error).message}`,
+            );
+            return null;
+          }
+        }),
+      )
+    ).filter((entry): entry is CheckedEntry => entry !== null);
+
+    await this.recordAndEvaluate(tenantId, entries);
+    return entries.length;
+  }
+
+  private async sweepStaleAgents(tenantId: string): Promise<number> {
+    const dueMonitors = await withTenantContext(
+      this.dataSource,
+      tenantId,
+      (queryRunner) =>
+        queryRunner.query(
+          `SELECT m.id, m.name, m.resource_id, m.monitor_type, m.config,
+                  m.consecutive_failures_to_alert, m.interval_seconds,
+                  at.last_seen_at
+           FROM monitors m
+           LEFT JOIN LATERAL (
+             SELECT checked_at FROM monitor_checks mc
+             WHERE mc.monitor_id = m.id
+             ORDER BY mc.checked_at DESC
+             LIMIT 1
+           ) lc ON true
+           LEFT JOIN agent_tokens at ON at.resource_id = m.resource_id AND at.is_enabled = true
+           WHERE m.is_enabled = true
+             AND m.monitor_type = 'server_agent'
+             AND (lc.checked_at IS NULL OR lc.checked_at < now() - (m.interval_seconds || ' seconds')::interval)`,
+          [],
+        ) as Promise<DueAgentMonitor[]>,
     );
+    if (dueMonitors.length === 0) return 0;
+
+    const entries: CheckedEntry[] = dueMonitors.map((monitor) => ({
+      monitor,
+      result: checkAgentStaleness(
+        monitor.last_seen_at ? new Date(monitor.last_seen_at) : null,
+        monitor.interval_seconds * STALENESS_MULTIPLIER,
+      ),
+    }));
+
+    await this.recordAndEvaluate(tenantId, entries);
+    return entries.length;
+  }
+
+  private async recordAndEvaluate(
+    tenantId: string,
+    entries: CheckedEntry[],
+  ): Promise<void> {
+    if (entries.length === 0) return;
 
     await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      for (const entry of results) {
-        if (!entry) continue;
+      for (const entry of entries) {
         await queryRunner.query(
           `INSERT INTO monitor_checks (tenant_id, monitor_id, status, response_time_ms, raw_output)
            VALUES ($1, $2, $3, $4, $5)`,
@@ -137,8 +206,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       }
     });
 
-    for (const entry of results) {
-      if (!entry) continue;
+    for (const entry of entries) {
       await this.publishCheckRecorded(tenantId, entry.monitor.id, entry.result);
       try {
         await this.alertEvaluation.evaluate(
@@ -158,8 +226,6 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
-
-    return results.filter(Boolean).length;
   }
 
   private async publishCheckRecorded(

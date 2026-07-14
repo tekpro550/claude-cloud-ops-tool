@@ -50,7 +50,8 @@
     "solutions:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-solutions.ts",
     "attachments:verify": "ts-node -r dotenv/config src/modules/ticketing/attachments/scripts/verify-attachments.ts",
     "monitor-engine:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitor-engine.ts",
-    "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts"
+    "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts",
+    "agent:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-agent.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -34,6 +34,13 @@ export function generateReasonText(
       if (rawOutput.httpStatus !== undefined) {
         return `${monitorName} responded with HTTP ${rawOutput.httpStatus} (expected ${rawOutput.expectedStatus}).`;
       }
+      if (
+        typeof rawOutput.reason === 'string' &&
+        rawOutput.reason.endsWith('_critical')
+      ) {
+        const metric = rawOutput.reason.replace('_critical', '');
+        return `${monitorName}'s ${metric} usage is at a critical level (${rawOutput[`${metric}Percent`]}%).`;
+      }
       return `${monitorName} is reachable but reporting a critical condition.`;
 
     case 'trouble':
@@ -43,6 +50,13 @@ export function generateReasonText(
       }
       if (rawOutput.reason === 'slow_response') {
         return `${monitorName} is responding, but slower than expected.`;
+      }
+      if (
+        typeof rawOutput.reason === 'string' &&
+        rawOutput.reason.endsWith('_high')
+      ) {
+        const metric = rawOutput.reason.replace('_high', '');
+        return `${monitorName}'s ${metric} usage is elevated (${rawOutput[`${metric}Percent`]}%).`;
       }
       return `${monitorName} is degraded.`;
 

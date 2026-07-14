@@ -84,8 +84,7 @@ async function main() {
       `a correct email+password issues a token (status=${loginRes.status})`,
     );
     assert(
-      loginRes.body.user.id === user.id &&
-        loginRes.body.user.role === 'agent',
+      loginRes.body.user.id === user.id && loginRes.body.user.role === 'agent',
       'the login response includes the matching user record',
     );
     const token = loginRes.body.token;
@@ -198,17 +197,25 @@ async function main() {
     const createTicketRes = await request(server)
       .post('/api/v1/tickets')
       .set('X-Tenant-Id', tenant.id)
-      .send({ subject: 'Attribution test', contactId: contact.id, source: 'web_form' });
+      .send({
+        subject: 'Attribution test',
+        contactId: contact.id,
+        source: 'web_form',
+      });
     const ticketId = createTicketRes.body.id;
 
     const authedMessageRes = await request(server)
       .post(`/api/v1/tickets/${ticketId}/messages`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ type: 'reply', authorType: 'system', body: 'Reply from a logged-in agent' });
+      .send({
+        type: 'reply',
+        authorType: 'system',
+        body: 'Reply from a logged-in agent',
+      });
     assert(
       authedMessageRes.body.author_type === 'agent' &&
         authedMessageRes.body.author_id === agent.id,
-      "a message posted with a valid agent Bearer token is attributed to that agent, overriding the client-supplied authorType/authorId (got author_type=" +
+      'a message posted with a valid agent Bearer token is attributed to that agent, overriding the client-supplied authorType/authorId (got author_type=' +
         authedMessageRes.body.author_type +
         ')',
     );
@@ -216,7 +223,11 @@ async function main() {
     const unauthedMessageRes = await request(server)
       .post(`/api/v1/tickets/${ticketId}/messages`)
       .set('X-Tenant-Id', tenant.id)
-      .send({ type: 'note', authorType: 'system', body: 'Note from a bare header caller' });
+      .send({
+        type: 'note',
+        authorType: 'system',
+        body: 'Note from a bare header caller',
+      });
     assert(
       unauthedMessageRes.body.author_type === 'system',
       'a message posted with only X-Tenant-Id (no verified identity) keeps the client-supplied authorType unchanged',
@@ -241,9 +252,7 @@ async function main() {
     await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [
       tenant.id,
     ]);
-    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [
-      tenant.id,
-    ]);
+    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [tenant.id]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
   }

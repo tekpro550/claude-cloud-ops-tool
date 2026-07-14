@@ -30,3 +30,31 @@ export function verifyJwt(token: string): AppJwtClaims | null {
     return null;
   }
 }
+
+/**
+ * A third `kind`, alongside agent/contact, for the Module 2 server agent
+ * binary (Sprint 3) -- long-lived by design (a device installed once
+ * shouldn't need re-auth on every heartbeat) and self-describing the same
+ * way agent/contact tokens are, so AgentTokenGuard can resolve tenantId
+ * without an RLS-gated DB lookup happening before the tenant is even known.
+ */
+export interface DeviceJwtClaims {
+  sub: string;
+  tenantId: string;
+  resourceId: string;
+  kind: 'device';
+}
+
+export function signDeviceJwt(claims: DeviceJwtClaims): string {
+  const expiresIn = process.env.DEVICE_JWT_EXPIRES_IN ?? '3650d';
+  return jwt.sign(claims, secret(), { expiresIn } as jwt.SignOptions);
+}
+
+export function verifyDeviceJwt(token: string): DeviceJwtClaims | null {
+  try {
+    const claims = jwt.verify(token, secret()) as DeviceJwtClaims;
+    return claims.kind === 'device' ? claims : null;
+  } catch {
+    return null;
+  }
+}
