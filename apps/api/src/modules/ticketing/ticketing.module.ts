@@ -2,10 +2,18 @@ import { Module } from '@nestjs/common';
 import { EventBusModule } from '../../event-bus/event-bus.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { PlatformModule } from '../platform/platform.module';
+import { AutomationRulesController } from './automation/automation-rules.controller';
+import { AutomationRulesService } from './automation/automation-rules.service';
+import { CannedResponsesController } from './canned-responses.controller';
+import { CannedResponsesService } from './canned-responses.service';
 import { EmailIntakeService } from './email-intake/email-intake.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { ReferenceDataController } from './reference-data.controller';
 import { ReferenceDataService } from './reference-data.service';
+import { TicketTimeLogsController } from './ticket-time-logs.controller';
+import { TicketTimeLogsService } from './ticket-time-logs.service';
+import { TicketTodosController } from './ticket-todos.controller';
+import { TicketTodosService } from './ticket-todos.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 
@@ -15,12 +23,23 @@ import { TicketsService } from './tickets.service';
  */
 @Module({
   imports: [PlatformModule, EventBusModule, NotificationsModule],
-  controllers: [TicketsController, ReferenceDataController],
+  controllers: [
+    TicketsController,
+    ReferenceDataController,
+    AutomationRulesController,
+    CannedResponsesController,
+    TicketTodosController,
+    TicketTimeLogsController,
+  ],
   providers: [
     TicketsService,
     EmailIntakeService,
     OverdueSweepService,
     ReferenceDataService,
+    AutomationRulesService,
+    CannedResponsesService,
+    TicketTodosService,
+    TicketTimeLogsService,
   ],
 })
 export class TicketingModule {}

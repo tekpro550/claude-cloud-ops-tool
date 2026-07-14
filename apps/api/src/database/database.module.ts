@@ -15,6 +15,10 @@ import {
   TicketEntity,
   TicketMessageEntity,
   SlaPolicyEntity,
+  AutomationRuleEntity,
+  CannedResponseEntity,
+  TicketTodoEntity,
+  TicketTimeLogEntity,
 } from './entities';
 
 /**
@@ -52,6 +56,10 @@ import {
           TicketEntity,
           TicketMessageEntity,
           SlaPolicyEntity,
+          AutomationRuleEntity,
+          CannedResponseEntity,
+          TicketTodoEntity,
+          TicketTimeLogEntity,
         ],
         synchronize: false,
       }),

@@ -6,6 +6,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { AutomationRulesService } from './automation/automation-rules.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
@@ -80,7 +81,10 @@ async function fetchSlaPolicy(
 
 @Injectable()
 export class TicketsService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly automationRules: AutomationRulesService,
+  ) {}
 
   async create(tenantId: string, dto: CreateTicketDto) {
     if (!dto.contactId && !dto.contact) {
@@ -178,7 +182,12 @@ export class TicketsService {
           createdAt,
         ],
       );
-      return ticket;
+      return this.automationRules.runRules(
+        tenantId,
+        'ticket_created',
+        ticket,
+        queryRunner,
+      );
     });
   }
 
@@ -335,7 +344,12 @@ export class TicketsService {
         `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
         params,
       );
-      return rows[0];
+      return this.automationRules.runRules(
+        tenantId,
+        'ticket_updated',
+        rows[0],
+        queryRunner,
+      );
     });
   }
 

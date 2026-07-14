@@ -1,5 +1,6 @@
 import type {
   Agent,
+  CannedResponse,
   Group,
   Ticket,
   TicketList,
@@ -8,6 +9,8 @@ import type {
   TicketMessageType,
   TicketPriority,
   TicketStatus,
+  TicketTimeLogList,
+  TicketTodo,
   TicketType,
 } from "../types/ticket";
 
@@ -107,4 +110,45 @@ export interface AddTicketMessageInput {
 
 export function addTicketMessage(tenantId: string, ticketId: string, input: AddTicketMessageInput): Promise<TicketMessage> {
   return request(tenantId, "POST", `/tickets/${ticketId}/messages`, input);
+}
+
+export function listCannedResponses(tenantId: string): Promise<CannedResponse[]> {
+  return request(tenantId, "GET", "/canned-responses");
+}
+
+export function listTicketTodos(tenantId: string, ticketId: string): Promise<TicketTodo[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/todos`);
+}
+
+export function createTicketTodo(tenantId: string, ticketId: string, body: string): Promise<TicketTodo> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/todos`, { body });
+}
+
+export function updateTicketTodo(
+  tenantId: string,
+  ticketId: string,
+  todoId: string,
+  input: { isDone?: boolean; body?: string },
+): Promise<TicketTodo> {
+  return request(tenantId, "PATCH", `/tickets/${ticketId}/todos/${todoId}`, input);
+}
+
+export function deleteTicketTodo(tenantId: string, ticketId: string, todoId: string): Promise<void> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/todos/${todoId}`);
+}
+
+export function listTicketTimeLogs(tenantId: string, ticketId: string): Promise<TicketTimeLogList> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/time-logs`);
+}
+
+export function createTicketTimeLog(
+  tenantId: string,
+  ticketId: string,
+  input: { minutes: number; note?: string; agentId?: string },
+): Promise<TicketTimeLogList["items"][number]> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/time-logs`, input);
+}
+
+export function deleteTicketTimeLog(tenantId: string, ticketId: string, logId: string): Promise<void> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/time-logs/${logId}`);
 }

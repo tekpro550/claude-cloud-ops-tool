@@ -14,6 +14,10 @@ import {
   TicketEntity,
   TicketMessageEntity,
   SlaPolicyEntity,
+  AutomationRuleEntity,
+  CannedResponseEntity,
+  TicketTodoEntity,
+  TicketTimeLogEntity,
 } from './entities';
 
 /**
@@ -43,6 +47,10 @@ export const AppDataSource = new DataSource({
     TicketEntity,
     TicketMessageEntity,
     SlaPolicyEntity,
+    AutomationRuleEntity,
+    CannedResponseEntity,
+    TicketTodoEntity,
+    TicketTimeLogEntity,
   ],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,

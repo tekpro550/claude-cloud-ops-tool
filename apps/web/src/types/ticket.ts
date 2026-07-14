@@ -67,3 +67,32 @@ export interface TicketType {
   default_group_id: string | null;
   default_sla_policy_id: string | null;
 }
+
+export interface CannedResponse {
+  id: string;
+  title: string;
+  body: string;
+}
+
+export interface TicketTodo {
+  id: string;
+  ticket_id: string;
+  body: string;
+  is_done: boolean;
+  done_at: string | null;
+  created_at: string;
+}
+
+export interface TicketTimeLog {
+  id: string;
+  ticket_id: string;
+  agent_id: string | null;
+  minutes: number;
+  note: string | null;
+  logged_at: string;
+}
+
+export interface TicketTimeLogList {
+  items: TicketTimeLog[];
+  totalMinutes: number;
+}

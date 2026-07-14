@@ -11,3 +11,7 @@ export * from './ticket-type.entity';
 export * from './ticket.entity';
 export * from './ticket-message.entity';
 export * from './sla-policy.entity';
+export * from './automation-rule.entity';
+export * from './canned-response.entity';
+export * from './ticket-todo.entity';
+export * from './ticket-time-log.entity';
