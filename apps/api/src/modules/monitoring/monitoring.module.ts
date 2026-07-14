@@ -23,6 +23,7 @@ import { DowntimeEventsService } from './downtime-events.service';
 import { EscalationPoliciesController } from './escalation-policies.controller';
 import { EscalationPoliciesService } from './escalation-policies.service';
 import { EscalationSweepService } from './escalation-sweep.service';
+import { FleetSummaryController } from './fleet-summary.controller';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
 import { MonitorsController } from './monitors.controller';
 import { MonitorsService } from './monitors.service';
@@ -30,6 +31,8 @@ import { NotificationTemplatesController } from './notification-templates.contro
 import { NotificationTemplatesService } from './notification-templates.service';
 import { OnCallSchedulesController } from './on-call-schedules.controller';
 import { OnCallSchedulesService } from './on-call-schedules.service';
+import { ResourcesController } from './resources.controller';
+import { ResourcesService } from './resources.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -53,8 +56,11 @@ import { OnCallSchedulesService } from './on-call-schedules.service';
     OnCallSchedulesController,
     NotificationTemplatesController,
     DowntimeEventsController,
+    ResourcesController,
+    FleetSummaryController,
   ],
   providers: [
+    ResourcesService,
     MonitorsService,
     MonitorSchedulerService,
     AlertEvaluationService,

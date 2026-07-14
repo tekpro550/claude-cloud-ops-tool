@@ -56,7 +56,7 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
-async function request<T>(tenantId: string, method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(tenantId: string, method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Tenant-Id": tenantId,

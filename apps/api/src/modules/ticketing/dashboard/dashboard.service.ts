@@ -203,6 +203,22 @@ export class DashboardService {
         });
       }
 
+      // Module 2's first real use of this generic feed, per the class doc
+      // comment above -- a plain cross-table query rather than a pluggable
+      // registration mechanism, since there's no such mechanism built yet
+      // and a third module needing the same pattern is what would justify one.
+      const [{ open_alerts: openAlerts }] = await queryRunner.query(
+        `SELECT count(*)::int AS open_alerts FROM alerts WHERE status IN ('open', 'acknowledged')`,
+      );
+      if (openAlerts > 0) {
+        items.push({
+          id: 'open_monitoring_alerts',
+          severity: 'critical',
+          message: `${openAlerts} open monitoring alert${openAlerts === 1 ? '' : 's'}`,
+          count: openAlerts,
+        });
+      }
+
       return { items };
     });
   }

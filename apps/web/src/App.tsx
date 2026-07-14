@@ -7,10 +7,13 @@ import { ApiError } from "./lib/apiClient";
 import { useAuth } from "./lib/auth";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
+import AlertsPage from "./pages/AlertsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
 import DashboardPage from "./pages/DashboardPage";
+import MonitoringFleetPage from "./pages/MonitoringFleetPage";
+import ResourceDashboardPage from "./pages/ResourceDashboardPage";
 import SearchPage from "./pages/SearchPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import TicketListPage from "./pages/TicketListPage";
@@ -111,6 +114,8 @@ function App() {
         <nav className="app-nav">
           <Link to="/">Tickets</Link>
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/monitoring">Monitoring</Link>
+          <Link to="/alerts">Alerts</Link>
           <Link to="/contacts">Contacts</Link>
           <Link to="/companies">Companies</Link>
           <Link to="/compose">Compose email</Link>
@@ -136,6 +141,9 @@ function App() {
           <Route path="/" element={<TicketListPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/monitoring" element={<MonitoringFleetPage />} />
+          <Route path="/monitoring/resources/:id" element={<ResourceDashboardPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/compose" element={<ComposeOutboundPage />} />

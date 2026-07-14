@@ -636,3 +636,88 @@ td {
 .contact-info p {
   margin: 0 0 0.25rem;
 }
+
+/* Module 2: Monitoring */
+
+.status-up {
+  background: #1f5c2c;
+}
+.status-down {
+  background: #7a1f1f;
+}
+.status-critical {
+  background: #7a1f1f;
+}
+.status-trouble {
+  background: #7a4a1f;
+}
+.status-none {
+  background: #333;
+}
+
+.fleet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fleet-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #1c1c1c;
+  border-radius: 6px;
+}
+
+.fleet-list-name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.monitor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.monitor-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: #1c1c1c;
+  border-radius: 6px;
+}
+
+.monitor-reason {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-left: 0.5rem;
+}
+
+.alert-card {
+  padding: 0.6rem 0.9rem;
+  background: #1c1c1c;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.alert-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
