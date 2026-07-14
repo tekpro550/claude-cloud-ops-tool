@@ -53,12 +53,15 @@ export interface TicketMessage {
 export interface Group {
   id: string;
   name: string;
+  description?: string | null;
 }
 
 export interface Agent {
   id: string;
   name: string;
   email: string;
+  is_active?: boolean;
+  group_ids?: string[];
 }
 
 export interface TicketType {
@@ -66,6 +69,40 @@ export interface TicketType {
   name: string;
   default_group_id: string | null;
   default_sla_policy_id: string | null;
+}
+
+export interface SlaPolicy {
+  id: string;
+  name: string;
+  first_response_target_minutes: number;
+  resolution_target_minutes: number;
+  business_hours_only: boolean;
+}
+
+export type AutomationTrigger = "ticket_created" | "ticket_updated";
+export type AutomationConditionField = "status" | "priority" | "source" | "subject" | "ticket_type_id" | "group_id";
+export type AutomationConditionOperator = "equals" | "contains";
+export type AutomationActionType = "set_status" | "set_priority" | "set_group" | "set_agent" | "add_note";
+
+export interface AutomationCondition {
+  field: AutomationConditionField;
+  operator: AutomationConditionOperator;
+  value: string;
+}
+
+export interface AutomationAction {
+  type: AutomationActionType;
+  value: string;
+}
+
+export interface AutomationRule {
+  id: string;
+  name: string;
+  trigger: AutomationTrigger;
+  position: number;
+  is_active: boolean;
+  conditions: AutomationCondition[];
+  actions: AutomationAction[];
 }
 
 export interface CannedResponse {

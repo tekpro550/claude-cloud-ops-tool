@@ -1,5 +1,9 @@
 import type {
   Agent,
+  AutomationAction,
+  AutomationCondition,
+  AutomationRule,
+  AutomationTrigger,
   CannedResponse,
   DashboardSlaSummary,
   DashboardSummary,
@@ -7,6 +11,7 @@ import type {
   Group,
   NeedsAttentionItem,
   SetupStatus,
+  SlaPolicy,
   Ticket,
   TicketList,
   TicketMessage,
@@ -55,12 +60,16 @@ async function request<T>(tenantId: string, method: string, path: string, body?:
 export interface ListTicketsFilters {
   status?: TicketStatus;
   priority?: TicketPriority;
+  groupId?: string;
+  agentId?: string;
 }
 
 export function listTickets(tenantId: string, filters: ListTicketsFilters = {}): Promise<TicketList> {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.priority) params.set("priority", filters.priority);
+  if (filters.groupId) params.set("groupId", filters.groupId);
+  if (filters.agentId) params.set("agentId", filters.agentId);
   const query = params.toString();
   return request(tenantId, "GET", `/tickets${query ? `?${query}` : ""}`);
 }
@@ -176,4 +185,138 @@ export function getNeedsAttention(tenantId: string): Promise<{ items: NeedsAtten
 
 export function getSetupStatus(tenantId: string): Promise<SetupStatus> {
   return request(tenantId, "GET", "/admin/setup-status");
+}
+
+// ---- Groups ----
+
+export function createGroup(tenantId: string, input: { name: string; description?: string }): Promise<Group> {
+  return request(tenantId, "POST", "/groups", input);
+}
+
+export function updateGroup(tenantId: string, id: string, input: { name?: string; description?: string }): Promise<Group> {
+  return request(tenantId, "PATCH", `/groups/${id}`, input);
+}
+
+export function deleteGroup(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/groups/${id}`);
+}
+
+// ---- Agents ----
+
+export function createAgent(
+  tenantId: string,
+  input: { name: string; email: string; groupIds?: string[] },
+): Promise<Agent> {
+  return request(tenantId, "POST", "/agents", input);
+}
+
+export function updateAgent(
+  tenantId: string,
+  id: string,
+  input: { isActive?: boolean; groupIds?: string[] },
+): Promise<Agent> {
+  return request(tenantId, "PATCH", `/agents/${id}`, input);
+}
+
+// ---- Ticket types ----
+
+export function createTicketType(
+  tenantId: string,
+  input: { name: string; defaultGroupId?: string; defaultSlaPolicyId?: string },
+): Promise<TicketType> {
+  return request(tenantId, "POST", "/ticket-types", input);
+}
+
+export function updateTicketType(
+  tenantId: string,
+  id: string,
+  input: { name?: string; defaultGroupId?: string; defaultSlaPolicyId?: string },
+): Promise<TicketType> {
+  return request(tenantId, "PATCH", `/ticket-types/${id}`, input);
+}
+
+export function deleteTicketType(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/ticket-types/${id}`);
+}
+
+// ---- SLA policies ----
+
+export function listSlaPolicies(tenantId: string): Promise<SlaPolicy[]> {
+  return request(tenantId, "GET", "/sla-policies");
+}
+
+export function createSlaPolicy(
+  tenantId: string,
+  input: { name: string; firstResponseTargetMinutes: number; resolutionTargetMinutes: number; businessHoursOnly?: boolean },
+): Promise<SlaPolicy> {
+  return request(tenantId, "POST", "/sla-policies", input);
+}
+
+export function updateSlaPolicy(
+  tenantId: string,
+  id: string,
+  input: { name?: string; firstResponseTargetMinutes?: number; resolutionTargetMinutes?: number; businessHoursOnly?: boolean },
+): Promise<SlaPolicy> {
+  return request(tenantId, "PATCH", `/sla-policies/${id}`, input);
+}
+
+export function deleteSlaPolicy(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/sla-policies/${id}`);
+}
+
+// ---- Automation rules ----
+
+export function listAutomationRules(tenantId: string): Promise<AutomationRule[]> {
+  return request(tenantId, "GET", "/automation-rules");
+}
+
+export function createAutomationRule(
+  tenantId: string,
+  input: {
+    name: string;
+    trigger: AutomationTrigger;
+    position?: number;
+    isActive?: boolean;
+    conditions: AutomationCondition[];
+    actions: AutomationAction[];
+  },
+): Promise<AutomationRule> {
+  return request(tenantId, "POST", "/automation-rules", input);
+}
+
+export function updateAutomationRule(
+  tenantId: string,
+  id: string,
+  input: {
+    name?: string;
+    trigger?: AutomationTrigger;
+    position?: number;
+    isActive?: boolean;
+    conditions?: AutomationCondition[];
+    actions?: AutomationAction[];
+  },
+): Promise<AutomationRule> {
+  return request(tenantId, "PATCH", `/automation-rules/${id}`, input);
+}
+
+export function deleteAutomationRule(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/automation-rules/${id}`);
+}
+
+// ---- Canned responses (create/update/delete; list already defined above) ----
+
+export function createCannedResponse(tenantId: string, input: { title: string; body: string }): Promise<CannedResponse> {
+  return request(tenantId, "POST", "/canned-responses", input);
+}
+
+export function updateCannedResponse(
+  tenantId: string,
+  id: string,
+  input: { title?: string; body?: string },
+): Promise<CannedResponse> {
+  return request(tenantId, "PATCH", `/canned-responses/${id}`, input);
+}
+
+export function deleteCannedResponse(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/canned-responses/${id}`);
 }
