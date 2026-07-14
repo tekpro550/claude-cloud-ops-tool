@@ -11,6 +11,12 @@ import { AlertRulesController } from './alert-rules.controller';
 import { AlertRulesService } from './alert-rules.service';
 import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
+import { AwsCloudProviderClient } from './cloud/aws-provider-client';
+import { AzureCloudProviderClient } from './cloud/azure-provider-client';
+import { CLOUD_PROVIDER_CLIENT_FACTORY } from './cloud/cloud-provider-client';
+import { CloudCredentialsController } from './cloud-credentials.controller';
+import { CloudCredentialsService } from './cloud-credentials.service';
+import { CloudResourcePollerService } from './cloud-resource-poller.service';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
 import { MonitorsController } from './monitors.controller';
 import { MonitorsService } from './monitors.service';
@@ -32,6 +38,7 @@ import { MonitorsService } from './monitors.service';
     AlertsController,
     AgentTokensController,
     AgentIngestionController,
+    CloudCredentialsController,
   ],
   providers: [
     MonitorsService,
@@ -42,6 +49,20 @@ import { MonitorsService } from './monitors.service';
     AgentTokensService,
     AgentIngestionService,
     AgentTokenGuard,
+    CloudCredentialsService,
+    CloudResourcePollerService,
+    {
+      // The real AWS/Azure clients by default; verify-cloud-polling.ts
+      // overrides this token with a factory that returns an in-memory fake,
+      // so CloudResourcePollerService's actual logic (resource upsert,
+      // threshold evaluation, alert wiring) can be verified without real
+      // cloud credentials.
+      provide: CLOUD_PROVIDER_CLIENT_FACTORY,
+      useValue: (provider: 'aws' | 'azure', config: Record<string, unknown>) =>
+        provider === 'aws'
+          ? new AwsCloudProviderClient(config as any)
+          : new AzureCloudProviderClient(config as any),
+    },
   ],
 })
 export class MonitoringModule {}

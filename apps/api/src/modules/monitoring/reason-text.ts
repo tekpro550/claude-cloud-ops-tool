@@ -34,6 +34,9 @@ export function generateReasonText(
       if (rawOutput.httpStatus !== undefined) {
         return `${monitorName} responded with HTTP ${rawOutput.httpStatus} (expected ${rawOutput.expectedStatus}).`;
       }
+      if (rawOutput.reason === 'metric_critical') {
+        return `${monitorName}'s ${rawOutput.metricName} is at a critical level (${rawOutput.value}${rawOutput.unit === 'Percent' ? '%' : ` ${rawOutput.unit}`}).`;
+      }
       if (
         typeof rawOutput.reason === 'string' &&
         rawOutput.reason.endsWith('_critical')
@@ -50,6 +53,9 @@ export function generateReasonText(
       }
       if (rawOutput.reason === 'slow_response') {
         return `${monitorName} is responding, but slower than expected.`;
+      }
+      if (rawOutput.reason === 'metric_high') {
+        return `${monitorName}'s ${rawOutput.metricName} is elevated (${rawOutput.value}${rawOutput.unit === 'Percent' ? '%' : ` ${rawOutput.unit}`}).`;
       }
       if (
         typeof rawOutput.reason === 'string' &&
