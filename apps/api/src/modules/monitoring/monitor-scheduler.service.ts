@@ -9,14 +9,18 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { EventBusService } from '../../event-bus/event-bus.service';
+import { AlertEvaluationService } from './alert-evaluation.service';
 import { CheckResult, runCheck } from './checks';
 
 const ACTIVELY_POLLED_TYPES = ['http', 'ping', 'port', 'dns', 'ssl'];
 
 interface DueMonitor {
   id: string;
+  name: string;
+  resource_id: string;
   monitor_type: string;
   config: Record<string, unknown>;
+  consecutive_failures_to_alert: number;
 }
 
 /**
@@ -39,6 +43,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly eventBus: EventBusService,
+    private readonly alertEvaluation: AlertEvaluationService,
     private readonly config: ConfigService,
   ) {}
 
@@ -81,7 +86,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       tenantId,
       (queryRunner) =>
         queryRunner.query(
-          `SELECT m.id, m.monitor_type, m.config
+          `SELECT m.id, m.name, m.resource_id, m.monitor_type, m.config, m.consecutive_failures_to_alert
            FROM monitors m
            LEFT JOIN LATERAL (
              SELECT checked_at FROM monitor_checks mc
@@ -135,6 +140,23 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
     for (const entry of results) {
       if (!entry) continue;
       await this.publishCheckRecorded(tenantId, entry.monitor.id, entry.result);
+      try {
+        await this.alertEvaluation.evaluate(
+          tenantId,
+          {
+            id: entry.monitor.id,
+            name: entry.monitor.name,
+            resourceId: entry.monitor.resource_id,
+            consecutiveFailuresToAlert:
+              entry.monitor.consecutive_failures_to_alert,
+          },
+          entry.result,
+        );
+      } catch (err) {
+        this.logger.error(
+          `alert evaluation failed for monitor ${entry.monitor.id}: ${(err as Error).message}`,
+        );
+      }
     }
 
     return results.filter(Boolean).length;

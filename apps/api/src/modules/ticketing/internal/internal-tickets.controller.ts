@@ -1,6 +1,14 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { InternalApiKeyGuard } from '../../platform/http/internal-api-key.guard';
 import { TicketsService } from '../tickets.service';
+import { AddInternalTicketNoteDto } from './add-internal-ticket-note.dto';
 import { CreateTicketFromAlertDto } from './create-ticket-from-alert.dto';
 
 const ALERT_CONTACT = {
@@ -39,5 +47,23 @@ export class InternalTicketsController {
     });
 
     return ticket;
+  }
+
+  /**
+   * Module 2's "repeats become notes, not new tickets" idempotency rule
+   * (see the Sprint 2 scope section 5): once an alert has a linked ticket,
+   * a continuing or recovered condition posts here instead of calling
+   * from_alert again.
+   */
+  @Post(':ticketId/notes')
+  addNote(
+    @Param('ticketId', ParseUUIDPipe) ticketId: string,
+    @Body() dto: AddInternalTicketNoteDto,
+  ) {
+    return this.ticketsService.addMessage(dto.tenantId, ticketId, {
+      type: 'note',
+      authorType: 'system',
+      body: dto.body,
+    });
   }
 }
