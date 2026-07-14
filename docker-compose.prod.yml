@@ -1,0 +1,135 @@
+# Production stack: Postgres + Redis + API + web (agent app) + portal
+# (customer app) + Caddy (reverse proxy, automatic HTTPS via Let's Encrypt).
+#
+# Usage: see docs/deployment-oracle-cloud.md. Reads its config from a .env
+# file in this directory (copy .env.prod.example -> .env and fill it in).
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml logs -f api
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cloud_ops_tool
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Not published to the host -- only reachable from other containers on
+    # this compose network. Use `docker compose exec postgres psql ...` (or
+    # an SSH tunnel) for direct access instead of opening 5432 publicly.
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: cloud_ops_tool
+      DB_MIGRATOR_USER: postgres
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+      DB_APP_USER: app_user
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-json}
+      SMTP_FROM: ${SMTP_FROM:-notifications@cloud-ops-tool.local}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      CORS_ORIGIN: https://${APP_DOMAIN},https://${PORTAL_DOMAIN}
+      EMAIL_INTAKE_ENABLED: ${EMAIL_INTAKE_ENABLED:-false}
+      EMAIL_INTAKE_TENANT_ID: ${EMAIL_INTAKE_TENANT_ID:-}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      SLA_SWEEP_INTERVAL_MS: ${SLA_SWEEP_INTERVAL_MS:-60000}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      FACEBOOK_OAUTH_CLIENT_ID: ${FACEBOOK_OAUTH_CLIENT_ID:-}
+      FACEBOOK_OAUTH_CLIENT_SECRET: ${FACEBOOK_OAUTH_CLIENT_SECRET:-}
+      ATTACHMENTS_STORAGE_DIR: /data/attachments
+      FRESHDESK_DOMAIN: ${FRESHDESK_DOMAIN:-}
+      FRESHDESK_API_KEY: ${FRESHDESK_API_KEY:-}
+      MIGRATION_TENANT_ID: ${MIGRATION_TENANT_ID:-}
+      PORT: 3000
+    volumes:
+      - attachments_data:/data/attachments
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://${API_DOMAIN}/api/v1
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  portal:
+    build:
+      context: .
+      dockerfile: apps/portal/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://${API_DOMAIN}/api/v1
+        VITE_DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - portal
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  attachments_data:
+  caddy_data:
+  caddy_config:

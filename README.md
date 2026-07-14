@@ -56,6 +56,13 @@ section 8 of the Module 1 doc. Disabled by default, since no real mailbox creden
 yet; `email-intake:verify` proves the mail-to-ticket logic against synthetic messages instead of a
 live mailbox.
 
+## Production deployment
+
+See `docs/deployment-oracle-cloud.md` for a step-by-step guide to running the full stack
+(Postgres, Redis, API, agent web app, customer portal) as Docker containers behind Caddy
+(automatic HTTPS), including on an Oracle Cloud VM. `docker-compose.prod.yml` and
+`.env.prod.example` at the repo root are the artifacts that guide walks through.
+
 ## CI/CD
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push/PR to `main`: builds and lints both

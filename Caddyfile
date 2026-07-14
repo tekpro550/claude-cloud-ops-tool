@@ -1,0 +1,20 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	reverse_proxy web:80
+}
+
+{$PORTAL_DOMAIN} {
+	reverse_proxy portal:80
+}
+
+{$API_DOMAIN} {
+	# Larger uploads: matches MAX_ATTACHMENT_BYTES (15MB) in
+	# attachments.controller.ts, plus headroom for multipart overhead.
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy api:3000
+}
