@@ -1,0 +1,30 @@
+# Local testing override for docker-compose.prod.yml -- runs the exact same
+# images/build (api, web, portal) but on localhost with plain HTTP, no Caddy,
+# no real domain/TLS needed. Lets you catch build/packaging issues before
+# ever touching the actual VM.
+#
+# Usage: see "Testing locally first" in docs/deployment-oracle-cloud.md.
+#   docker compose -f docker-compose.prod.yml -f docker-compose.local.yml \
+#     up -d --build postgres redis api web portal
+
+services:
+  api:
+    ports:
+      - "3000:3000"
+    environment:
+      CORS_ORIGIN: http://localhost:8080,http://localhost:8081
+
+  web:
+    build:
+      args:
+        VITE_API_BASE_URL: http://localhost:3000/api/v1
+    ports:
+      - "8080:80"
+
+  portal:
+    build:
+      args:
+        VITE_API_BASE_URL: http://localhost:3000/api/v1
+        VITE_DEFAULT_TENANT_ID: ""
+    ports:
+      - "8081:80"

@@ -12,7 +12,50 @@ but couldn't be built and run end-to-end in the environment they were
 authored in — its network policy blocks pulling from Docker Hub. This is the
 first time this exact packaging gets a real build. Follow the verification
 steps after `docker compose up` closely, and see Troubleshooting at the
-bottom if something doesn't come up clean.
+bottom if something doesn't come up clean. Strongly consider the next
+section first — it catches the same class of issue in a couple of minutes,
+without needing DNS or the VM at all.
+
+## 0. Testing locally first (recommended)
+
+`docker-compose.local.yml` runs the exact same `api`/`web`/`portal` images
+on `localhost` with plain HTTP — no domain, no TLS, no VM. Do this before
+touching the actual VM; if something's wrong with the build, you'll find out
+here in a couple of minutes instead of after DNS propagation.
+
+```bash
+git clone <your repo URL> cloud-ops-tool && cd cloud-ops-tool
+cp .env.local.example .env
+docker compose -f docker-compose.prod.yml -f docker-compose.local.yml \
+  up -d --build postgres redis api web portal
+docker compose -f docker-compose.prod.yml -f docker-compose.local.yml logs -f
+```
+
+(Caddy is deliberately left out of that service list — it wants to bind 80/443
+and isn't needed for this, since the override publishes web/portal/api
+directly.) Same thing to watch for as production: Postgres healthy, then the
+`api` container running migrations, then `Nest application successfully
+started`. Once it's up:
+
+- `http://localhost:3000/api/v1/tickets` with header `X-Tenant-Id:
+  00000000-0000-0000-0000-000000000000` → expect a 401, confirms the API is
+  actually serving
+- `docker compose -f docker-compose.prod.yml -f docker-compose.local.yml
+  exec postgres psql -U postgres -d cloud_ops_tool -c "SELECT id, name FROM
+  tenants;"` → copy the seeded tenant's id
+- `http://localhost:8080` (agent app) — paste that tenant id in, or log in as
+  one of the six seeded agents with `ChangeMe123!`
+- `http://localhost:8081` (portal) — paste the same tenant id, browse/submit
+  a ticket
+
+Tear it down when done: `docker compose -f docker-compose.prod.yml -f
+docker-compose.local.yml down -v` (the `-v` also deletes the local test
+data/volumes — safe here since none of this is real data).
+
+Once this works, the only things that differ for the real VM are DNS,
+firewall rules, and using `docker-compose.prod.yml` alone (no `.local`
+override) so Caddy handles real domains and HTTPS instead of plain
+localhost ports.
 
 ## 1. Point DNS at the VM
 
