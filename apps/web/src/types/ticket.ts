@@ -58,6 +58,29 @@ export interface Group {
   description?: string | null;
 }
 
+export interface Company {
+  id: string;
+  name: string;
+  domain: string | null;
+}
+
+export interface Contact {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company_id: string | null;
+}
+
+export interface TicketActivity {
+  id: string;
+  ticket_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -82,9 +105,22 @@ export interface SlaPolicy {
 }
 
 export type AutomationTrigger = "ticket_created" | "ticket_updated";
-export type AutomationConditionField = "status" | "priority" | "source" | "subject" | "ticket_type_id" | "group_id";
+export type AutomationConditionField =
+  | "status"
+  | "priority"
+  | "source"
+  | "subject"
+  | "ticket_type_id"
+  | "group_id"
+  | "platform";
 export type AutomationConditionOperator = "equals" | "contains";
-export type AutomationActionType = "set_status" | "set_priority" | "set_group" | "set_agent" | "add_note";
+export type AutomationActionType =
+  | "set_status"
+  | "set_priority"
+  | "set_group"
+  | "set_agent"
+  | "set_platform"
+  | "add_note";
 
 export interface AutomationCondition {
   field: AutomationConditionField;

@@ -3,6 +3,8 @@ import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
+import CompaniesPage from "./pages/CompaniesPage";
+import ContactsPage from "./pages/ContactsPage";
 import DashboardPage from "./pages/DashboardPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import TicketListPage from "./pages/TicketListPage";
@@ -17,6 +19,8 @@ function App() {
         <nav className="app-nav">
           <Link to="/">Tickets</Link>
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/contacts">Contacts</Link>
+          <Link to="/companies">Companies</Link>
           <Link to="/admin">Admin</Link>
         </nav>
         <label className="tenant-input">
@@ -36,6 +40,8 @@ function App() {
           <Route path="/" element={<TicketListPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>

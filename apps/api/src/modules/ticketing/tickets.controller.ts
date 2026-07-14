@@ -68,4 +68,12 @@ export class TicketsController {
   ) {
     return this.ticketsService.listMessages(tenantId, id);
   }
+
+  @Get(':id/activities')
+  listActivities(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.ticketsService.listActivities(tenantId, id);
+  }
 }

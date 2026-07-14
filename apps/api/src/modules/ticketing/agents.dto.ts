@@ -22,6 +22,14 @@ export class CreateAgentDto {
 
 export class UpdateAgentDto {
   @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 

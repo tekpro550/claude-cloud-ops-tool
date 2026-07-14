@@ -46,7 +46,7 @@ async function main() {
   );
   await migrator.query(
     `INSERT INTO ticket_types (tenant_id, name) VALUES ($1, $2)`,
-    [tenant.id, 'Cloud Support - Azure'],
+    [tenant.id, 'Cloud Support'],
   );
   const {
     rows: [agentUser],
@@ -84,7 +84,7 @@ async function main() {
       'buildContext maps the Freshdesk agent to the seeded local agent by email',
     );
     assert(
-      context.ticketTypeIdByName.has('Cloud Support - Azure'),
+      context.ticketTypeIdByName.has('Cloud Support'),
       'buildContext picks up the pre-seeded ticket type',
     );
 
@@ -171,6 +171,10 @@ async function main() {
     assert(
       imported.ticket_type_id !== null,
       'the ticket type was resolved by name',
+    );
+    assert(
+      imported.platform === 'azure',
+      `Freshdesk type "Cloud Support - Azure" splits into type "Cloud Support" + platform "azure" (got ${imported.platform})`,
     );
     assert(
       new Date(imported.created_at).toISOString() ===

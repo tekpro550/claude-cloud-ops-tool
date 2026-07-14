@@ -300,16 +300,53 @@ export class TicketsService {
         sets.push(`${column} = $${params.length}`);
       };
 
+      // Tracked separately from `sets` -- one row per changed field, written
+      // to ticket_activities after the UPDATE succeeds, so the ticket detail
+      // UI can show a timeline of property changes (who/what/when), not just
+      // the message thread.
+      const activityChanges: {
+        field: string;
+        oldValue: unknown;
+        newValue: unknown;
+      }[] = [];
+      const trackChange = (
+        field: string,
+        oldValue: unknown,
+        newValue: unknown,
+      ) => {
+        if (oldValue !== newValue) {
+          activityChanges.push({ field, oldValue, newValue });
+        }
+      };
+
       if (dto.status !== undefined) {
+        trackChange('status', existing.status, dto.status);
         assign('status', dto.status);
         const closing = dto.status === 'resolved' || dto.status === 'closed';
         assign('resolved_at', closing ? new Date() : null);
       }
-      if (dto.priority !== undefined) assign('priority', dto.priority);
-      if (dto.platform !== undefined) assign('platform', dto.platform);
-      if (dto.groupId !== undefined) assign('group_id', dto.groupId);
-      if (dto.agentId !== undefined) assign('agent_id', dto.agentId);
+      if (dto.priority !== undefined) {
+        trackChange('priority', existing.priority, dto.priority);
+        assign('priority', dto.priority);
+      }
+      if (dto.platform !== undefined) {
+        trackChange('platform', existing.platform, dto.platform);
+        assign('platform', dto.platform);
+      }
+      if (dto.groupId !== undefined) {
+        trackChange('group_id', existing.group_id, dto.groupId);
+        assign('group_id', dto.groupId);
+      }
+      if (dto.agentId !== undefined) {
+        trackChange('agent_id', existing.agent_id, dto.agentId);
+        assign('agent_id', dto.agentId);
+      }
       if (dto.ticketTypeId !== undefined) {
+        trackChange(
+          'ticket_type_id',
+          existing.ticket_type_id,
+          dto.ticketTypeId,
+        );
         assign('ticket_type_id', dto.ticketTypeId);
 
         // Changing ticket type can change which SLA policy applies (section
@@ -350,6 +387,19 @@ export class TicketsService {
         `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
         params,
       );
+
+      for (const change of activityChanges) {
+        await queryRunner.query(
+          `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            tenantId,
+            id,
+            change.field,
+            change.oldValue ?? null,
+            change.newValue ?? null,
+          ],
+        );
+      }
       return this.automationRules.runRules(
         tenantId,
         'ticket_updated',
@@ -423,12 +473,6 @@ export class TicketsService {
     });
   }
 
-  /**
-   * Sprint 4 owns the full merged timeline (messages + property changes +
-   * time logs). Until then, the ticket detail UI needs some way to show the
-   * message thread it can already post to, so this lists just the messages,
-   * oldest first.
-   */
   async listMessages(tenantId: string, ticketId: string) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [ticket] = await queryRunner.query(
@@ -441,6 +485,24 @@ export class TicketsService {
 
       return queryRunner.query(
         `SELECT * FROM ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC`,
+        [ticketId],
+      );
+    });
+  }
+
+  /** Property-change history (status/priority/group/agent/ticket type/platform) for the Timeline side panel section. */
+  async listActivities(tenantId: string, ticketId: string) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [ticket] = await queryRunner.query(
+        `SELECT id FROM tickets WHERE id = $1`,
+        [ticketId],
+      );
+      if (!ticket) {
+        throw new NotFoundException(`Ticket ${ticketId} not found`);
+      }
+
+      return queryRunner.query(
+        `SELECT * FROM ticket_activities WHERE ticket_id = $1 ORDER BY created_at ASC`,
         [ticketId],
       );
     });

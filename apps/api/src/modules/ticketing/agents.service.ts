@@ -74,7 +74,7 @@ export class AgentsService {
   async update(tenantId: string, id: string, dto: UpdateAgentDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(
-        `SELECT id FROM agents WHERE id = $1`,
+        `SELECT user_id FROM agents WHERE id = $1`,
         [id],
       );
       if (!existing) {
@@ -82,6 +82,33 @@ export class AgentsService {
       }
       if (dto.groupIds?.length) {
         await assertGroupsBelongToTenant(queryRunner, dto.groupIds);
+      }
+
+      // name/email live on the linked users row, not on agents itself, so
+      // they're updated separately from the agents SET below.
+      if (dto.name !== undefined || dto.email !== undefined) {
+        const userSets: string[] = [];
+        const userParams: unknown[] = [];
+        const assignUser = (column: string, value: unknown) => {
+          userParams.push(value);
+          userSets.push(`${column} = $${userParams.length}`);
+        };
+        if (dto.name !== undefined) assignUser('name', dto.name);
+        if (dto.email !== undefined) assignUser('email', dto.email);
+        userParams.push(existing.user_id);
+        try {
+          await queryRunner.query(
+            `UPDATE users SET ${userSets.join(', ')} WHERE id = $${userParams.length}`,
+            userParams,
+          );
+        } catch (err) {
+          if ((err as { code?: string }).code === '23505') {
+            throw new BadRequestException(
+              `A user with email ${dto.email} already exists for this tenant`,
+            );
+          }
+          throw err;
+        }
       }
 
       const sets: string[] = [];
@@ -93,19 +120,14 @@ export class AgentsService {
       if (dto.isActive !== undefined) assign('is_active', dto.isActive);
       if (dto.groupIds !== undefined) assign('group_ids', dto.groupIds);
 
-      if (sets.length === 0) {
-        const [row] = await queryRunner.query(
-          `SELECT a.id, a.group_ids, a.is_active, u.name, u.email FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
-          [id],
+      if (sets.length > 0) {
+        params.push(id);
+        await queryRunner.query(
+          `UPDATE agents SET ${sets.join(', ')} WHERE id = $${params.length}`,
+          params,
         );
-        return row;
       }
 
-      params.push(id);
-      await queryRunner.query(
-        `UPDATE agents SET ${sets.join(', ')} WHERE id = $${params.length}`,
-        params,
-      );
       const [row] = await queryRunner.query(
         `SELECT a.id, a.group_ids, a.is_active, u.name, u.email FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
         [id],

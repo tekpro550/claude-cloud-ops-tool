@@ -5,6 +5,8 @@ import type {
   AutomationRule,
   AutomationTrigger,
   CannedResponse,
+  Company,
+  Contact,
   DashboardSlaSummary,
   DashboardSummary,
   DashboardTrendPoint,
@@ -13,6 +15,7 @@ import type {
   SetupStatus,
   SlaPolicy,
   Ticket,
+  TicketActivity,
   TicketList,
   TicketMessage,
   TicketMessageAuthorType,
@@ -121,6 +124,10 @@ export function listTicketMessages(tenantId: string, ticketId: string): Promise<
   return request(tenantId, "GET", `/tickets/${ticketId}/messages`);
 }
 
+export function listTicketActivities(tenantId: string, ticketId: string): Promise<TicketActivity[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/activities`);
+}
+
 export interface AddTicketMessageInput {
   type: TicketMessageType;
   authorType: TicketMessageAuthorType;
@@ -218,7 +225,7 @@ export function createAgent(
 export function updateAgent(
   tenantId: string,
   id: string,
-  input: { isActive?: boolean; groupIds?: string[] },
+  input: { name?: string; email?: string; isActive?: boolean; groupIds?: string[] },
 ): Promise<Agent> {
   return request(tenantId, "PATCH", `/agents/${id}`, input);
 }
@@ -324,4 +331,56 @@ export function updateCannedResponse(
 
 export function deleteCannedResponse(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/canned-responses/${id}`);
+}
+
+// ---- Contacts ----
+
+export function listContacts(tenantId: string, search?: string): Promise<Contact[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  return request(tenantId, "GET", `/contacts${query}`);
+}
+
+export function getContact(tenantId: string, id: string): Promise<Contact> {
+  return request(tenantId, "GET", `/contacts/${id}`);
+}
+
+export function createContact(
+  tenantId: string,
+  input: { name: string; email?: string; phone?: string; companyId?: string },
+): Promise<Contact> {
+  return request(tenantId, "POST", "/contacts", input);
+}
+
+export function updateContact(
+  tenantId: string,
+  id: string,
+  input: { name?: string; email?: string; phone?: string; companyId?: string },
+): Promise<Contact> {
+  return request(tenantId, "PATCH", `/contacts/${id}`, input);
+}
+
+// ---- Companies ----
+
+export function listCompanies(tenantId: string): Promise<Company[]> {
+  return request(tenantId, "GET", "/companies");
+}
+
+export function getCompany(tenantId: string, id: string): Promise<Company> {
+  return request(tenantId, "GET", `/companies/${id}`);
+}
+
+export function createCompany(tenantId: string, input: { name: string; domain?: string }): Promise<Company> {
+  return request(tenantId, "POST", "/companies", input);
+}
+
+export function updateCompany(
+  tenantId: string,
+  id: string,
+  input: { name?: string; domain?: string },
+): Promise<Company> {
+  return request(tenantId, "PATCH", `/companies/${id}`, input);
+}
+
+export function deleteCompany(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/companies/${id}`);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ApiError, createSlaPolicy, deleteSlaPolicy, listSlaPolicies } from "../../lib/apiClient";
+import { ApiError, createSlaPolicy, deleteSlaPolicy, listSlaPolicies, updateSlaPolicy } from "../../lib/apiClient";
 import type { SlaPolicy } from "../../types/ticket";
 
 export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
@@ -8,8 +8,15 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
   const [name, setName] = useState("");
   const [firstResponseMinutes, setFirstResponseMinutes] = useState("60");
   const [resolutionMinutes, setResolutionMinutes] = useState("480");
+  const [businessHoursOnly, setBusinessHoursOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editFirstResponseMinutes, setEditFirstResponseMinutes] = useState("");
+  const [editResolutionMinutes, setEditResolutionMinutes] = useState("");
+  const [editBusinessHoursOnly, setEditBusinessHoursOnly] = useState(false);
 
   const load = () => {
     listSlaPolicies(tenantId).then(setPolicies);
@@ -24,11 +31,17 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
     if (!name.trim() || !first || !resolution) return;
     setBusy(true);
     setError(null);
-    createSlaPolicy(tenantId, { name, firstResponseTargetMinutes: first, resolutionTargetMinutes: resolution })
+    createSlaPolicy(tenantId, {
+      name,
+      firstResponseTargetMinutes: first,
+      resolutionTargetMinutes: resolution,
+      businessHoursOnly,
+    })
       .then(() => {
         setName("");
         setFirstResponseMinutes("60");
         setResolutionMinutes("480");
+        setBusinessHoursOnly(false);
         load();
         onChange?.();
       })
@@ -46,6 +59,35 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to delete SLA policy"));
   };
 
+  const startEdit = (policy: SlaPolicy) => {
+    setEditingId(policy.id);
+    setEditName(policy.name);
+    setEditFirstResponseMinutes(String(policy.first_response_target_minutes));
+    setEditResolutionMinutes(String(policy.resolution_target_minutes));
+    setEditBusinessHoursOnly(policy.business_hours_only);
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = (id: string) => {
+    const first = Number(editFirstResponseMinutes);
+    const resolution = Number(editResolutionMinutes);
+    if (!editName.trim() || !first || !resolution) return;
+    setError(null);
+    updateSlaPolicy(tenantId, id, {
+      name: editName,
+      firstResponseTargetMinutes: first,
+      resolutionTargetMinutes: resolution,
+      businessHoursOnly: editBusinessHoursOnly,
+    })
+      .then(() => {
+        setEditingId(null);
+        load();
+        onChange?.();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update SLA policy"));
+  };
+
   return (
     <div className="admin-entity">
       <h4>SLA policies</h4>
@@ -53,19 +95,63 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
       {policies.length === 0 && <p className="hint">No SLA policies yet.</p>}
       {policies.length > 0 && (
         <ul className="admin-list">
-          {policies.map((p) => (
-            <li key={p.id}>
-              <span>
-                <strong>{p.name}</strong>{" "}
-                <span className="hint">
-                  first response {p.first_response_target_minutes}min · resolution {p.resolution_target_minutes}min
+          {policies.map((p) =>
+            editingId === p.id ? (
+              <li key={p.id}>
+                <span className="admin-form">
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="First response (min)"
+                    value={editFirstResponseMinutes}
+                    onChange={(e) => setEditFirstResponseMinutes(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Resolution (min)"
+                    value={editResolutionMinutes}
+                    onChange={(e) => setEditResolutionMinutes(e.target.value)}
+                  />
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={editBusinessHoursOnly}
+                      onChange={(e) => setEditBusinessHoursOnly(e.target.checked)}
+                    />{" "}
+                    Business hours only
+                  </label>
                 </span>
-              </span>
-              <button type="button" className="link-button" onClick={() => handleDelete(p)}>
-                Delete
-              </button>
-            </li>
-          ))}
+                <span>
+                  <button type="button" className="link-button" onClick={() => saveEdit(p.id)}>
+                    Save
+                  </button>
+                  <button type="button" className="link-button" onClick={cancelEdit}>
+                    Cancel
+                  </button>
+                </span>
+              </li>
+            ) : (
+              <li key={p.id}>
+                <span>
+                  <strong>{p.name}</strong>{" "}
+                  <span className="hint">
+                    first response {p.first_response_target_minutes}min · resolution {p.resolution_target_minutes}min
+                    {p.business_hours_only ? " · business hours only" : ""}
+                  </span>
+                </span>
+                <span>
+                  <button type="button" className="link-button" onClick={() => startEdit(p)}>
+                    Edit
+                  </button>
+                  <button type="button" className="link-button" onClick={() => handleDelete(p)}>
+                    Delete
+                  </button>
+                </span>
+              </li>
+            ),
+          )}
         </ul>
       )}
       <form className="admin-form" onSubmit={handleCreate}>
@@ -84,6 +170,10 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
           value={resolutionMinutes}
           onChange={(e) => setResolutionMinutes(e.target.value)}
         />
+        <label>
+          <input type="checkbox" checked={businessHoursOnly} onChange={(e) => setBusinessHoursOnly(e.target.checked)} />{" "}
+          Business hours only
+        </label>
         <button type="submit" disabled={busy}>
           Add SLA policy
         </button>

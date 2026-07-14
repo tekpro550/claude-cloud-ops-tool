@@ -52,12 +52,23 @@ export default function AdminPage() {
         </>
       )}
 
-      <GroupsAdmin tenantId={tenantId} onChange={handleChange} />
-      <AgentsAdmin tenantId={tenantId} onChange={handleChange} />
-      <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-      <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
-      <AutomationRulesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-      <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} />
+      <section className="admin-group">
+        <h3>Team</h3>
+        <GroupsAdmin tenantId={tenantId} onChange={handleChange} />
+        <AgentsAdmin tenantId={tenantId} onChange={handleChange} />
+      </section>
+
+      <section className="admin-group">
+        <h3>Support Operations</h3>
+        <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
+        <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
+      </section>
+
+      <section className="admin-group">
+        <h3>Workflows</h3>
+        <AutomationRulesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
+        <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} />
+      </section>
     </div>
   );
 }

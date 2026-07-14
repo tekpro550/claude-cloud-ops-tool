@@ -21,6 +21,87 @@ const PRIORITY_MAP: Record<number, string> = {
   4: 'urgent',
 };
 
+/**
+ * Freshdesk's "type" field packs a category and a cloud provider into one
+ * string (e.g. "Cloud Support - Azure"), which is why the old Freshdesk
+ * ticket_types list had ~30 entries -- one per category-provider pair. The
+ * standardized taxonomy splits that into a single category name plus
+ * tickets.platform, so migration needs to reverse-split every known
+ * Freshdesk value here. Anything not in this table falls back to using the
+ * raw string as the type name with no platform, and importTicket() warns so
+ * it doesn't silently lose data on a value nobody's seen yet.
+ */
+const FRESHDESK_TYPE_MAP: Record<
+  string,
+  { typeName: string; platform: string | null }
+> = {
+  'Cloud Support - Azure': { typeName: 'Cloud Support', platform: 'azure' },
+  'Cloud Support - AWS': { typeName: 'Cloud Support', platform: 'aws' },
+  'Cloud Support - Alibaba': {
+    typeName: 'Cloud Support',
+    platform: 'alibaba_cloud',
+  },
+  'Cloud Support - Others': { typeName: 'Cloud Support', platform: 'other' },
+  'M365 Support - Microsoft': {
+    typeName: 'Cloud Support',
+    platform: 'microsoft_365',
+  },
+  'Support - Tittu Marketing Platform': {
+    typeName: 'Platform Support',
+    platform: 'tittu_marketing_platform',
+  },
+  'Cloud Estimate': { typeName: 'Cloud Estimate', platform: null },
+  'Cloud POC - AWS': { typeName: 'Cloud POC', platform: 'aws' },
+  'Cloud POC - Azure': { typeName: 'Cloud POC', platform: 'azure' },
+  'Cloud POC - Other': { typeName: 'Cloud POC', platform: 'other' },
+  Development: { typeName: 'Development', platform: null },
+  'Tittu New Features - Development': {
+    typeName: 'Development',
+    platform: 'tittu_marketing_platform',
+  },
+  'Cloud Project - AWS': { typeName: 'Cloud Project', platform: 'aws' },
+  'Cloud Project - Azure': { typeName: 'Cloud Project', platform: 'azure' },
+  'Cloud Project - Others': { typeName: 'Cloud Project', platform: 'other' },
+  'Cloud Project - Alibaba': {
+    typeName: 'Cloud Project',
+    platform: 'alibaba_cloud',
+  },
+  'Devops Project': { typeName: 'DevOps Project', platform: null },
+  'Cloud Account Setup - AWS': {
+    typeName: 'Account/Tenant Setup',
+    platform: 'aws',
+  },
+  'Cloud Account Setup - Azure': {
+    typeName: 'Account/Tenant Setup',
+    platform: 'azure',
+  },
+  'Cloud Account Setup - Alibaba': {
+    typeName: 'Account/Tenant Setup',
+    platform: 'alibaba_cloud',
+  },
+  'M365 Tenant Setup - Microsoft': {
+    typeName: 'Account/Tenant Setup',
+    platform: 'microsoft_365',
+  },
+  'Cloud Billing': { typeName: 'Billing', platform: null },
+  Training: { typeName: 'Training', platform: null },
+  'Cloud Migration': { typeName: 'Migration', platform: null },
+  'M365 Migration': { typeName: 'Migration', platform: 'microsoft_365' },
+  'Cloud Audit - Azure': { typeName: 'Audit', platform: 'azure' },
+  'Cloud Audit - AWS': { typeName: 'Audit', platform: 'aws' },
+  'Cloud Audit - Other': { typeName: 'Audit', platform: 'other' },
+  Reports: { typeName: 'Reports', platform: null },
+  'WAP APP Setup': { typeName: 'App Setup', platform: null },
+  'EMP APP Setup': { typeName: 'App Setup', platform: null },
+};
+
+function resolveFreshdeskType(rawType: string): {
+  typeName: string;
+  platform: string | null;
+} {
+  return FRESHDESK_TYPE_MAP[rawType] ?? { typeName: rawType, platform: null };
+}
+
 export interface MigrationContext {
   groupIdByFreshdeskId: Map<number, string>;
   agentIdByFreshdeskResponderId: Map<number, string>;
@@ -148,12 +229,16 @@ export class FreshdeskMigrationService {
           )
         )[0].id;
 
-      const ticketTypeId = ticket.type
-        ? (context.ticketTypeIdByName.get(ticket.type) ?? null)
+      const resolvedType = ticket.type
+        ? resolveFreshdeskType(ticket.type)
         : null;
+      const ticketTypeId = resolvedType
+        ? (context.ticketTypeIdByName.get(resolvedType.typeName) ?? null)
+        : null;
+      const platform = resolvedType?.platform ?? null;
       if (ticket.type && !ticketTypeId) {
         warnings.push(
-          `ticket ${ticket.id}: no local ticket_type named "${ticket.type}", left unset`,
+          `ticket ${ticket.id}: no local ticket_type named "${resolvedType?.typeName}" (mapped from Freshdesk type "${ticket.type}"), left unset`,
         );
       }
 
@@ -189,8 +274,8 @@ export class FreshdeskMigrationService {
       // migration) -- reusing 'api' is the closest fit without a schema
       // change nobody's confirmed the shape of yet.
       const [inserted] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, legacy_ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, status, priority, source, resolved_at, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'api', $11, $12, $12)
+        `INSERT INTO tickets (tenant_id, ticket_number, legacy_ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, status, priority, source, resolved_at, created_at, updated_at, platform)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'api', $11, $12, $12, $13)
          RETURNING id`,
         [
           tenantId,
@@ -205,6 +290,7 @@ export class FreshdeskMigrationService {
           priority,
           resolvedAt,
           createdAt,
+          platform,
         ],
       );
 

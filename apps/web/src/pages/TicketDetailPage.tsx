@@ -18,6 +18,8 @@ import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import SidePanel from "../components/SidePanel";
+import TicketContactInfo from "../components/TicketContactInfo";
+import TicketTimeline from "../components/TicketTimeline";
 import TicketTodos from "../components/TicketTodos";
 import TicketTimeLogs from "../components/TicketTimeLogs";
 import type {
@@ -134,6 +136,11 @@ export default function TicketDetailPage() {
 
   const sections = [
     {
+      id: "contact",
+      title: "Contact",
+      content: <TicketContactInfo tenantId={tenantId} contactId={ticket.contact_id} />,
+    },
+    {
       id: "properties",
       title: "Properties",
       content: (
@@ -238,6 +245,20 @@ export default function TicketDetailPage() {
             ticket.resolution_due_at && <SlaDueBadge label="Resolution" iso={ticket.resolution_due_at} />
           )}
         </div>
+      ),
+    },
+    {
+      id: "timeline",
+      title: "Timeline",
+      content: (
+        <TicketTimeline
+          tenantId={tenantId}
+          ticketId={ticket.id}
+          updatedAt={ticket.updated_at}
+          groups={groups}
+          agents={agents}
+          ticketTypes={ticketTypes}
+        />
       ),
     },
     {

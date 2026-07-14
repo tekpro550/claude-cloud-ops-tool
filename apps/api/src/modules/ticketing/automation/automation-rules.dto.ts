@@ -18,6 +18,7 @@ const CONDITION_FIELDS = [
   'subject',
   'ticket_type_id',
   'group_id',
+  'platform',
 ] as const;
 const CONDITION_OPERATORS = ['equals', 'contains'] as const;
 const ACTION_TYPES = [
@@ -25,6 +26,7 @@ const ACTION_TYPES = [
   'set_priority',
   'set_group',
   'set_agent',
+  'set_platform',
   'add_note',
 ] as const;
 

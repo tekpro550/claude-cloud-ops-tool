@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ApiError, createTicket, listAgents, listGroups, listTickets } from "../lib/apiClient";
 import { platformLabel, PLATFORMS } from "../lib/platform";
 import { relativeTime } from "../lib/relativeTime";
+import { SLA_STATE_LABELS, ticketSlaState } from "../lib/slaState";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import type { Agent, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus } from "../types/ticket";
@@ -168,40 +169,37 @@ export default function TicketListPage() {
       {!loading && tickets.length === 0 && <p className="hint">No tickets found.</p>}
 
       {tickets.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Subject</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Platform</th>
-              <th>Agent</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tickets.map((ticket) => (
-              <tr key={ticket.id}>
-                <td>{formatTicketNumber(ticket)}</td>
-                <td>
-                  <Link to={`/tickets/${ticket.id}`}>{ticket.subject}</Link>
-                </td>
-                <td>
+        <ul className="ticket-fleet">
+          {tickets.map((ticket) => {
+            const slaState = ticketSlaState(ticket);
+            return (
+              <li key={ticket.id} className="ticket-card">
+                <div className="ticket-card-header">
+                  <span className="ticket-card-number">{formatTicketNumber(ticket)}</span>
+                  <Link to={`/tickets/${ticket.id}`} className="ticket-card-subject">
+                    {ticket.subject}
+                  </Link>
+                </div>
+                <div className="ticket-card-badges">
                   <span className={`badge status-${ticket.status}`}>{ticket.status}</span>
-                </td>
-                <td>
                   <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
-                </td>
-                <td className={ticket.platform ? undefined : "hint"}>{ticket.platform ? platformLabel(ticket.platform) : "—"}</td>
-                <td className={ticket.agent_id ? undefined : "hint"}>
-                  {ticket.agent_id ? (agentNameById.get(ticket.agent_id) ?? "Unknown agent") : "Unassigned"}
-                </td>
-                <td title={new Date(ticket.created_at).toLocaleString()}>{relativeTime(ticket.created_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  {slaState !== "no_sla" && (
+                    <span className={`badge sla-state-${slaState}`}>{SLA_STATE_LABELS[slaState]}</span>
+                  )}
+                  {ticket.platform && <span className="badge">{platformLabel(ticket.platform)}</span>}
+                </div>
+                <div className="ticket-card-footer">
+                  <span className={ticket.agent_id ? undefined : "hint"}>
+                    {ticket.agent_id ? (agentNameById.get(ticket.agent_id) ?? "Unknown agent") : "Unassigned"}
+                  </span>
+                  <span className="hint" title={new Date(ticket.created_at).toLocaleString()}>
+                    {relativeTime(ticket.created_at)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {tickets.length > 0 && (

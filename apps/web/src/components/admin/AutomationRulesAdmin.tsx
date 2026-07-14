@@ -9,6 +9,7 @@ import {
   listGroups,
   updateAutomationRule,
 } from "../../lib/apiClient";
+import { platformLabel, PLATFORMS } from "../../lib/platform";
 import type {
   Agent,
   AutomationActionType,
@@ -20,11 +21,102 @@ import type {
 } from "../../types/ticket";
 
 const TRIGGERS: AutomationTrigger[] = ["ticket_created", "ticket_updated"];
-const FIELDS: AutomationConditionField[] = ["status", "priority", "source", "subject", "ticket_type_id", "group_id"];
+const FIELDS: AutomationConditionField[] = [
+  "status",
+  "priority",
+  "source",
+  "subject",
+  "ticket_type_id",
+  "group_id",
+  "platform",
+];
 const OPERATORS: AutomationConditionOperator[] = ["equals", "contains"];
-const ACTION_TYPES: AutomationActionType[] = ["set_status", "set_priority", "set_group", "set_agent", "add_note"];
+const ACTION_TYPES: AutomationActionType[] = [
+  "set_status",
+  "set_priority",
+  "set_group",
+  "set_agent",
+  "set_platform",
+  "add_note",
+];
 const STATUS_VALUES = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITY_VALUES = ["low", "medium", "high", "urgent"];
+
+function ActionValueInput({
+  actionType,
+  value,
+  onChange,
+  groups,
+  agents,
+}: {
+  actionType: AutomationActionType;
+  value: string;
+  onChange: (value: string) => void;
+  groups: Group[];
+  agents: Agent[];
+}) {
+  if (actionType === "set_status") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Select status</option>
+        {STATUS_VALUES.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (actionType === "set_priority") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Select priority</option>
+        {PRIORITY_VALUES.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (actionType === "set_group") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Select group</option>
+        {groups.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (actionType === "set_agent") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Select agent</option>
+        {agents.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (actionType === "set_platform") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Select platform</option>
+        {PLATFORMS.map((p) => (
+          <option key={p} value={p}>
+            {platformLabel(p)}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  return <input placeholder="Note text" value={value} onChange={(e) => onChange(e.target.value)} required />;
+}
 
 export default function AutomationRulesAdmin({
   tenantId,
@@ -50,6 +142,15 @@ export default function AutomationRulesAdmin({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editTrigger, setEditTrigger] = useState<AutomationTrigger>("ticket_created");
+  const [editConditionField, setEditConditionField] = useState<AutomationConditionField>("status");
+  const [editConditionOperator, setEditConditionOperator] = useState<AutomationConditionOperator>("equals");
+  const [editConditionValue, setEditConditionValue] = useState("");
+  const [editActionType, setEditActionType] = useState<AutomationActionType>("set_status");
+  const [editActionValue, setEditActionValue] = useState("");
+
   const load = () => {
     Promise.all([listAutomationRules(tenantId), listGroups(tenantId), listAgents(tenantId)]).then(
       ([rulesRes, groupsRes, agentsRes]) => {
@@ -69,6 +170,7 @@ export default function AutomationRulesAdmin({
   const describeAction = (a: AutomationRule["actions"][number]) => {
     if (a.type === "set_group") return `set group to ${groupName(a.value)}`;
     if (a.type === "set_agent") return `set agent to ${agentName(a.value)}`;
+    if (a.type === "set_platform") return `set platform to ${platformLabel(a.value as (typeof PLATFORMS)[number])}`;
     if (a.type === "add_note") return `add note "${a.value}"`;
     return `${a.type.replace("set_", "set ")} to ${a.value}`;
   };
@@ -115,56 +217,36 @@ export default function AutomationRulesAdmin({
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to delete automation rule"));
   };
 
-  const renderActionValueInput = () => {
-    if (actionType === "set_status") {
-      return (
-        <select value={actionValue} onChange={(e) => setActionValue(e.target.value)} required>
-          <option value="">Select status</option>
-          {STATUS_VALUES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    if (actionType === "set_priority") {
-      return (
-        <select value={actionValue} onChange={(e) => setActionValue(e.target.value)} required>
-          <option value="">Select priority</option>
-          {PRIORITY_VALUES.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    if (actionType === "set_group") {
-      return (
-        <select value={actionValue} onChange={(e) => setActionValue(e.target.value)} required>
-          <option value="">Select group</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    if (actionType === "set_agent") {
-      return (
-        <select value={actionValue} onChange={(e) => setActionValue(e.target.value)} required>
-          <option value="">Select agent</option>
-          {agents.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    return <input placeholder="Note text" value={actionValue} onChange={(e) => setActionValue(e.target.value)} required />;
+  const startEdit = (rule: AutomationRule) => {
+    setEditingId(rule.id);
+    setEditName(rule.name);
+    setEditTrigger(rule.trigger);
+    const condition = rule.conditions[0];
+    setEditConditionField(condition?.field ?? "status");
+    setEditConditionOperator(condition?.operator ?? "equals");
+    setEditConditionValue(condition?.value ?? "");
+    const action = rule.actions[0];
+    setEditActionType(action?.type ?? "set_status");
+    setEditActionValue(action?.value ?? "");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = (id: string) => {
+    if (!editName.trim() || !editConditionValue.trim() || !editActionValue.trim()) return;
+    setError(null);
+    updateAutomationRule(tenantId, id, {
+      name: editName,
+      trigger: editTrigger,
+      conditions: [{ field: editConditionField, operator: editConditionOperator, value: editConditionValue }],
+      actions: [{ type: editActionType, value: editActionValue }],
+    })
+      .then(() => {
+        setEditingId(null);
+        load();
+        onChange?.();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update automation rule"));
   };
 
   return (
@@ -174,29 +256,106 @@ export default function AutomationRulesAdmin({
       {rules.length === 0 && <p className="hint">No automation rules yet.</p>}
       {rules.length > 0 && (
         <ul className="admin-list">
-          {rules.map((rule) => (
-            <li key={rule.id}>
-              <span>
-                <strong>{rule.name}</strong>{" "}
-                <span className={`badge ${rule.is_active ? "status-resolved" : ""}`}>
-                  {rule.is_active ? "active" : "inactive"}
+          {rules.map((rule) =>
+            editingId === rule.id ? (
+              <li key={rule.id}>
+                <span className="admin-form">
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <select value={editTrigger} onChange={(e) => setEditTrigger(e.target.value as AutomationTrigger)}>
+                    {TRIGGERS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="admin-form-row">
+                    <span className="hint">If</span>
+                    <select
+                      value={editConditionField}
+                      onChange={(e) => setEditConditionField(e.target.value as AutomationConditionField)}
+                    >
+                      {FIELDS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={editConditionOperator}
+                      onChange={(e) => setEditConditionOperator(e.target.value as AutomationConditionOperator)}
+                    >
+                      {OPERATORS.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="Value"
+                      value={editConditionValue}
+                      onChange={(e) => setEditConditionValue(e.target.value)}
+                    />
+                  </div>
+                  <div className="admin-form-row">
+                    <span className="hint">Then</span>
+                    <select
+                      value={editActionType}
+                      onChange={(e) => {
+                        setEditActionType(e.target.value as AutomationActionType);
+                        setEditActionValue("");
+                      }}
+                    >
+                      {ACTION_TYPES.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                    <ActionValueInput
+                      actionType={editActionType}
+                      value={editActionValue}
+                      onChange={setEditActionValue}
+                      groups={groups}
+                      agents={agents}
+                    />
+                  </div>
                 </span>
-                <br />
-                <span className="hint">
-                  on {rule.trigger}: if {rule.conditions.map(describeCondition).join(" and ")} then{" "}
-                  {rule.actions.map(describeAction).join(", ")}
+                <span>
+                  <button type="button" className="link-button" onClick={() => saveEdit(rule.id)}>
+                    Save
+                  </button>
+                  <button type="button" className="link-button" onClick={cancelEdit}>
+                    Cancel
+                  </button>
                 </span>
-              </span>
-              <span>
-                <button type="button" className="link-button" onClick={() => handleToggleActive(rule)}>
-                  {rule.is_active ? "Deactivate" : "Activate"}
-                </button>
-                <button type="button" className="link-button" onClick={() => handleDelete(rule)}>
-                  Delete
-                </button>
-              </span>
-            </li>
-          ))}
+              </li>
+            ) : (
+              <li key={rule.id}>
+                <span>
+                  <strong>{rule.name}</strong>{" "}
+                  <span className={`badge ${rule.is_active ? "status-resolved" : ""}`}>
+                    {rule.is_active ? "active" : "inactive"}
+                  </span>
+                  <br />
+                  <span className="hint">
+                    on {rule.trigger}: if {rule.conditions.map(describeCondition).join(" and ")} then{" "}
+                    {rule.actions.map(describeAction).join(", ")}
+                  </span>
+                </span>
+                <span>
+                  <button type="button" className="link-button" onClick={() => startEdit(rule)}>
+                    Edit
+                  </button>
+                  <button type="button" className="link-button" onClick={() => handleToggleActive(rule)}>
+                    {rule.is_active ? "Deactivate" : "Activate"}
+                  </button>
+                  <button type="button" className="link-button" onClick={() => handleDelete(rule)}>
+                    Delete
+                  </button>
+                </span>
+              </li>
+            ),
+          )}
         </ul>
       )}
       <form className="admin-form" onSubmit={handleCreate}>
@@ -241,7 +400,7 @@ export default function AutomationRulesAdmin({
               </option>
             ))}
           </select>
-          {renderActionValueInput()}
+          <ActionValueInput actionType={actionType} value={actionValue} onChange={setActionValue} groups={groups} agents={agents} />
         </div>
         <button type="submit" disabled={busy}>
           Add automation rule

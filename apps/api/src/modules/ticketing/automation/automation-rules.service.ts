@@ -20,13 +20,20 @@ interface AutomationCondition {
     | 'source'
     | 'subject'
     | 'ticket_type_id'
-    | 'group_id';
+    | 'group_id'
+    | 'platform';
   operator: 'equals' | 'contains';
   value: string;
 }
 
 interface AutomationAction {
-  type: 'set_status' | 'set_priority' | 'set_group' | 'set_agent' | 'add_note';
+  type:
+    | 'set_status'
+    | 'set_priority'
+    | 'set_group'
+    | 'set_agent'
+    | 'set_platform'
+    | 'add_note';
   value: string;
 }
 
@@ -242,6 +249,13 @@ export class AutomationRulesService {
       case 'set_agent': {
         const [rows] = await queryRunner.query(
           `UPDATE tickets SET agent_id = $1, updated_at = now() WHERE id = $2 RETURNING *`,
+          [action.value, ticket.id],
+        );
+        return rows[0];
+      }
+      case 'set_platform': {
+        const [rows] = await queryRunner.query(
+          `UPDATE tickets SET platform = $1, updated_at = now() WHERE id = $2 RETURNING *`,
           [action.value, ticket.id],
         );
         return rows[0];

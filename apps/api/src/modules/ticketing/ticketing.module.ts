@@ -10,6 +10,10 @@ import { AutomationRulesController } from './automation/automation-rules.control
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { CannedResponsesController } from './canned-responses.controller';
 import { CannedResponsesService } from './canned-responses.service';
+import { CompaniesController } from './companies.controller';
+import { CompaniesService } from './companies.service';
+import { ContactsController } from './contacts.controller';
+import { ContactsService } from './contacts.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { EmailIntakeService } from './email-intake/email-intake.service';
@@ -44,6 +48,8 @@ import { TicketsService } from './tickets.service';
     SlaPoliciesController,
     AutomationRulesController,
     CannedResponsesController,
+    ContactsController,
+    CompaniesController,
     TicketTodosController,
     TicketTimeLogsController,
     DashboardController,
@@ -60,6 +66,8 @@ import { TicketsService } from './tickets.service';
     SlaPoliciesService,
     AutomationRulesService,
     CannedResponsesService,
+    ContactsService,
+    CompaniesService,
     TicketTodosService,
     TicketTimeLogsService,
     DashboardService,
