@@ -12,6 +12,8 @@ import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { EmailIntakeService } from './email-intake/email-intake.service';
 import { InternalTicketsController } from './internal/internal-tickets.controller';
+import { FreshdeskClient } from './migration/freshdesk-client';
+import { FreshdeskMigrationService } from './migration/freshdesk-migration.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { ReferenceDataController } from './reference-data.controller';
 import { ReferenceDataService } from './reference-data.service';
@@ -50,6 +52,8 @@ import { TicketsService } from './tickets.service';
     TicketTimeLogsService,
     DashboardService,
     AdminService,
+    FreshdeskClient,
+    FreshdeskMigrationService,
   ],
 })
 export class TicketingModule {}

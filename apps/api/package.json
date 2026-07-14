@@ -35,7 +35,9 @@
     "ticket-time-logs:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-time-logs.ts",
     "dashboard:verify": "ts-node -r dotenv/config src/modules/ticketing/dashboard/scripts/verify-dashboard.ts",
     "admin:verify": "ts-node -r dotenv/config src/modules/ticketing/admin/scripts/verify-admin.ts",
-    "internal-tickets:verify": "ts-node -r dotenv/config src/modules/ticketing/internal/scripts/verify-internal-tickets.ts"
+    "internal-tickets:verify": "ts-node -r dotenv/config src/modules/ticketing/internal/scripts/verify-internal-tickets.ts",
+    "freshdesk-mapping:verify": "ts-node -r dotenv/config src/modules/ticketing/migration/scripts/verify-freshdesk-mapping.ts",
+    "migrate:freshdesk": "ts-node -r dotenv/config src/modules/ticketing/migration/scripts/migrate-from-freshdesk.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
