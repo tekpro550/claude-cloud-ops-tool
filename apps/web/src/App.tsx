@@ -102,6 +102,7 @@ function HeaderAuth() {
 
 function App() {
   const { tenantId, setTenantId } = useTenant();
+  const { user } = useAuth();
 
   return (
     <div className="app">
@@ -116,11 +117,12 @@ function App() {
           <Link to="/admin">Admin</Link>
         </nav>
         <HeaderSearch />
-        <label className="tenant-input">
+        <label className="tenant-input" title={user ? "Log out to switch tenants — while logged in, requests use the tenant from your login, not this field" : undefined}>
           X-Tenant-Id
           <input
             placeholder="Paste tenant UUID"
             value={tenantId}
+            disabled={!!user}
             onChange={(e) => setTenantId(e.target.value.trim())}
           />
         </label>

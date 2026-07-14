@@ -22,10 +22,15 @@ export interface TenantScopedRequest extends Request {
  * confined to this guard the way the original stand-in comment intended.
  *
  * A valid `kind: 'agent'` JWT (from POST /auth/login) takes priority and
- * also populates userId/userRole. Falling back to the X-Tenant-Id header
- * when there's no bearer token keeps every pre-existing caller -- the 45
- * prior verify scripts, the live internal pilot -- working unmodified while
- * login rolls out gradually, per the additive rollout decision.
+ * also populates userId/userRole. A *present but invalid* bearer token
+ * (expired, malformed, or the wrong kind) falls back to the X-Tenant-Id
+ * header rather than hard-rejecting -- otherwise a stale token sitting in
+ * localStorage would 401 every request forever, even though the caller is
+ * still sending a perfectly valid X-Tenant-Id and the whole point of the
+ * additive rollout is that header-only auth keeps working. Falling back
+ * doesn't grant anything a bare X-Tenant-Id request couldn't already do on
+ * its own -- it just loses the userId/userRole identity that came with the
+ * (now-rejected) token.
  */
 @Injectable()
 export class TenantHeaderGuard implements CanActivate {
@@ -35,19 +40,22 @@ export class TenantHeaderGuard implements CanActivate {
     const authHeader = request.header('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       const claims = verifyJwt(authHeader.slice('Bearer '.length));
-      if (!claims || claims.kind !== 'agent') {
-        throw new UnauthorizedException('Invalid or expired token');
+      if (claims?.kind === 'agent') {
+        request.tenantId = claims.tenantId;
+        request.userId = claims.sub;
+        request.userRole = claims.role;
+        return true;
       }
-      request.tenantId = claims.tenantId;
-      request.userId = claims.sub;
-      request.userRole = claims.role;
-      return true;
+      // Invalid/expired/wrong-kind token: fall through to X-Tenant-Id
+      // instead of rejecting outright.
     }
 
     const tenantId = request.header('x-tenant-id');
     if (!tenantId || !UUID_RE.test(tenantId)) {
       throw new UnauthorizedException(
-        'X-Tenant-Id header is required and must be a UUID',
+        authHeader?.startsWith('Bearer ')
+          ? 'Invalid or expired token, and no valid X-Tenant-Id fallback was provided'
+          : 'X-Tenant-Id header is required and must be a UUID',
       );
     }
 

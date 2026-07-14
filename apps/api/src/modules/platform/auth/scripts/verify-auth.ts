@@ -151,9 +151,96 @@ async function main() {
       "a contact-kind token is rejected on an agent endpoint, even though it's validly signed",
     );
 
+    // A present-but-invalid bearer token must fall back to X-Tenant-Id
+    // rather than hard-rejecting -- a stale/expired token in localStorage
+    // shouldn't permanently lock a caller out of an endpoint their
+    // X-Tenant-Id header alone would still be allowed to reach.
+    const garbageTokenWithFallback = await request(server)
+      .get('/api/v1/tickets')
+      .set('Authorization', 'Bearer not-a-real-jwt')
+      .set('X-Tenant-Id', tenant.id);
+    assert(
+      garbageTokenWithFallback.status === 200,
+      'an invalid bearer token falls back to a valid X-Tenant-Id header instead of rejecting the request',
+    );
+
+    const contactTokenWithFallback = await request(server)
+      .get('/api/v1/tickets')
+      .set('Authorization', `Bearer ${contactToken}`)
+      .set('X-Tenant-Id', tenant.id);
+    assert(
+      contactTokenWithFallback.status === 200,
+      'a wrong-kind (contact) token on an agent endpoint also falls back to X-Tenant-Id rather than rejecting',
+    );
+
+    const garbageTokenNoFallback = await request(server)
+      .get('/api/v1/tickets')
+      .set('Authorization', 'Bearer not-a-real-jwt');
+    assert(
+      garbageTokenNoFallback.status === 401,
+      'an invalid bearer token with no X-Tenant-Id fallback available is still rejected with 401',
+    );
+
+    // ---- Message attribution: a logged-in agent's replies are attributed
+    // to them server-side, not left as a spoofable client-supplied value ----
+    const {
+      rows: [agent],
+    } = await migrator.query(
+      `INSERT INTO agents (tenant_id, user_id) VALUES ($1, $2) RETURNING id`,
+      [tenant.id, user.id],
+    );
+    const {
+      rows: [contact],
+    } = await migrator.query(
+      `INSERT INTO contacts (tenant_id, name, email) VALUES ($1, 'Requester', 'req@auth-verify.example') RETURNING id`,
+      [tenant.id],
+    );
+    const createTicketRes = await request(server)
+      .post('/api/v1/tickets')
+      .set('X-Tenant-Id', tenant.id)
+      .send({ subject: 'Attribution test', contactId: contact.id, source: 'web_form' });
+    const ticketId = createTicketRes.body.id;
+
+    const authedMessageRes = await request(server)
+      .post(`/api/v1/tickets/${ticketId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ type: 'reply', authorType: 'system', body: 'Reply from a logged-in agent' });
+    assert(
+      authedMessageRes.body.author_type === 'agent' &&
+        authedMessageRes.body.author_id === agent.id,
+      "a message posted with a valid agent Bearer token is attributed to that agent, overriding the client-supplied authorType/authorId (got author_type=" +
+        authedMessageRes.body.author_type +
+        ')',
+    );
+
+    const unauthedMessageRes = await request(server)
+      .post(`/api/v1/tickets/${ticketId}/messages`)
+      .set('X-Tenant-Id', tenant.id)
+      .send({ type: 'note', authorType: 'system', body: 'Note from a bare header caller' });
+    assert(
+      unauthedMessageRes.body.author_type === 'system',
+      'a message posted with only X-Tenant-Id (no verified identity) keeps the client-supplied authorType unchanged',
+    );
+
     console.log('\nAll auth checks passed.');
   } finally {
     await app.close();
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [
       tenant.id,
     ]);

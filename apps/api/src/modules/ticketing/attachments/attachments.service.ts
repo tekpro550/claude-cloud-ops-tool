@@ -36,9 +36,9 @@ export class AttachmentsService {
 
       const storagePath = await this.storage.save(file.buffer, file.originalname);
       const [attachment] = await queryRunner.query(
-        `INSERT INTO ticket_attachments (tenant_id, ticket_message_id, file_name, file_size_bytes, storage_path)
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [tenantId, messageId, file.originalname, file.size, storagePath],
+        `INSERT INTO ticket_attachments (tenant_id, ticket_id, ticket_message_id, file_name, file_size_bytes, storage_path)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [tenantId, ticketId, messageId, file.originalname, file.size, storagePath],
       );
       return attachment;
     });
@@ -47,10 +47,7 @@ export class AttachmentsService {
   listForTicket(tenantId: string, ticketId: string) {
     return withTenantContext(this.dataSource, tenantId, (queryRunner) =>
       queryRunner.query(
-        `SELECT a.* FROM ticket_attachments a
-         JOIN ticket_messages m ON m.id = a.ticket_message_id
-         WHERE m.ticket_id = $1
-         ORDER BY a.created_at ASC`,
+        `SELECT * FROM ticket_attachments WHERE ticket_id = $1 ORDER BY created_at ASC`,
         [ticketId],
       ),
     );
@@ -59,9 +56,7 @@ export class AttachmentsService {
   async getForDownload(tenantId: string, ticketId: string, attachmentId: string) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [attachment] = await queryRunner.query(
-        `SELECT a.* FROM ticket_attachments a
-         JOIN ticket_messages m ON m.id = a.ticket_message_id
-         WHERE a.id = $1 AND m.ticket_id = $2`,
+        `SELECT * FROM ticket_attachments WHERE id = $1 AND ticket_id = $2`,
         [attachmentId, ticketId],
       );
       if (!attachment) {
@@ -69,6 +64,10 @@ export class AttachmentsService {
       }
       return attachment;
     });
+  }
+
+  exists(storagePath: string) {
+    return this.storage.exists(storagePath);
   }
 
   readStream(storagePath: string) {

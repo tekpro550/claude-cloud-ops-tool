@@ -128,34 +128,52 @@ export class FreshdeskMigrationService {
   ) {}
 
   /**
-   * Downloads one Freshdesk attachment and inserts its ticket_attachments
-   * row, tied to `messageId`. Failures (a since-expired attachment_url, a
-   * network blip) are caught and turned into a warning rather than aborting
-   * the whole ticket import -- losing one attachment shouldn't lose the rest
-   * of a ticket's history.
+   * Downloads one Freshdesk attachment's bytes. Network-only, no DB access,
+   * so callers can run many of these concurrently (Promise.all) without
+   * touching the single-connection queryRunner -- node-postgres doesn't
+   * support concurrent queries on one client, so the download (slow,
+   * network-bound) and the eventual INSERT (fast, local) must stay separate.
+   * Failures (a since-expired attachment_url, a network blip) are caught and
+   * turned into a warning rather than aborting the whole ticket import --
+   * losing one attachment shouldn't lose the rest of a ticket's history.
    */
-  private async migrateAttachment(
-    queryRunner: QueryRunner,
-    tenantId: string,
-    messageId: string,
+  private async downloadAttachment(
     attachment: FreshdeskAttachment,
     warnings: string[],
-  ): Promise<void> {
+  ): Promise<Buffer | null> {
     try {
-      const buffer = await this.freshdeskClient.downloadAttachment(
+      return await this.freshdeskClient.downloadAttachment(
         attachment.attachment_url,
-      );
-      const storagePath = await this.storage.save(buffer, attachment.name);
-      await queryRunner.query(
-        `INSERT INTO ticket_attachments (tenant_id, ticket_message_id, file_name, file_size_bytes, storage_path)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [tenantId, messageId, attachment.name, attachment.size, storagePath],
       );
     } catch (err) {
       warnings.push(
         `attachment "${attachment.name}" (Freshdesk id ${attachment.id}) failed to migrate: ${(err as Error).message}`,
       );
+      return null;
     }
+  }
+
+  /**
+   * Writes an already-downloaded attachment to local storage and inserts its
+   * ticket_attachments row. `messageId` is null for a ticket-level
+   * attachment (e.g. one on the original description, not any specific
+   * conversation) -- ticket_id is always set, so the row never has to lie
+   * about being attached to a message it wasn't actually part of.
+   */
+  private async persistAttachment(
+    queryRunner: QueryRunner,
+    tenantId: string,
+    ticketId: string,
+    messageId: string | null,
+    attachment: FreshdeskAttachment,
+    buffer: Buffer,
+  ): Promise<void> {
+    const storagePath = await this.storage.save(buffer, attachment.name);
+    await queryRunner.query(
+      `INSERT INTO ticket_attachments (tenant_id, ticket_id, ticket_message_id, file_name, file_size_bytes, storage_path)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [tenantId, ticketId, messageId, attachment.name, attachment.size, storagePath],
+    );
   }
 
   /**
@@ -332,7 +350,10 @@ export class FreshdeskMigrationService {
         ],
       );
 
-      let firstMessageId: string | null = null;
+      const attachmentJobs: {
+        messageId: string | null;
+        attachment: FreshdeskAttachment;
+      }[] = [];
       for (const conv of ticket.conversations ?? []) {
         const authorType = conv.private
           ? 'system'
@@ -352,40 +373,42 @@ export class FreshdeskMigrationService {
           ],
         );
         messagesImported += 1;
-        firstMessageId ??= message.id;
 
         for (const attachment of conv.attachments ?? []) {
-          await this.migrateAttachment(
-            queryRunner,
-            tenantId,
-            message.id,
-            attachment,
-            warnings,
-          );
+          attachmentJobs.push({ messageId: message.id, attachment });
         }
       }
 
       // Attachments on the ticket itself (not tied to any conversation --
-      // typically ones added on the original description) need a message to
-      // hang off of, since ticket_attachments.ticket_message_id is required.
-      // The first imported conversation is the closest stand-in; if the
-      // ticket has no conversations at all there's nowhere to attach them.
-      if (ticket.attachments && ticket.attachments.length > 0) {
-        if (firstMessageId) {
-          for (const attachment of ticket.attachments) {
-            await this.migrateAttachment(
-              queryRunner,
-              tenantId,
-              firstMessageId,
-              attachment,
-              warnings,
-            );
-          }
-        } else {
-          warnings.push(
-            `ticket ${ticket.id} has ${ticket.attachments.length} top-level attachment(s) but no conversations to attach them to -- not migrated`,
-          );
-        }
+      // typically ones added on the original description) are tied directly
+      // to the ticket (ticket_message_id left null) rather than attributed
+      // to whichever conversation happened to import first.
+      for (const attachment of ticket.attachments ?? []) {
+        attachmentJobs.push({ messageId: null, attachment });
+      }
+
+      // Downloads are network-bound and safe to run concurrently (no DB
+      // access); the resulting inserts must stay sequential since
+      // queryRunner is a single connection that can't run concurrent
+      // queries. Splitting these two steps keeps the transaction open for
+      // roughly the slowest single download instead of the sum of all of
+      // them.
+      const downloaded = await Promise.all(
+        attachmentJobs.map(async (job) => ({
+          ...job,
+          buffer: await this.downloadAttachment(job.attachment, warnings),
+        })),
+      );
+      for (const job of downloaded) {
+        if (!job.buffer) continue;
+        await this.persistAttachment(
+          queryRunner,
+          tenantId,
+          inserted.id,
+          job.messageId,
+          job.attachment,
+          job.buffer,
+        );
       }
 
       imported = true;

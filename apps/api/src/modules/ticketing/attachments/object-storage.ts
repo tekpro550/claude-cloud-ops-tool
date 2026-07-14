@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 export interface ObjectStorage {
   /** Returns the storage_path to persist on the ticket_attachments row. */
   save(buffer: Buffer, originalName: string): Promise<string>;
+  exists(storagePath: string): Promise<boolean>;
   readStream(storagePath: string): NodeJS.ReadableStream;
   delete(storagePath: string): Promise<void>;
 }
@@ -36,6 +37,15 @@ export class LocalDiskStorage implements ObjectStorage {
     const key = `${randomUUID()}${ext}`;
     await fs.writeFile(path.join(this.root, key), buffer);
     return key;
+  }
+
+  async exists(storagePath: string): Promise<boolean> {
+    try {
+      await fs.access(path.join(this.root, this.assertSafeKey(storagePath)));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   readStream(storagePath: string): NodeJS.ReadableStream {

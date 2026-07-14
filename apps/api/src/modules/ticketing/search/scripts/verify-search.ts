@@ -1,6 +1,8 @@
 import 'dotenv/config';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Client } from 'pg';
+import * as request from 'supertest';
 import { AppModule } from '../../../../app.module';
 import { SearchService } from '../search.service';
 
@@ -62,9 +64,19 @@ async function main() {
     [tenant.id, 'Unrelated billing question', contact.id],
   );
 
-  const app = await NestFactory.createApplicationContext(AppModule, {
+  const app: INestApplication = await NestFactory.create(AppModule, {
     logger: false,
   });
+  app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+  await app.init();
+  const server = app.getHttpServer();
   const search = app.get(SearchService);
 
   try {
@@ -112,8 +124,46 @@ async function main() {
       'a term matching nothing returns empty arrays for every category',
     );
 
+    // ---- Draft solutions: visible to an authenticated agent, hidden from a bare X-Tenant-Id caller ----
+    await migrator.query(
+      `INSERT INTO solutions (tenant_id, title, body, is_published) VALUES ($1, 'Zephyr VPN draft notes', 'unfinished draft content', false)`,
+      [tenant.id],
+    );
+    await migrator.query(
+      `INSERT INTO users (tenant_id, email, name, password_hash, role)
+       VALUES ($1, 'agent@search-verify.example', 'Agent', crypt('correct-horse', gen_salt('bf')), 'agent')`,
+      [tenant.id],
+    );
+    const loginRes = await request(server)
+      .post('/api/v1/auth/login')
+      .set('X-Tenant-Id', tenant.id)
+      .send({ email: 'agent@search-verify.example', password: 'correct-horse' });
+    const agentToken = loginRes.body.token;
+
+    const searchViaHeaderOnly = await request(server)
+      .get('/api/v1/search?q=zephyr&scope=solutions')
+      .set('X-Tenant-Id', tenant.id);
+    assert(
+      searchViaHeaderOnly.body.solutions.length === 0,
+      'a bare X-Tenant-Id search (no verified agent identity) does not surface a draft solution',
+    );
+
+    const searchViaAgentToken = await request(server)
+      .get('/api/v1/search?q=zephyr&scope=solutions')
+      .set('Authorization', `Bearer ${agentToken}`);
+    assert(
+      searchViaAgentToken.body.solutions.length === 1,
+      'a search authenticated with a verified agent JWT does surface the draft solution',
+    );
+
     console.log('\nAll search checks passed.');
   } finally {
+    await migrator.query(`DELETE FROM solutions WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
       tenant.id,
     ]);

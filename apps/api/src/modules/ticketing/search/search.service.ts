@@ -49,7 +49,7 @@ export class SearchService {
         result.tickets = await queryRunner.query(
           `SELECT DISTINCT t.* FROM tickets t
            LEFT JOIN ticket_messages m ON m.ticket_id = t.id
-           LEFT JOIN ticket_attachments a ON a.ticket_message_id = m.id
+           LEFT JOIN ticket_attachments a ON a.ticket_id = t.id
            WHERE t.subject ILIKE $1 OR m.body ILIKE $1 OR a.file_name ILIKE $1
            ORDER BY t.created_at DESC
            LIMIT 25`,

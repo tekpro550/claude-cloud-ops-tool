@@ -38,7 +38,11 @@ export class PortalTicketsService {
   listForContact(tenantId: string, contactId: string) {
     return withTenantContext(this.dataSource, tenantId, (queryRunner) =>
       queryRunner.query(
-        `SELECT * FROM tickets WHERE contact_id = $1 ORDER BY ticket_number DESC`,
+        // Capped, matching the LIMIT/OFFSET convention everywhere else in
+        // the codebase (e.g. TicketsService.list()'s default of 25) -- a
+        // contact with a long ticket history would otherwise get every row
+        // back in one unbounded query.
+        `SELECT * FROM tickets WHERE contact_id = $1 ORDER BY ticket_number DESC LIMIT 100`,
         [contactId],
       ),
     );

@@ -99,6 +99,11 @@ async function main() {
         uploadRes.body.file_size_bytes === String(fileContents.length),
       'the attachment row records the original filename and size',
     );
+    assert(
+      uploadRes.body.ticket_id === ticketId &&
+        uploadRes.body.ticket_message_id === messageId,
+      'the attachment row records both ticket_id and ticket_message_id',
+    );
 
     const onDiskFiles = await fs.readdir(storageDir);
     assert(
@@ -140,6 +145,30 @@ async function main() {
     assert(
       downloadRes.headers['content-disposition']?.includes('screenshot.png'),
       'the download response sets Content-Disposition with the original filename',
+    );
+    assert(
+      downloadRes.headers['content-disposition']?.includes("filename*=UTF-8''"),
+      'the download response includes an RFC 5987 filename* fallback for non-ASCII filenames',
+    );
+
+    // A DB row whose backing file is missing from disk (non-durable local
+    // storage, wiped by a redeploy) must 404 cleanly, not crash the server.
+    const onDiskPath = path.join(storageDir, onDiskFiles[0]);
+    await fs.rm(onDiskPath);
+    const missingFileDownload = await request(server)
+      .get(`/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`)
+      .set('X-Tenant-Id', tenant.id);
+    assert(
+      missingFileDownload.status === 404,
+      'downloading an attachment whose file is missing from disk returns 404 instead of crashing',
+    );
+    // The server process itself must still be alive and responsive.
+    const stillAliveRes = await request(server)
+      .get(`/api/v1/tickets/${ticketId}/attachments`)
+      .set('X-Tenant-Id', tenant.id);
+    assert(
+      stillAliveRes.status === 200,
+      'the server is still responsive after a missing-file download attempt',
     );
 
     const missingDownload = await request(server)

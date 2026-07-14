@@ -366,6 +366,52 @@ async function main() {
       'unmapped group/agent/type were left null rather than guessed at',
     );
 
+    // A ticket-level attachment with zero conversations at all used to be
+    // silently dropped (nothing to attach it to). It now migrates directly
+    // against the ticket, with no message to misattribute it to.
+    const ticket4: FreshdeskTicket = {
+      id: 1004,
+      subject: 'No conversations, but has a description attachment',
+      status: 2,
+      priority: 1,
+      type: null,
+      group_id: null,
+      responder_id: null,
+      requester_id: 9004,
+      requester: { name: 'Dana Requester', email: 'dana@example.com' },
+      created_at: '2026-01-18T09:00:00Z',
+      updated_at: '2026-01-18T09:00:00Z',
+      attachments: [
+        {
+          id: 3,
+          name: 'diagram.png',
+          size: 5,
+          attachment_url: 'data:image/png;base64,aGVsbG8=',
+        },
+      ],
+    };
+    const result4 = await migration.importTicket(tenant.id, ticket4, context);
+    assert(
+      result4.imported === true && result4.warnings.length === 0,
+      'a ticket with a top-level attachment and zero conversations imports cleanly, with no "nowhere to attach it" warning',
+    );
+    const {
+      rows: [ticket4Row],
+    } = await migrator.query(
+      `SELECT id FROM tickets WHERE tenant_id = $1 AND legacy_ticket_number = $2`,
+      [tenant.id, ticket4.id],
+    );
+    const { rows: ticket4Attachments } = await migrator.query(
+      `SELECT ticket_id, ticket_message_id, file_name FROM ticket_attachments WHERE ticket_id = $1`,
+      [ticket4Row.id],
+    );
+    assert(
+      ticket4Attachments.length === 1 &&
+        ticket4Attachments[0].ticket_id === ticket4Row.id &&
+        ticket4Attachments[0].ticket_message_id === null,
+      'the attachment is tied directly to the ticket (ticket_id set, ticket_message_id null), not attributed to a message it was never part of',
+    );
+
     console.log('\nAll Freshdesk mapping checks passed.');
   } finally {
     await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [

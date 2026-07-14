@@ -123,9 +123,11 @@ export default function TicketDetailPage() {
     if (!tenantId || !id || !messageBody.trim()) return;
     setPosting(true);
     setError(null);
-    // No auth yet, so there's no real agent identity to attribute this to —
-    // authorType is fixed to "system" rather than pretending it's a
-    // specific logged-in agent (see lib/tenant.tsx).
+    // authorType is a fallback for the (now rare) unauthenticated case --
+    // when the request carries a real agent JWT, the backend overrides this
+    // to the logged-in agent's own identity regardless of what's sent here
+    // (see TicketsController.addMessage), so a logged-in agent's replies are
+    // correctly attributed rather than showing up as "system".
     addTicketMessage(tenantId, id, { type: messageType, authorType: "system", body: messageBody })
       .then((message) => (messageFile ? uploadTicketAttachment(tenantId, id, message.id, messageFile) : null))
       .then(() => {

@@ -38,6 +38,26 @@ export class AgentsService {
     );
   }
 
+  /**
+   * Resolves the logged-in user's own agent row (used to attribute a message
+   * or property change to the actual agent instead of a generic "system"
+   * author now that real login exists). Returns null rather than throwing --
+   * a user with no linked agent row (shouldn't normally happen for seeded
+   * agents, but isn't fatal) just falls back to the caller's own default.
+   */
+  async findByUserId(
+    tenantId: string,
+    userId: string,
+  ): Promise<{ id: string } | null> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [agent] = await queryRunner.query(
+        `SELECT id FROM agents WHERE user_id = $1`,
+        [userId],
+      );
+      return agent ?? null;
+    });
+  }
+
   async create(tenantId: string, dto: CreateAgentDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       if (dto.groupIds?.length) {

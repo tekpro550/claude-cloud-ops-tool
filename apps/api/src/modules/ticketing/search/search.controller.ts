@@ -1,5 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
+import { CurrentUserId } from '../../platform/http/current-user.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
 import { SearchScope, SearchService } from './search.service';
 
@@ -19,6 +20,7 @@ export class SearchController {
   @Get()
   search(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Query('q') q: string,
     @Query('scope') scope?: string,
   ) {
@@ -27,6 +29,14 @@ export class SearchController {
     )
       ? (scope as SearchScope)
       : 'all';
-    return this.searchService.search(tenantId, q ?? '', resolvedScope);
+    // A verified agent identity (a valid Bearer JWT, not just a bare
+    // X-Tenant-Id header) sees drafts; a header-only caller only sees
+    // published solutions, same as the portal's public browsing.
+    return this.searchService.search(
+      tenantId,
+      q ?? '',
+      resolvedScope,
+      !userId,
+    );
   }
 }

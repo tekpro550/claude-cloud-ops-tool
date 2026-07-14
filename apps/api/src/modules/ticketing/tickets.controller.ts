@@ -10,7 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
+import { CurrentUserId } from '../platform/http/current-user.decorator';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
+import { AgentsService } from './agents.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -21,7 +23,10 @@ import { TicketsService } from './tickets.service';
 @UseGuards(TenantHeaderGuard)
 @Controller('tickets')
 export class TicketsController {
-  constructor(private readonly ticketsService: TicketsService) {}
+  constructor(
+    private readonly ticketsService: TicketsService,
+    private readonly agentsService: AgentsService,
+  ) {}
 
   @Post()
   create(@CurrentTenantId() tenantId: string, @Body() dto: CreateTicketDto) {
@@ -62,11 +67,23 @@ export class TicketsController {
   }
 
   @Post(':id/messages')
-  addMessage(
+  async addMessage(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddTicketMessageDto,
   ) {
+    // A verified agent identity (real login, not just a bare X-Tenant-Id
+    // header) always overrides whatever authorType/authorId the client
+    // sent, both so a logged-in agent's replies/notes are correctly
+    // attributed instead of falling back to "system", and so the client
+    // can't spoof authorship for a different agent.
+    if (userId) {
+      const agent = await this.agentsService.findByUserId(tenantId, userId);
+      if (agent) {
+        dto = { ...dto, authorType: 'agent', authorId: agent.id };
+      }
+    }
     return this.ticketsService.addMessage(tenantId, id, dto);
   }
 
