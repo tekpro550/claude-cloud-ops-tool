@@ -28,6 +28,10 @@ RUN pnpm --filter @cloud-ops-tool/api deploy /out
 
 FROM node:22-alpine AS runtime
 RUN corepack enable
+# The 'ping' monitor type (Module 2) shells out to the system ping binary --
+# alpine's busybox includes a ping applet, but installing iputils explicitly
+# guarantees it rather than depending on how this base image's busybox was built.
+RUN apk add --no-cache iputils
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out .

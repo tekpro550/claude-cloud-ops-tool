@@ -48,7 +48,8 @@
     "auth:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth.ts",
     "portal:verify": "ts-node -r dotenv/config src/modules/ticketing/portal/scripts/verify-portal.ts",
     "solutions:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-solutions.ts",
-    "attachments:verify": "ts-node -r dotenv/config src/modules/ticketing/attachments/scripts/verify-attachments.ts"
+    "attachments:verify": "ts-node -r dotenv/config src/modules/ticketing/attachments/scripts/verify-attachments.ts",
+    "monitor-engine:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitor-engine.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

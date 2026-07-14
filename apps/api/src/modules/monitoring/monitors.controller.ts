@@ -1,0 +1,58 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
+import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
+import { CreateMonitorDto, UpdateMonitorDto } from './monitors.dto';
+import { MonitorsService } from './monitors.service';
+
+@UseGuards(TenantHeaderGuard)
+@Controller('monitors')
+export class MonitorsController {
+  constructor(private readonly monitors: MonitorsService) {}
+
+  @Get()
+  list(@CurrentTenantId() tenantId: string) {
+    return this.monitors.list(tenantId);
+  }
+
+  @Get(':id')
+  get(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.monitors.get(tenantId, id);
+  }
+
+  @Post()
+  create(@CurrentTenantId() tenantId: string, @Body() dto: CreateMonitorDto) {
+    return this.monitors.create(tenantId, dto);
+  }
+
+  @Patch(':id')
+  update(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMonitorDto,
+  ) {
+    return this.monitors.update(tenantId, id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  remove(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.monitors.remove(tenantId, id);
+  }
+}
