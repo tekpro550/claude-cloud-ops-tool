@@ -26,7 +26,10 @@ export class TicketTypesController {
   }
 
   @Post()
-  create(@CurrentTenantId() tenantId: string, @Body() dto: CreateTicketTypeDto) {
+  create(
+    @CurrentTenantId() tenantId: string,
+    @Body() dto: CreateTicketTypeDto,
+  ) {
     return this.ticketTypes.create(tenantId, dto);
   }
 
@@ -41,7 +44,10 @@ export class TicketTypesController {
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@CurrentTenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.ticketTypes.remove(tenantId, id);
   }
 }

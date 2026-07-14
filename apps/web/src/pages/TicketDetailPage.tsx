@@ -13,6 +13,7 @@ import {
   updateTicket,
   type UpdateTicketInput,
 } from "../lib/apiClient";
+import { platformLabel, PLATFORMS } from "../lib/platform";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
@@ -196,6 +197,23 @@ export default function TicketDetailPage() {
               {ticketTypes.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Platform
+            <select
+              value={ticket.platform ?? ""}
+              disabled={saving}
+              onChange={(e) => handlePropertyChange("platform", e.target.value)}
+            >
+              <option value="" disabled>
+                Not set
+              </option>
+              {PLATFORMS.map((p) => (
+                <option key={p} value={p}>
+                  {platformLabel(p)}
                 </option>
               ))}
             </select>

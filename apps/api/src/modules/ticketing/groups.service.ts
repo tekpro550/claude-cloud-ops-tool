@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
@@ -26,7 +30,10 @@ export class GroupsService {
 
   async update(tenantId: string, id: string, dto: UpdateGroupDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [existing] = await queryRunner.query(`SELECT id FROM groups WHERE id = $1`, [id]);
+      const [existing] = await queryRunner.query(
+        `SELECT id FROM groups WHERE id = $1`,
+        [id],
+      );
       if (!existing) {
         throw new NotFoundException(`Group ${id} not found`);
       }
@@ -41,7 +48,10 @@ export class GroupsService {
       if (dto.description !== undefined) assign('description', dto.description);
 
       if (sets.length === 0) {
-        const [group] = await queryRunner.query(`SELECT * FROM groups WHERE id = $1`, [id]);
+        const [group] = await queryRunner.query(
+          `SELECT * FROM groups WHERE id = $1`,
+          [id],
+        );
         return group;
       }
 
@@ -57,7 +67,10 @@ export class GroupsService {
   async remove(tenantId: string, id: string): Promise<void> {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       try {
-        const [rows] = await queryRunner.query(`DELETE FROM groups WHERE id = $1 RETURNING id`, [id]);
+        const [rows] = await queryRunner.query(
+          `DELETE FROM groups WHERE id = $1 RETURNING id`,
+          [id],
+        );
         if (rows.length === 0) {
           throw new NotFoundException(`Group ${id} not found`);
         }

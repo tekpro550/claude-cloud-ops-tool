@@ -6,6 +6,7 @@
 export type TicketStatus = "new" | "open" | "pending" | "resolved" | "closed";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
 export type TicketSource = "email" | "web_form" | "whatsapp" | "chat" | "api" | "alert";
+export type TicketPlatform = "aws" | "azure" | "alibaba_cloud" | "microsoft_365" | "tittu_marketing_platform" | "other";
 
 export interface Ticket {
   id: string;
@@ -19,6 +20,7 @@ export interface Ticket {
   priority: TicketPriority;
   group_id: string | null;
   agent_id: string | null;
+  platform: TicketPlatform | null;
   resource_id: string | null;
   sla_policy_id: string | null;
   first_response_due_at: string | null;

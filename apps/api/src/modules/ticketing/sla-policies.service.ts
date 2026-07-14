@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
@@ -34,7 +38,10 @@ export class SlaPoliciesService {
 
   async update(tenantId: string, id: string, dto: UpdateSlaPolicyDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [existing] = await queryRunner.query(`SELECT id FROM sla_policies WHERE id = $1`, [id]);
+      const [existing] = await queryRunner.query(
+        `SELECT id FROM sla_policies WHERE id = $1`,
+        [id],
+      );
       if (!existing) {
         throw new NotFoundException(`SLA policy ${id} not found`);
       }
@@ -46,12 +53,18 @@ export class SlaPoliciesService {
         sets.push(`${column} = $${params.length}`);
       };
       if (dto.name !== undefined) assign('name', dto.name);
-      if (dto.firstResponseTargetMinutes !== undefined) assign('first_response_target_minutes', dto.firstResponseTargetMinutes);
-      if (dto.resolutionTargetMinutes !== undefined) assign('resolution_target_minutes', dto.resolutionTargetMinutes);
-      if (dto.businessHoursOnly !== undefined) assign('business_hours_only', dto.businessHoursOnly);
+      if (dto.firstResponseTargetMinutes !== undefined)
+        assign('first_response_target_minutes', dto.firstResponseTargetMinutes);
+      if (dto.resolutionTargetMinutes !== undefined)
+        assign('resolution_target_minutes', dto.resolutionTargetMinutes);
+      if (dto.businessHoursOnly !== undefined)
+        assign('business_hours_only', dto.businessHoursOnly);
 
       if (sets.length === 0) {
-        const [policy] = await queryRunner.query(`SELECT * FROM sla_policies WHERE id = $1`, [id]);
+        const [policy] = await queryRunner.query(
+          `SELECT * FROM sla_policies WHERE id = $1`,
+          [id],
+        );
         return policy;
       }
 
@@ -67,7 +80,10 @@ export class SlaPoliciesService {
   async remove(tenantId: string, id: string): Promise<void> {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       try {
-        const [rows] = await queryRunner.query(`DELETE FROM sla_policies WHERE id = $1 RETURNING id`, [id]);
+        const [rows] = await queryRunner.query(
+          `DELETE FROM sla_policies WHERE id = $1 RETURNING id`,
+          [id],
+        );
         if (rows.length === 0) {
           throw new NotFoundException(`SLA policy ${id} not found`);
         }
@@ -77,7 +93,9 @@ export class SlaPoliciesService {
         // policy in active use can still be deleted -- this catch is just
         // defensive in case that ever changes.
         if ((err as { code?: string }).code === '23503') {
-          throw new BadRequestException(`SLA policy ${id} is still referenced and cannot be deleted`);
+          throw new BadRequestException(
+            `SLA policy ${id} is still referenced and cannot be deleted`,
+          );
         }
         throw err;
       }

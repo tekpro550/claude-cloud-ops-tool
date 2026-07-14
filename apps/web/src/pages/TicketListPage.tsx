@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, createTicket, listAgents, listGroups, listTickets } from "../lib/apiClient";
+import { platformLabel, PLATFORMS } from "../lib/platform";
 import { relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
-import type { Agent, Group, Ticket, TicketPriority, TicketStatus } from "../types/ticket";
+import type { Agent, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus } from "../types/ticket";
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -16,6 +17,7 @@ export default function TicketListPage() {
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<TicketStatus | "">("");
   const [priority, setPriority] = useState<TicketPriority | "">("");
+  const [platform, setPlatform] = useState<TicketPlatform | "">("");
   const [groupId, setGroupId] = useState("");
   const [agentId, setAgentId] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
@@ -36,6 +38,7 @@ export default function TicketListPage() {
     listTickets(tenantId, {
       status: status || undefined,
       priority: priority || undefined,
+      platform: platform || undefined,
       groupId: groupId || undefined,
       agentId: agentId || undefined,
     })
@@ -47,7 +50,7 @@ export default function TicketListPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [tenantId, status, priority, groupId, agentId]);
+  useEffect(load, [tenantId, status, priority, platform, groupId, agentId]);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -108,6 +111,14 @@ export default function TicketListPage() {
             </option>
           ))}
         </select>
+        <select value={platform} onChange={(e) => setPlatform(e.target.value as TicketPlatform | "")}>
+          <option value="">All platforms</option>
+          {PLATFORMS.map((p) => (
+            <option key={p} value={p}>
+              {platformLabel(p)}
+            </option>
+          ))}
+        </select>
         <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
           <option value="">All groups</option>
           {groups.map((g) => (
@@ -164,6 +175,7 @@ export default function TicketListPage() {
               <th>Subject</th>
               <th>Status</th>
               <th>Priority</th>
+              <th>Platform</th>
               <th>Agent</th>
               <th>Created</th>
             </tr>
@@ -181,6 +193,7 @@ export default function TicketListPage() {
                 <td>
                   <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
                 </td>
+                <td className={ticket.platform ? undefined : "hint"}>{ticket.platform ? platformLabel(ticket.platform) : "—"}</td>
                 <td className={ticket.agent_id ? undefined : "hint"}>
                   {ticket.agent_id ? (agentNameById.get(ticket.agent_id) ?? "Unknown agent") : "Unassigned"}
                 </td>

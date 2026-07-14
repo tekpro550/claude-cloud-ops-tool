@@ -162,8 +162,8 @@ export class TicketsService {
       );
 
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15)
          RETURNING *`,
         [
           tenantId,
@@ -180,6 +180,7 @@ export class TicketsService {
           firstResponseDueAt,
           resolutionDueAt,
           createdAt,
+          dto.platform ?? null,
         ],
       );
       return this.automationRules.runRules(
@@ -203,6 +204,10 @@ export class TicketsService {
       if (query.priority) {
         params.push(query.priority);
         conditions.push(`priority = $${params.length}`);
+      }
+      if (query.platform) {
+        params.push(query.platform);
+        conditions.push(`platform = $${params.length}`);
       }
       if (query.groupId) {
         params.push(query.groupId);
@@ -301,6 +306,7 @@ export class TicketsService {
         assign('resolved_at', closing ? new Date() : null);
       }
       if (dto.priority !== undefined) assign('priority', dto.priority);
+      if (dto.platform !== undefined) assign('platform', dto.platform);
       if (dto.groupId !== undefined) assign('group_id', dto.groupId);
       if (dto.agentId !== undefined) assign('agent_id', dto.agentId);
       if (dto.ticketTypeId !== undefined) {

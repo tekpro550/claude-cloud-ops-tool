@@ -9,6 +9,14 @@ const TICKET_STATUSES = [
   'closed',
 ] as const;
 const TICKET_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+const TICKET_PLATFORMS = [
+  'aws',
+  'azure',
+  'alibaba_cloud',
+  'microsoft_365',
+  'tittu_marketing_platform',
+  'other',
+] as const;
 
 export class ListTicketsQueryDto {
   @IsOptional()
@@ -18,6 +26,10 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsIn(TICKET_PRIORITIES)
   priority?: (typeof TICKET_PRIORITIES)[number];
+
+  @IsOptional()
+  @IsIn(TICKET_PLATFORMS)
+  platform?: (typeof TICKET_PLATFORMS)[number];
 
   @IsOptional()
   @IsUUID()

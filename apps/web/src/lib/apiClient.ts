@@ -17,6 +17,7 @@ import type {
   TicketMessage,
   TicketMessageAuthorType,
   TicketMessageType,
+  TicketPlatform,
   TicketPriority,
   TicketStatus,
   TicketTimeLogList,
@@ -60,6 +61,7 @@ async function request<T>(tenantId: string, method: string, path: string, body?:
 export interface ListTicketsFilters {
   status?: TicketStatus;
   priority?: TicketPriority;
+  platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
 }
@@ -68,6 +70,7 @@ export function listTickets(tenantId: string, filters: ListTicketsFilters = {}):
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.priority) params.set("priority", filters.priority);
+  if (filters.platform) params.set("platform", filters.platform);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.agentId) params.set("agentId", filters.agentId);
   const query = params.toString();
@@ -82,6 +85,7 @@ export interface CreateTicketInput {
   subject: string;
   contact: { name: string; email: string };
   source: "web_form";
+  platform?: TicketPlatform;
 }
 
 export function createTicket(tenantId: string, input: CreateTicketInput): Promise<Ticket> {
@@ -91,6 +95,7 @@ export function createTicket(tenantId: string, input: CreateTicketInput): Promis
 export interface UpdateTicketInput {
   status?: TicketStatus;
   priority?: TicketPriority;
+  platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
   ticketTypeId?: string;

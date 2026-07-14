@@ -38,7 +38,8 @@
     "internal-tickets:verify": "ts-node -r dotenv/config src/modules/ticketing/internal/scripts/verify-internal-tickets.ts",
     "freshdesk-mapping:verify": "ts-node -r dotenv/config src/modules/ticketing/migration/scripts/verify-freshdesk-mapping.ts",
     "migrate:freshdesk": "ts-node -r dotenv/config src/modules/ticketing/migration/scripts/migrate-from-freshdesk.ts",
-    "admin-crud:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-admin-crud.ts"
+    "admin-crud:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-admin-crud.ts",
+    "ticket-types:seed-standard": "ts-node -r dotenv/config src/modules/ticketing/scripts/seed-standard-ticket-types.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -41,7 +41,10 @@ export class GroupsController {
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@CurrentTenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.groups.remove(tenantId, id);
   }
 }

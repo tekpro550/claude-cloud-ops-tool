@@ -1,14 +1,25 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { CreateAgentDto, UpdateAgentDto } from './agents.dto';
 
-async function assertGroupsBelongToTenant(queryRunner: QueryRunner, groupIds: string[]): Promise<void> {
+async function assertGroupsBelongToTenant(
+  queryRunner: QueryRunner,
+  groupIds: string[],
+): Promise<void> {
   for (const groupId of groupIds) {
-    const rows = await queryRunner.query(`SELECT 1 FROM groups WHERE id = $1`, [groupId]);
+    const rows = await queryRunner.query(`SELECT 1 FROM groups WHERE id = $1`, [
+      groupId,
+    ]);
     if (rows.length === 0) {
-      throw new BadRequestException(`Group ${groupId} not found for this tenant`);
+      throw new BadRequestException(
+        `Group ${groupId} not found for this tenant`,
+      );
     }
   }
 }
@@ -45,7 +56,9 @@ export class AgentsService {
         );
       } catch (err) {
         if ((err as { code?: string }).code === '23505') {
-          throw new BadRequestException(`A user with email ${dto.email} already exists for this tenant`);
+          throw new BadRequestException(
+            `A user with email ${dto.email} already exists for this tenant`,
+          );
         }
         throw err;
       }
@@ -60,7 +73,10 @@ export class AgentsService {
 
   async update(tenantId: string, id: string, dto: UpdateAgentDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [existing] = await queryRunner.query(`SELECT id FROM agents WHERE id = $1`, [id]);
+      const [existing] = await queryRunner.query(
+        `SELECT id FROM agents WHERE id = $1`,
+        [id],
+      );
       if (!existing) {
         throw new NotFoundException(`Agent ${id} not found`);
       }
@@ -86,7 +102,10 @@ export class AgentsService {
       }
 
       params.push(id);
-      await queryRunner.query(`UPDATE agents SET ${sets.join(', ')} WHERE id = $${params.length}`, params);
+      await queryRunner.query(
+        `UPDATE agents SET ${sets.join(', ')} WHERE id = $${params.length}`,
+        params,
+      );
       const [row] = await queryRunner.query(
         `SELECT a.id, a.group_ids, a.is_active, u.name, u.email FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
         [id],

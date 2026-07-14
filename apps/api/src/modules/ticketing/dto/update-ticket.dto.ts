@@ -8,6 +8,14 @@ const TICKET_STATUSES = [
   'closed',
 ] as const;
 const TICKET_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+const TICKET_PLATFORMS = [
+  'aws',
+  'azure',
+  'alibaba_cloud',
+  'microsoft_365',
+  'tittu_marketing_platform',
+  'other',
+] as const;
 
 export class UpdateTicketDto {
   @IsOptional()
@@ -29,4 +37,8 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsUUID()
   ticketTypeId?: string;
+
+  @IsOptional()
+  @IsIn(TICKET_PLATFORMS)
+  platform?: (typeof TICKET_PLATFORMS)[number];
 }
