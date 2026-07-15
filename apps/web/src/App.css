@@ -22,8 +22,31 @@
 
 .app-nav {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 1.25rem;
   font-size: 0.9rem;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.nav-group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  margin-right: 0.15rem;
+}
+
+.nav-admin-link {
+  font-weight: 600;
 }
 
 .header-search input {

@@ -110,16 +110,24 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Cloud Ops Tool — Tickets</h1>
+        <h1>Cloud Ops Tool</h1>
         <nav className="app-nav">
-          <Link to="/">Tickets</Link>
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/monitoring">Monitoring</Link>
-          <Link to="/alerts">Alerts</Link>
-          <Link to="/contacts">Contacts</Link>
-          <Link to="/companies">Companies</Link>
-          <Link to="/compose">Compose email</Link>
-          <Link to="/admin">Admin</Link>
+          <div className="nav-group">
+            <span className="nav-group-label">Tickets</span>
+            <Link to="/dashboard">Dashboard</Link>
+            <Link to="/">Tickets</Link>
+            <Link to="/contacts">Contacts</Link>
+            <Link to="/companies">Companies</Link>
+            <Link to="/compose">Compose email</Link>
+          </div>
+          <div className="nav-group">
+            <span className="nav-group-label">Monitoring</span>
+            <Link to="/monitoring">Fleet</Link>
+            <Link to="/alerts">Alerts</Link>
+          </div>
+          <Link to="/admin" className="nav-admin-link">
+            Admin
+          </Link>
         </nav>
         <HeaderSearch />
         <label className="tenant-input" title={user ? "Log out to switch tenants — while logged in, requests use the tenant from your login, not this field" : undefined}>
