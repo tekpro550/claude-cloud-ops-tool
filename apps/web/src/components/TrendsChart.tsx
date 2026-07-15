@@ -25,7 +25,10 @@ export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
   }, [data]);
 
   const width = data.length * GROUP_WIDTH;
-  const ticks = [0, maxValue / 2, maxValue].map((v) => Math.round(v));
+  // Deduped: at low volume (maxValue as small as 1) the midpoint and the max
+  // round to the same integer, which would otherwise draw two overlapping
+  // gridlines with the same React key.
+  const ticks = [...new Set([0, maxValue / 2, maxValue].map((v) => Math.round(v)))];
   const scaleY = (value: number) => (value / maxValue) * CHART_HEIGHT;
   const hovered = hoverIndex !== null ? data[hoverIndex] : null;
 

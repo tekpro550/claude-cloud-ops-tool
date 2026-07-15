@@ -145,6 +145,10 @@ async function main() {
       summary.totalOpen === 2,
       `totalOpen excludes the resolved ticket (got ${summary.totalOpen})`,
     );
+    assert(
+      summary.unassigned === 1,
+      `unassigned counts only ticket B (got ${summary.unassigned})`,
+    );
 
     const trends = await dashboard.trends(tenant.id, 7);
     assert(

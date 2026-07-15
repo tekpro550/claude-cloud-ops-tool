@@ -39,6 +39,14 @@ export class DashboardService {
           `SELECT count(*)::int AS overdue_resolution FROM tickets
          WHERE status NOT IN ('resolved', 'closed') AND resolution_due_at IS NOT NULL AND resolved_at IS NULL AND resolution_due_at < now()`,
         );
+      // Same definition of "unassigned" needsAttention() already flags in
+      // the banner -- surfaced here too as its own tile, since a manager
+      // scanning the dashboard shouldn't have to open the banner to see the
+      // count.
+      const [{ unassigned }] = await queryRunner.query(
+        `SELECT count(*)::int AS unassigned FROM tickets
+         WHERE status NOT IN ('resolved', 'closed') AND agent_id IS NULL`,
+      );
 
       const totalOpen = STATUSES.filter(
         (s) => s !== 'resolved' && s !== 'closed',
@@ -49,6 +57,7 @@ export class DashboardService {
         byPriority,
         overdueFirstResponse,
         overdueResolution,
+        unassigned,
         totalOpen,
       };
     });

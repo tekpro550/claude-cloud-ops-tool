@@ -248,6 +248,7 @@ export interface DashboardSummary {
   byPriority: Record<TicketPriority, number>;
   overdueFirstResponse: number;
   overdueResolution: number;
+  unassigned: number;
   totalOpen: number;
 }
 

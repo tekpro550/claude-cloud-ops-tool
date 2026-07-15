@@ -130,6 +130,11 @@ export default function DashboardPage() {
           value={summary.overdueResolution}
           tone={summary.overdueResolution > 0 ? "critical" : undefined}
         />
+        <StatTile
+          label="Unassigned"
+          value={summary.unassigned}
+          tone={summary.unassigned > 0 ? "critical" : undefined}
+        />
         {Object.entries(summary.byStatus).map(([status, count]) => (
           <StatTile key={status} label={STATUS_LABELS[status] ?? status} value={count} />
         ))}
