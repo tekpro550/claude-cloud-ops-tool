@@ -7,6 +7,8 @@ import { CostAccountsService } from './cost-accounts.service';
 import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
 import { CostBudgetsService } from './cost-budgets.service';
+import { CostDashboardController } from './cost-dashboard.controller';
+import { CostDashboardService } from './cost-dashboard.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
 import { CostSavingsSweepService } from './cost-savings-sweep.service';
 import { RecommendationsController } from './recommendations.controller';
@@ -34,6 +36,7 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     RecommendationsController,
     SavingsLogController,
     TenantCostSettingsController,
+    CostDashboardController,
   ],
   providers: [
     CostBudgetsService,
@@ -45,6 +48,7 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     CostSavingsSweepService,
     SavingsLogService,
     TenantCostSettingsService,
+    CostDashboardService,
   ],
 })
 export class CostModule {}

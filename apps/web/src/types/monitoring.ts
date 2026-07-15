@@ -159,3 +159,24 @@ export interface DowntimeEvent {
   created_by: string | null;
   created_at: string;
 }
+
+export interface MonitoringDashboardSummary {
+  resources: {
+    total: number;
+    up: number;
+    down: number;
+    critical: number;
+    trouble: number;
+    none: number;
+  };
+  monitors: {
+    total: number;
+    enabled: number;
+  };
+  openAlerts: {
+    total: number;
+    critical: number;
+    warning: number;
+    info: number;
+  };
+}

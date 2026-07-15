@@ -8,11 +8,13 @@ import type {
   EscalationPolicy,
   FleetSummaryItem,
   Monitor,
+  MonitoringDashboardSummary,
   NotificationTemplate,
   OnCallSchedule,
   Resource,
   ResourceDashboard,
 } from "../types/monitoring";
+import type { DashboardTrendPoint } from "../types/ticket";
 
 // ---- Resources ----
 
@@ -214,4 +216,14 @@ export function createDowntimeEvent(
 
 export function endDowntimeEvent(tenantId: string, id: string): Promise<DowntimeEvent> {
   return request(tenantId, "PATCH", `/downtime-events/${id}/end`);
+}
+
+// ---- Monitoring dashboard ----
+
+export function getMonitoringDashboardSummary(tenantId: string): Promise<MonitoringDashboardSummary> {
+  return request(tenantId, "GET", "/monitoring/dashboard/summary");
+}
+
+export function getMonitoringDashboardTrends(tenantId: string, days = 14): Promise<DashboardTrendPoint[]> {
+  return request(tenantId, "GET", `/monitoring/dashboard/trends?days=${days}`);
 }

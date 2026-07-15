@@ -2,8 +2,10 @@ import { request } from "./apiClient";
 import type {
   AccountCostSummary,
   CostBudget,
+  CostDashboardSummary,
   CostLineItem,
   CostSavingsLogEntry,
+  CostTrendPoint,
   NotifyChannel,
   RightsizingRecommendation,
   RightsizingRecommendationStatus,
@@ -142,4 +144,14 @@ export function updateTenantCostSettings(
   input: TenantCostSettingsInput,
 ): Promise<TenantCostSettings> {
   return request(tenantId, "PATCH", "/tenant-cost-settings", input);
+}
+
+// ---- Cost dashboard ----
+
+export function getCostDashboardSummary(tenantId: string): Promise<CostDashboardSummary> {
+  return request(tenantId, "GET", "/cost/dashboard/summary");
+}
+
+export function getCostDashboardTrend(tenantId: string): Promise<CostTrendPoint[]> {
+  return request(tenantId, "GET", "/cost/dashboard/trend");
 }

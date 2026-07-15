@@ -25,6 +25,8 @@ import { EscalationPoliciesService } from './escalation-policies.service';
 import { EscalationSweepService } from './escalation-sweep.service';
 import { FleetSummaryController } from './fleet-summary.controller';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
+import { MonitoringDashboardController } from './monitoring-dashboard.controller';
+import { MonitoringDashboardService } from './monitoring-dashboard.service';
 import { MonitorsController } from './monitors.controller';
 import { MonitorsService } from './monitors.service';
 import { NotificationTemplatesController } from './notification-templates.controller';
@@ -58,10 +60,12 @@ import { ResourcesService } from './resources.service';
     DowntimeEventsController,
     ResourcesController,
     FleetSummaryController,
+    MonitoringDashboardController,
   ],
   providers: [
     ResourcesService,
     MonitorsService,
+    MonitoringDashboardService,
     MonitorSchedulerService,
     AlertEvaluationService,
     AlertRulesService,

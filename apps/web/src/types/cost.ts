@@ -87,3 +87,13 @@ export interface TenantCostSettings {
   financial_year_start_month: number;
   cost_rate_display: CostRateDisplay;
 }
+
+export interface CostDashboardSummary {
+  mtdSpend: number;
+  previousMonthTotal: number | null;
+  forecast: number | null;
+  forecastPctChange: number | null;
+  connectedAccounts: number;
+  openBudgetAlerts: number;
+  openRecommendations: number;
+}

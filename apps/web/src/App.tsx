@@ -12,10 +12,12 @@ import CompaniesPage from "./pages/CompaniesPage";
 import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
 import CostAccountDetailPage from "./pages/CostAccountDetailPage";
+import CostDashboardPage from "./pages/CostDashboardPage";
 import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
+import MonitoringDashboardPage from "./pages/MonitoringDashboardPage";
 import MonitoringFleetPage from "./pages/MonitoringFleetPage";
 import NewTicketPage from "./pages/NewTicketPage";
 import ResourceDashboardPage from "./pages/ResourceDashboardPage";
@@ -119,12 +121,14 @@ const TICKETS_NAV_ITEMS: NavItem[] = [
 ];
 
 const MONITORING_NAV_ITEMS: NavItem[] = [
-  { label: "Fleet", to: "/monitoring", icon: "🖥️" },
+  { label: "Dashboard", to: "/monitoring/dashboard", icon: "📊" },
+  { label: "Fleet", to: "/monitoring", icon: "🖥️", end: true },
   { label: "Alerts", to: "/alerts", icon: "🔔" },
 ];
 
 const COST_NAV_ITEMS: NavItem[] = [
-  { label: "Cost", to: "/cost", icon: "💰" },
+  { label: "Dashboard", to: "/cost/dashboard", icon: "📊" },
+  { label: "Cost", to: "/cost", icon: "💰", end: true },
   { label: "Recommendations", to: "/cost/recommendations", icon: "💡" },
   { label: "Savings log", to: "/cost/savings", icon: "📈" },
 ];
@@ -225,9 +229,11 @@ function App() {
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/monitoring" element={<MonitoringFleetPage />} />
+          <Route path="/monitoring/dashboard" element={<MonitoringDashboardPage />} />
           <Route path="/monitoring/resources/:id" element={<ResourceDashboardPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/cost" element={<CostRollupPage />} />
+          <Route path="/cost/dashboard" element={<CostDashboardPage />} />
           <Route path="/cost/accounts/:id" element={<CostAccountDetailPage />} />
           <Route path="/cost/recommendations" element={<RecommendationsPage />} />
           <Route path="/cost/savings" element={<SavingsLogPage />} />

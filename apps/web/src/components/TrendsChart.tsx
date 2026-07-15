@@ -7,14 +7,29 @@ const GROUP_GAP = 14;
 const GROUP_WIDTH = BAR_WIDTH * 2 + BAR_GAP + GROUP_GAP;
 const CHART_HEIGHT = 140;
 
+interface TrendsChartProps {
+  data: DashboardTrendPoint[];
+  createdLabel?: string;
+  resolvedLabel?: string;
+  ariaLabel?: string;
+}
+
 /**
- * Grouped bar chart: created vs. resolved tickets per day. Palette (blue for
- * created, aqua for resolved) is the dataviz skill's validated default
- * categorical slots 1/2, in fixed order. Aqua fails the 3:1 contrast check on
- * a light surface, so per the skill's "relief rule" this ships a table-view
- * toggle (not just a color-coded chart) rather than relying on hue alone.
+ * Grouped bar chart: "created" vs. "resolved" counts per day -- originally
+ * tickets, now reused as-is (only the labels change) for Module 2's alerts
+ * opened/resolved trend, so this stays one chart implementation rather than
+ * a duplicate per module. Palette (blue for created, aqua for resolved) is
+ * the dataviz skill's validated default categorical slots 1/2, in fixed
+ * order. Aqua fails the 3:1 contrast check on a light surface, so per the
+ * skill's "relief rule" this ships a table-view toggle (not just a
+ * color-coded chart) rather than relying on hue alone.
  */
-export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
+export default function TrendsChart({
+  data,
+  createdLabel = "Created",
+  resolvedLabel = "Resolved",
+  ariaLabel = "Tickets created and resolved per day, last 14 days",
+}: TrendsChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
 
@@ -37,10 +52,10 @@ export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
       <div className="trends-chart-header">
         <div className="trends-legend">
           <span className="legend-item">
-            <span className="legend-swatch swatch-created" /> Created
+            <span className="legend-swatch swatch-created" /> {createdLabel}
           </span>
           <span className="legend-item">
-            <span className="legend-swatch swatch-resolved" /> Resolved
+            <span className="legend-swatch swatch-resolved" /> {resolvedLabel}
           </span>
         </div>
         <button type="button" className="link-button" onClick={() => setShowTable((v) => !v)}>
@@ -56,7 +71,7 @@ export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
             width="100%"
             height={CHART_HEIGHT}
             role="img"
-            aria-label="Tickets created and resolved per day, last 14 days"
+            aria-label={ariaLabel}
           >
             {ticks.map((t) => (
               <line key={t} x1={0} x2={width} y1={CHART_HEIGHT - scaleY(t)} y2={CHART_HEIGHT - scaleY(t)} className="trends-gridline" />
@@ -88,13 +103,15 @@ export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
                     rx={3}
                     className={`trends-bar bar-resolved${hoverIndex === i ? " active" : ""}`}
                   />
-                  <title>{`${d.date}: ${d.created} created, ${d.resolved} resolved`}</title>
+                  <title>{`${d.date}: ${d.created} ${createdLabel.toLowerCase()}, ${d.resolved} ${resolvedLabel.toLowerCase()}`}</title>
                 </g>
               );
             })}
           </svg>
           <div className="trends-chart-tooltip">
-            {hovered ? `${hovered.date} — ${hovered.created} created, ${hovered.resolved} resolved` : "Hover a day for details"}
+            {hovered
+              ? `${hovered.date} — ${hovered.created} ${createdLabel.toLowerCase()}, ${hovered.resolved} ${resolvedLabel.toLowerCase()}`
+              : "Hover a day for details"}
           </div>
         </>
       )}
@@ -104,8 +121,8 @@ export default function TrendsChart({ data }: { data: DashboardTrendPoint[] }) {
           <thead>
             <tr>
               <th>Date</th>
-              <th>Created</th>
-              <th>Resolved</th>
+              <th>{createdLabel}</th>
+              <th>{resolvedLabel}</th>
             </tr>
           </thead>
           <tbody>
