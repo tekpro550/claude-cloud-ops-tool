@@ -228,6 +228,29 @@ export class DashboardService {
         });
       }
 
+      // Module 3's billing sync (see cost-billing-sync.service.ts) stamps
+      // cloud_credentials.last_polled_at the same column
+      // CloudResourcePollerService already stamps -- so one staleness check
+      // here covers a broken connection for both Monitoring's resource
+      // polling and Cost's billing sync, not two separate items, per scope
+      // doc section 2/6's "same config-error signal, not a second one".
+      // Threshold is set past the slower of the two writers' own intervals
+      // (billing sync's 24h default) plus a buffer, so a credential isn't
+      // flagged mid-cycle before its next sync is even due.
+      const [{ broken_credentials: brokenCredentials }] =
+        await queryRunner.query(
+          `SELECT count(*)::int AS broken_credentials FROM cloud_credentials
+         WHERE is_enabled = true AND (last_polled_at IS NULL OR last_polled_at < now() - interval '26 hours')`,
+        );
+      if (brokenCredentials > 0) {
+        items.push({
+          id: 'broken_cloud_credentials',
+          severity: 'critical',
+          message: `${brokenCredentials} connected cloud account${brokenCredentials === 1 ? '' : 's'} ${brokenCredentials === 1 ? "hasn't" : "haven't"} synced in over a day`,
+          count: brokenCredentials,
+        });
+      }
+
       return { items };
     });
   }
