@@ -103,32 +103,48 @@ function HeaderAuth() {
   );
 }
 
+function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+
+  return (
+    <>
+      <div className="nav-panel-backdrop" onClick={onClose} />
+      <nav className="nav-panel" aria-label="Main navigation">
+        <button type="button" className="nav-panel-close" onClick={onClose} aria-label="Close menu">
+          ×
+        </button>
+        <div className="nav-panel-group">
+          <span className="nav-group-label">Tickets</span>
+          <Link to="/dashboard" onClick={onClose}>Dashboard</Link>
+          <Link to="/" onClick={onClose}>Tickets</Link>
+          <Link to="/contacts" onClick={onClose}>Contacts</Link>
+          <Link to="/companies" onClick={onClose}>Companies</Link>
+          <Link to="/compose" onClick={onClose}>Compose email</Link>
+        </div>
+        <div className="nav-panel-group">
+          <span className="nav-group-label">Monitoring</span>
+          <Link to="/monitoring" onClick={onClose}>Fleet</Link>
+          <Link to="/alerts" onClick={onClose}>Alerts</Link>
+        </div>
+        <div className="nav-panel-group">
+          <Link to="/admin" className="nav-admin-link" onClick={onClose}>
+            Admin
+          </Link>
+        </div>
+      </nav>
+    </>
+  );
+}
+
 function App() {
   const { tenantId, setTenantId } = useTenant();
   const { user } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Cloud Ops Tool</h1>
-        <nav className="app-nav">
-          <div className="nav-group">
-            <span className="nav-group-label">Tickets</span>
-            <Link to="/dashboard">Dashboard</Link>
-            <Link to="/">Tickets</Link>
-            <Link to="/contacts">Contacts</Link>
-            <Link to="/companies">Companies</Link>
-            <Link to="/compose">Compose email</Link>
-          </div>
-          <div className="nav-group">
-            <span className="nav-group-label">Monitoring</span>
-            <Link to="/monitoring">Fleet</Link>
-            <Link to="/alerts">Alerts</Link>
-          </div>
-          <Link to="/admin" className="nav-admin-link">
-            Admin
-          </Link>
-        </nav>
         <HeaderSearch />
         <label className="tenant-input" title={user ? "Log out to switch tenants — while logged in, requests use the tenant from your login, not this field" : undefined}>
           X-Tenant-Id
@@ -140,7 +156,18 @@ function App() {
           />
         </label>
         <HeaderAuth />
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label="Open menu"
+          aria-expanded={navOpen}
+          onClick={() => setNavOpen(true)}
+        >
+          ☰
+        </button>
       </header>
+
+      <NavPanel open={navOpen} onClose={() => setNavOpen(false)} />
 
       <NeedsAttentionBanner />
 
