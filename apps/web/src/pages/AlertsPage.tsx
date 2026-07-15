@@ -41,12 +41,12 @@ export default function AlertsPage() {
   return (
     <div>
       <h2>Alerts</h2>
-      <div className="toolbar">
+      <div className="view-tabs">
         {STATUSES.map((s) => (
           <button
             key={s}
             type="button"
-            className={s === status ? "" : "link-button"}
+            className={`view-tab${s === status ? " view-tab-active" : ""}`}
             onClick={() => setStatus(s)}
           >
             {s}
@@ -56,7 +56,7 @@ export default function AlertsPage() {
       {error && <p className="error">{error}</p>}
       {alerts.length === 0 && <p className="hint">No alerts.</p>}
       {alerts.map((a) => (
-        <div key={a.id} className="alert-card">
+        <div key={a.id} className={`alert-card alert-card-${a.severity === "critical" ? "critical" : "warning"}`}>
           <div className="alert-card-header">
             <span>
               <span className={`badge status-${a.severity === "critical" ? "down" : "trouble"}`}>{a.severity}</span>{" "}
@@ -64,12 +64,12 @@ export default function AlertsPage() {
             </span>
             <span>
               {a.status === "open" && (
-                <button type="button" className="link-button" onClick={() => handleAck(a.id)}>
+                <button type="button" className="btn-sm" onClick={() => handleAck(a.id)}>
                   Acknowledge
                 </button>
               )}
               {a.status !== "resolved" && (
-                <button type="button" className="link-button" onClick={() => handleResolve(a.id)}>
+                <button type="button" className="btn-sm btn-primary" onClick={() => handleResolve(a.id)}>
                   Resolve
                 </button>
               )}

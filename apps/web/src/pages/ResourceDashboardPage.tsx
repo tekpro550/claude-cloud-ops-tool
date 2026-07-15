@@ -110,21 +110,25 @@ export default function ResourceDashboardPage() {
       <p>
         <Link to="/monitoring">← Fleet status</Link>
       </p>
-      <h2>{data.resource.name}</h2>
-      <p className="hint">
-        {data.resource.resource_type}
-        {data.resource.group_name ? ` · ${data.resource.group_name}` : ""}
-      </p>
+      <div className="ticket-detail-header">
+        <div className="ticket-detail-title">
+          <h2>{data.resource.name}</h2>
+        </div>
+        <div className="ticket-detail-meta">
+          <span>{data.resource.resource_type}</span>
+          {data.resource.group_name && <span>· {data.resource.group_name}</span>}
+        </div>
+      </div>
       {error && <p className="error">{error}</p>}
 
       {data.openDowntime.length > 0 && (
-        <div className="alert-card">
+        <div className="alert-card alert-card-warning">
           {data.openDowntime.map((d) => (
             <div key={d.id} className="alert-card-header">
               <span>
                 In planned downtime since {new Date(d.starts_at).toLocaleString()}: {d.reason}
               </span>
-              <button type="button" className="link-button" onClick={() => handleEndDowntime(d.id)}>
+              <button type="button" className="btn-sm" onClick={() => handleEndDowntime(d.id)}>
                 End downtime
               </button>
             </div>
@@ -136,9 +140,13 @@ export default function ResourceDashboardPage() {
         <section>
           <h3>Active alerts</h3>
           {data.activeAlerts.map((a) => (
-            <div key={a.id} className="alert-card">
-              <span className={`badge status-${a.severity === "critical" ? "down" : "trouble"}`}>{a.severity}</span>
-              <span>{a.reason_text}</span>
+            <div key={a.id} className={`alert-card alert-card-${a.severity === "critical" ? "critical" : "warning"}`}>
+              <div className="alert-card-header">
+                <span>
+                  <span className={`badge status-${a.severity === "critical" ? "down" : "trouble"}`}>{a.severity}</span>{" "}
+                  {a.reason_text}
+                </span>
+              </div>
             </div>
           ))}
         </section>
@@ -151,13 +159,14 @@ export default function ResourceDashboardPage() {
           <ul className="monitor-list">
             {data.monitors.map((m) => (
               <li key={m.id}>
-                <span>
-                  <span className={`badge status-${m.last_status ?? "none"}`}>{m.last_status ?? "pending"}</span>{" "}
+                <span className={`status-dot status-dot-${m.last_status ?? "none"}`} title={m.last_status ?? "pending"} />
+                <span style={{ flex: "1 1 auto" }}>
                   <strong>{m.name}</strong> <span className="hint">({m.monitor_type})</span>
                   {m.last_raw_output?.error ? (
                     <span className="monitor-reason">{String(m.last_raw_output.error)}</span>
                   ) : null}
                 </span>
+                <span className={`badge status-${m.last_status ?? "none"}`}>{m.last_status ?? "pending"}</span>
                 <button type="button" className="link-button" onClick={() => handleDeleteMonitor(m.id)}>
                   Delete
                 </button>
@@ -183,7 +192,7 @@ export default function ResourceDashboardPage() {
               required
             />
           )}
-          <button type="submit" disabled={busy}>
+          <button type="submit" className="btn-primary" disabled={busy}>
             Add monitor
           </button>
         </form>

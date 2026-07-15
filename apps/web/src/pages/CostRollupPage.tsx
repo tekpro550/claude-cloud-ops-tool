@@ -66,17 +66,17 @@ export default function CostRollupPage() {
             <div className="cost-account-stats">
               <div>
                 <div className="hint">Last month</div>
-                <div>{formatMoney(account.previousMonthTotal)}</div>
+                <div className="cost-account-stat-value">{formatMoney(account.previousMonthTotal)}</div>
               </div>
               <div>
                 <div className="hint">MTD</div>
-                <div>
+                <div className="cost-account-stat-value">
                   {formatMoney(account.mtdSpend)} <PctChangeBadge pct={account.mtdPctChange} />
                 </div>
               </div>
               <div>
                 <div className="hint">Forecast</div>
-                <div>
+                <div className="cost-account-stat-value">
                   {formatMoney(account.forecast)} <PctChangeBadge pct={account.forecastPctChange} />
                 </div>
               </div>

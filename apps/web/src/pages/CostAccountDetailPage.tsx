@@ -139,35 +139,37 @@ export default function CostAccountDetailPage() {
           value={filters.region ?? ""}
           onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value || undefined }))}
         />
-        <button type="submit" disabled={loading}>
+        <button type="submit" className="btn-primary" disabled={loading}>
           {loading ? "Loading…" : "Apply filters"}
         </button>
       </form>
 
       {lineItems.length === 0 && <p className="hint">No line items match those filters.</p>}
       {lineItems.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Service</th>
-              <th>Region</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lineItems.map((item) => (
-              <tr key={item.id}>
-                <td>{item.usage_date.slice(0, 10)}</td>
-                <td>{item.service}</td>
-                <td>{item.region ?? "—"}</td>
-                <td>
-                  {Number(item.amount).toFixed(2)} {item.currency}
-                </td>
+        <div className="line-items-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Service</th>
+                <th>Region</th>
+                <th>Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {lineItems.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.usage_date.slice(0, 10)}</td>
+                  <td>{item.service}</td>
+                  <td>{item.region ?? "—"}</td>
+                  <td>
+                    {Number(item.amount).toFixed(2)} {item.currency}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

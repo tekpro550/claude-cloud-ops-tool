@@ -52,25 +52,27 @@ export default function MonitoringFleetPage() {
       {error && <p className="error">{error}</p>}
       {items.length === 0 && <p className="hint">No resources yet — add one below to start monitoring it.</p>}
       {items.length > 0 && (
-        <ul className="fleet-list">
-          {items.map((item) => (
-            <li key={item.id}>
-              <span className="fleet-list-name">
-                <span className={`badge status-${item.worst_status ?? "none"}`}>
-                  {item.worst_status ?? "no monitors"}
+        <div className="fleet-row-list">
+          {items.map((item) => {
+            const status = item.worst_status ?? "none";
+            return (
+              <Link key={item.id} to={`/monitoring/resources/${item.id}`} className={`fleet-row fleet-row-status-${status}`}>
+                <span className={`status-dot status-dot-${status}`} title={item.worst_status ?? "no monitors"} />
+                <div className="fleet-row-main">
+                  <span className="fleet-row-name">{item.name}</span>
+                  <span className="fleet-row-meta">
+                    {item.resource_type}
+                    {item.group_name ? ` · ${item.group_name}` : ""}
+                  </span>
+                </div>
+                <span className={`badge status-${status}`}>{item.worst_status ?? "no monitors"}</span>
+                <span className="fleet-row-count">
+                  {item.monitor_count} monitor{item.monitor_count === 1 ? "" : "s"}
                 </span>
-                <Link to={`/monitoring/resources/${item.id}`}>{item.name}</Link>
-                <span className="hint">
-                  {item.resource_type}
-                  {item.group_name ? ` · ${item.group_name}` : ""}
-                </span>
-              </span>
-              <span className="hint">
-                {item.monitor_count} monitor{item.monitor_count === 1 ? "" : "s"}
-              </span>
-            </li>
-          ))}
-        </ul>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       <form className="admin-form" onSubmit={handleCreate} style={{ marginTop: "1rem" }}>
@@ -82,7 +84,7 @@ export default function MonitoringFleetPage() {
             </option>
           ))}
         </select>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           Add resource
         </button>
       </form>
