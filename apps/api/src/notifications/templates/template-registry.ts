@@ -28,6 +28,13 @@ const templates: Record<string, TemplateRenderer> = {
     subject: String(payload.subject ?? 'Alert escalation'),
     body: String(payload.body ?? ''),
   }),
+  // CostPaceCheckService (Module 3) does its own notification_templates
+  // lookup and $VARIABLE substitution before enqueueing, same passthrough
+  // pattern as 'monitoring.escalation' above.
+  'cost.pace_alert': (payload) => ({
+    subject: String(payload.subject ?? 'Cost alert'),
+    body: String(payload.body ?? ''),
+  }),
 };
 
 export function renderTemplate(

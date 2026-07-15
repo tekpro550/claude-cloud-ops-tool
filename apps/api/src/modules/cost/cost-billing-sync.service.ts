@@ -13,6 +13,7 @@ import {
   CLOUD_PROVIDER_CLIENT_FACTORY,
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
+import { CostPaceCheckService } from './cost-pace-check.service';
 
 interface CloudCredentialRow {
   id: string;
@@ -52,6 +53,7 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
     @Inject(CLOUD_PROVIDER_CLIENT_FACTORY)
     private readonly clientFactory: CloudProviderClientFactory,
     private readonly config: ConfigService,
+    private readonly paceCheck: CostPaceCheckService,
   ) {}
 
   onModuleInit(): void {
@@ -109,6 +111,15 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
+
+    try {
+      await this.paceCheck.checkTenant(tenantId);
+    } catch (err) {
+      this.logger.error(
+        `pace check for tenant ${tenantId} failed: ${(err as Error).message}`,
+      );
+    }
+
     return syncedCount;
   }
 

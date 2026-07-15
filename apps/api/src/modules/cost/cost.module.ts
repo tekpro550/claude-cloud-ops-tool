@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../../notifications/notifications.module';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { PlatformModule } from '../platform/platform.module';
 import { CostBillingSyncService } from './cost-billing-sync.service';
+import { CostBudgetsController } from './cost-budgets.controller';
+import { CostBudgetsService } from './cost-budgets.service';
+import { CostPaceCheckService } from './cost-pace-check.service';
 
 /**
  * Cost/FinOps Service boundary from section 4 of the architecture plan —
@@ -13,7 +17,8 @@ import { CostBillingSyncService } from './cost-billing-sync.service';
  * Module 2 established.
  */
 @Module({
-  imports: [PlatformModule, MonitoringModule],
-  providers: [CostBillingSyncService],
+  imports: [PlatformModule, MonitoringModule, NotificationsModule],
+  controllers: [CostBudgetsController],
+  providers: [CostBudgetsService, CostBillingSyncService, CostPaceCheckService],
 })
 export class CostModule {}
