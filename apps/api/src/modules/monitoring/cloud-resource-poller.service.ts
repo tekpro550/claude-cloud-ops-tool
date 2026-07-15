@@ -130,7 +130,7 @@ export class CloudResourcePollerService
     for (const remote of remoteResources) {
       resourceIdByExternalId.set(
         remote.externalId,
-        await this.upsertResource(tenantId, remote),
+        await this.upsertResource(tenantId, remote, credential.id),
       );
     }
 
@@ -197,6 +197,7 @@ export class CloudResourcePollerService
   private async upsertResource(
     tenantId: string,
     remote: CloudResourceRef,
+    cloudCredentialId: string,
   ): Promise<string> {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const externalRef = JSON.stringify({
@@ -211,15 +212,15 @@ export class CloudResourcePollerService
       );
       if (existing) {
         await queryRunner.query(
-          `UPDATE resources SET name = $2, external_ref = $3, updated_at = now() WHERE id = $1`,
-          [existing.id, remote.name, externalRef],
+          `UPDATE resources SET name = $2, external_ref = $3, cloud_credential_id = $4, updated_at = now() WHERE id = $1`,
+          [existing.id, remote.name, externalRef, cloudCredentialId],
         );
         return existing.id;
       }
 
       const [created] = await queryRunner.query(
-        `INSERT INTO resources (tenant_id, name, resource_type, external_ref) VALUES ($1, $2, 'server', $3) RETURNING id`,
-        [tenantId, remote.name, externalRef],
+        `INSERT INTO resources (tenant_id, name, resource_type, external_ref, cloud_credential_id) VALUES ($1, $2, 'server', $3, $4) RETURNING id`,
+        [tenantId, remote.name, externalRef, cloudCredentialId],
       );
       return created.id;
     });

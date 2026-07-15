@@ -65,3 +65,25 @@ export interface RightsizingRecommendation {
   created_at: string;
   updated_at: string;
 }
+
+export type CostSavingsStatus = "logged" | "verified" | "not_materialized";
+
+export interface CostSavingsLogEntry {
+  id: string;
+  resource_id: string;
+  recommendation_id: string | null;
+  ticket_id: string | null;
+  expected_monthly_saving: number;
+  actual_monthly_saving: number | null;
+  status: CostSavingsStatus;
+  logged_at: string;
+  verified_at: string | null;
+}
+
+export type CostRateDisplay = "list_price" | "negotiated";
+
+export interface TenantCostSettings {
+  id: string;
+  financial_year_start_month: number;
+  cost_rate_display: CostRateDisplay;
+}

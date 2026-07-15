@@ -8,9 +8,14 @@ import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
 import { CostBudgetsService } from './cost-budgets.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
+import { CostSavingsSweepService } from './cost-savings-sweep.service';
 import { RecommendationsController } from './recommendations.controller';
 import { RecommendationsService } from './recommendations.service';
 import { RightsizingSweepService } from './rightsizing-sweep.service';
+import { SavingsLogController } from './savings-log.controller';
+import { SavingsLogService } from './savings-log.service';
+import { TenantCostSettingsController } from './tenant-cost-settings.controller';
+import { TenantCostSettingsService } from './tenant-cost-settings.service';
 
 /**
  * Cost/FinOps Service boundary from section 4 of the architecture plan —
@@ -27,6 +32,8 @@ import { RightsizingSweepService } from './rightsizing-sweep.service';
     CostBudgetsController,
     CostAccountsController,
     RecommendationsController,
+    SavingsLogController,
+    TenantCostSettingsController,
   ],
   providers: [
     CostBudgetsService,
@@ -35,6 +42,9 @@ import { RightsizingSweepService } from './rightsizing-sweep.service';
     CostAccountsService,
     RightsizingSweepService,
     RecommendationsService,
+    CostSavingsSweepService,
+    SavingsLogService,
+    TenantCostSettingsService,
   ],
 })
 export class CostModule {}

@@ -120,7 +120,7 @@ export default function RecommendationsPage() {
             </span>
           </div>
           <span className="hint">
-            {r.estimated_monthly_saving !== null && `Est. saving: $${r.estimated_monthly_saving.toFixed(2)}/mo · `}
+            {r.estimated_monthly_saving !== null && `Est. saving: $${Number(r.estimated_monthly_saving).toFixed(2)}/mo · `}
             Flagged {new Date(r.created_at).toLocaleString()}
             {r.ticket_id ? (
               <>

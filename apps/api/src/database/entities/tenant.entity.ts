@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 
 export type PlanTier = 'internal' | 'starter' | 'growth' | 'scale';
+export type CostRateDisplay = 'list_price' | 'negotiated';
 
 @Entity({ name: 'tenants' })
 export class TenantEntity {
@@ -29,6 +30,15 @@ export class TenantEntity {
 
   @Column({ name: 'financial_year_start_month', type: 'int', default: 4 })
   financialYearStartMonth: number;
+
+  @Column({
+    name: 'cost_rate_display',
+    type: 'enum',
+    enum: ['list_price', 'negotiated'],
+    enumName: 'cost_rate_display_enum',
+    default: 'list_price',
+  })
+  costRateDisplay: CostRateDisplay;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

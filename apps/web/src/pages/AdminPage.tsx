@@ -6,6 +6,7 @@ import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
 import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFoldersAdmin";
 import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import CloudCredentialsAdmin from "../components/admin/CloudCredentialsAdmin";
+import CostBudgetsAdmin from "../components/admin/CostBudgetsAdmin";
 import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
@@ -14,6 +15,7 @@ import ResourcesAdmin from "../components/admin/ResourcesAdmin";
 import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
 import SolutionsAdmin from "../components/admin/SolutionsAdmin";
+import TenantCostSettingsAdmin from "../components/admin/TenantCostSettingsAdmin";
 import TicketTypesAdmin from "../components/admin/TicketTypesAdmin";
 import { getSetupStatus } from "../lib/apiClient";
 import { useTenant } from "../lib/tenant";
@@ -85,6 +87,12 @@ export default function AdminPage() {
       <section className="admin-group">
         <h3>Knowledge base</h3>
         <SolutionsAdmin tenantId={tenantId} onChange={handleChange} />
+      </section>
+
+      <section className="admin-group">
+        <h3>Cost</h3>
+        <CostBudgetsAdmin tenantId={tenantId} onChange={handleChange} />
+        <TenantCostSettingsAdmin tenantId={tenantId} onChange={handleChange} />
       </section>
 
       <section className="admin-group">

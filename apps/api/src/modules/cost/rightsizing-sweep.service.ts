@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { estimateMonthlySaving } from './cost-savings-estimate';
 import {
   generateRightsizingReasonText,
   RightsizingRecommendationType,
@@ -156,19 +157,30 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
       recommendationType,
       avgValue,
     );
+    const estimatedSaving = await estimateMonthlySaving(
+      queryRunner,
+      monitor.resource_id,
+      recommendationType,
+    );
 
     if (!openRec) {
       await queryRunner.query(
-        `INSERT INTO rightsizing_recommendations (tenant_id, resource_id, recommendation_type, reason_text)
-         VALUES ($1, $2, $3, $4)`,
-        [tenantId, monitor.resource_id, recommendationType, reasonText],
+        `INSERT INTO rightsizing_recommendations (tenant_id, resource_id, recommendation_type, reason_text, estimated_monthly_saving)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          tenantId,
+          monitor.resource_id,
+          recommendationType,
+          reasonText,
+          estimatedSaving,
+        ],
       );
       return true;
     }
 
     await queryRunner.query(
-      `UPDATE rightsizing_recommendations SET recommendation_type = $2, reason_text = $3, updated_at = now() WHERE id = $1`,
-      [openRec.id, recommendationType, reasonText],
+      `UPDATE rightsizing_recommendations SET recommendation_type = $2, reason_text = $3, estimated_monthly_saving = $4, updated_at = now() WHERE id = $1`,
+      [openRec.id, recommendationType, reasonText, estimatedSaving],
     );
     return true;
   }

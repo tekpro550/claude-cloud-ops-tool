@@ -3,10 +3,12 @@ import type {
   AccountCostSummary,
   CostBudget,
   CostLineItem,
+  CostSavingsLogEntry,
   NotifyChannel,
   RightsizingRecommendation,
   RightsizingRecommendationStatus,
   RightsizingRecommendationType,
+  TenantCostSettings,
 } from "../types/cost";
 
 // ---- MSP rollup / drill-down ----
@@ -105,4 +107,39 @@ export function createTicketFromRecommendation(
   id: string,
 ): Promise<{ ticketId: string }> {
   return request(tenantId, "POST", `/cost/recommendations/${id}/create_ticket`);
+}
+
+// ---- Savings log ----
+
+export interface SavingsLogFilters {
+  resourceId?: string;
+  ticketId?: string;
+  status?: "logged" | "verified" | "not_materialized";
+}
+
+export function listSavingsLog(tenantId: string, filters: SavingsLogFilters = {}): Promise<CostSavingsLogEntry[]> {
+  const params = new URLSearchParams();
+  if (filters.resourceId) params.set("resourceId", filters.resourceId);
+  if (filters.ticketId) params.set("ticketId", filters.ticketId);
+  if (filters.status) params.set("status", filters.status);
+  const qs = params.toString();
+  return request(tenantId, "GET", `/cost/savings_log${qs ? `?${qs}` : ""}`);
+}
+
+// ---- Tenant cost settings ----
+
+export function getTenantCostSettings(tenantId: string): Promise<TenantCostSettings> {
+  return request(tenantId, "GET", "/tenant-cost-settings");
+}
+
+export interface TenantCostSettingsInput {
+  financialYearStartMonth?: number;
+  costRateDisplay?: TenantCostSettings["cost_rate_display"];
+}
+
+export function updateTenantCostSettings(
+  tenantId: string,
+  input: TenantCostSettingsInput,
+): Promise<TenantCostSettings> {
+  return request(tenantId, "PATCH", "/tenant-cost-settings", input);
 }
