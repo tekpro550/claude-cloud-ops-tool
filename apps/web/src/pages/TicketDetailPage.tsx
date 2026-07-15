@@ -5,6 +5,7 @@ import {
   addTicketMessage,
   ApiError,
   downloadTicketAttachment,
+  getContact,
   getTicket,
   listAgents,
   listCannedResponseFolders,
@@ -17,6 +18,7 @@ import {
   uploadTicketAttachment,
   type UpdateTicketInput,
 } from "../lib/apiClient";
+import { avatarColor, initials } from "../lib/avatar";
 import { platformLabel, PLATFORMS } from "../lib/platform";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
@@ -31,6 +33,7 @@ import type {
   Agent,
   CannedResponse,
   CannedResponseFolder,
+  Contact,
   Group,
   Ticket,
   TicketAttachment,
@@ -49,6 +52,7 @@ export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { tenantId } = useTenant();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [contact, setContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -76,6 +80,12 @@ export default function TicketDetailPage() {
         setTicket(ticketRes);
         setMessages(messagesRes);
         setAttachments(attachmentsRes);
+        getContact(tenantId, ticketRes.contact_id)
+          .then(setContact)
+          .catch(() => {
+            // The header's "Reported by" line is decorative; a lookup
+            // failure shouldn't block the rest of the ticket from loading.
+          });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load ticket"))
       .finally(() => setLoading(false));
@@ -331,50 +341,85 @@ export default function TicketDetailPage() {
         <Link to="/">&larr; Back to tickets</Link>
       </p>
 
-      <h2>
-        #{formatTicketNumber(ticket)} {ticket.subject}
-      </h2>
+      <div className="ticket-detail-header">
+        <div className="ticket-detail-title">
+          <span className="ticket-row-number">{formatTicketNumber(ticket)}</span>
+          <h2>{ticket.subject}</h2>
+          <span className={`badge status-${ticket.status}`}>{ticket.status}</span>
+          <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
+        </div>
+        <div className="ticket-detail-meta">
+          {contact && (
+            <span>
+              Reported by <strong>{contact.name}</strong>
+            </span>
+          )}
+          <span>· {relativeTime(ticket.created_at)}</span>
+        </div>
+      </div>
 
       {error && <p className="error">{error}</p>}
 
       <div className="ticket-detail-layout">
         <div className="ticket-main">
-          <h3>Messages</h3>
+          <h3>Conversation</h3>
           {messages.length === 0 && <p className="hint">No messages yet.</p>}
           <ul className="message-thread">
             {messages.map((message) => {
               const messageAttachments = attachments.filter((a) => a.ticket_message_id === message.id);
+              const displayName =
+                message.author_type === "contact" ? contact?.name ?? "Contact" : message.author_type === "agent" ? "Agent" : "System";
+              const isAgentAligned = message.type !== "note" && message.author_type === "agent";
               return (
-                <li key={message.id} className={`message message-${message.type}`}>
-                  <div className="message-meta">
-                    <strong>{message.type}</strong> by {message.author_type} · {new Date(message.created_at).toLocaleString()}
+                <li
+                  key={message.id}
+                  className={`message-${message.type} message-row${isAgentAligned ? " message-row-agent" : ""}`}
+                >
+                  <span className="avatar avatar-sm" style={{ background: avatarColor(displayName) }}>
+                    {initials(displayName)}
+                  </span>
+                  <div className="message">
+                    <div className="message-meta">
+                      {message.type === "note" && <span className="message-type-label">Private note</span>}
+                      {message.type === "forward" && <span className="message-type-label">Forwarded</span>}
+                      <strong>{displayName}</strong>
+                      <span>{new Date(message.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="message-body">{message.body}</div>
+                    {messageAttachments.length > 0 && (
+                      <ul className="message-attachments">
+                        {messageAttachments.map((a) => (
+                          <li key={a.id}>
+                            <button type="button" className="link-button" onClick={() => handleDownloadAttachment(a)}>
+                              {a.file_name}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="message-body">{message.body}</div>
-                  {messageAttachments.length > 0 && (
-                    <ul className="message-attachments">
-                      {messageAttachments.map((a) => (
-                        <li key={a.id}>
-                          <button type="button" className="link-button" onClick={() => handleDownloadAttachment(a)}>
-                            {a.file_name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </li>
               );
             })}
           </ul>
 
-          <form className="message-composer" onSubmit={handleAddMessage}>
+          <form
+            className={`message-composer${messageType === "note" ? " message-composer-note" : ""}`}
+            onSubmit={handleAddMessage}
+          >
             <div className="message-composer-toolbar">
-              <select value={messageType} onChange={(e) => setMessageType(e.target.value as TicketMessageType)}>
+              <div className="composer-type-tabs">
                 {MESSAGE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <button
+                    key={t}
+                    type="button"
+                    className={`composer-type-tab${messageType === t ? ` composer-type-tab-active composer-type-tab-${t}` : ""}`}
+                    onClick={() => setMessageType(t)}
+                  >
+                    {t === "reply" ? "Reply" : t === "note" ? "Note" : "Forward"}
+                  </button>
                 ))}
-              </select>
+              </div>
               {cannedResponses.length > 0 && (
                 <select defaultValue="" onChange={(e) => handlePickCannedResponse(e.target.value)}>
                   <option value="" disabled>
@@ -403,7 +448,7 @@ export default function TicketDetailPage() {
               )}
             </div>
             <textarea
-              placeholder="Write a message…"
+              placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
               value={messageBody}
               onChange={(e) => setMessageBody(e.target.value)}
               rows={3}
@@ -414,8 +459,8 @@ export default function TicketDetailPage() {
               onChange={(e) => setMessageFile(e.target.files?.[0] ?? null)}
               aria-label="Attach a file"
             />
-            <button type="submit" disabled={posting}>
-              {posting ? "Posting…" : "Add message"}
+            <button type="submit" className="btn-primary" disabled={posting} style={{ alignSelf: "flex-start" }}>
+              {posting ? "Posting…" : messageType === "note" ? "Add note" : "Send"}
             </button>
           </form>
         </div>

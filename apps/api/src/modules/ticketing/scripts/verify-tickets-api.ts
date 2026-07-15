@@ -182,6 +182,26 @@ async function main() {
       'GET /tickets?status=resolved filters correctly',
     );
 
+    // Neither ticket was ever assigned an agent, so the unassigned=true
+    // quick-view filter (agent_id IS NULL) should match both.
+    const unassignedRes = await request(server)
+      .get('/api/v1/tickets?unassigned=true')
+      .set('X-Tenant-Id', tenantA.id);
+    assert(
+      unassignedRes.body.total === 2,
+      `GET /tickets?unassigned=true matches both agent-less tickets (got ${unassignedRes.body.total})`,
+    );
+
+    // Neither ticket has an sla_policy_id, so there's no due date to be
+    // overdue against -- overdue=true should match none.
+    const overdueRes = await request(server)
+      .get('/api/v1/tickets?overdue=true')
+      .set('X-Tenant-Id', tenantA.id);
+    assert(
+      overdueRes.body.total === 0,
+      `GET /tickets?overdue=true matches nothing when no ticket has an SLA due date (got ${overdueRes.body.total})`,
+    );
+
     const messageRes = await request(server)
       .post(`/api/v1/tickets/${ticketId}/messages`)
       .set('X-Tenant-Id', tenantA.id)

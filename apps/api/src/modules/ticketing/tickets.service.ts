@@ -249,6 +249,17 @@ export class TicketsService {
         params.push(query.agentId);
         conditions.push(`agent_id = $${params.length}`);
       }
+      if (query.unassigned) {
+        conditions.push(`agent_id IS NULL`);
+      }
+      if (query.overdue) {
+        conditions.push(`(
+          status NOT IN ('resolved', 'closed') AND (
+            (first_response_due_at IS NOT NULL AND first_response_at IS NULL AND first_response_due_at < now()) OR
+            (resolution_due_at IS NOT NULL AND resolved_at IS NULL AND resolution_due_at < now())
+          )
+        )`);
+      }
       if (query.createdFrom) {
         params.push(query.createdFrom);
         conditions.push(`created_at >= $${params.length}`);

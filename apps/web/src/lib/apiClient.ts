@@ -89,6 +89,8 @@ export interface ListTicketsFilters {
   platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
+  unassigned?: boolean;
+  overdue?: boolean;
   createdFrom?: string;
   createdTo?: string;
   resolvedFrom?: string;
@@ -104,6 +106,8 @@ export function listTickets(tenantId: string, filters: ListTicketsFilters = {}):
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.agentId) params.set("agentId", filters.agentId);
+  if (filters.unassigned) params.set("unassigned", "true");
+  if (filters.overdue) params.set("overdue", "true");
   if (filters.createdFrom) params.set("createdFrom", filters.createdFrom);
   if (filters.createdTo) params.set("createdTo", filters.createdTo);
   if (filters.resolvedFrom) params.set("resolvedFrom", filters.resolvedFrom);

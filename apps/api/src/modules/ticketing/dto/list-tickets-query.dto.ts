@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -46,6 +47,21 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsUUID()
   agentId?: string;
+
+  // "Unassigned" quick view -- agent_id IS NULL can't be expressed via the
+  // agentId filter above (an empty agentId means "no filter", not "no agent").
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  unassigned?: boolean;
+
+  // "Overdue" quick view -- same condition dashboard.service.ts already uses
+  // for its overdueFirstResponse/overdueResolution counters, exposed here so
+  // the ticket list can filter to exactly those tickets.
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  overdue?: boolean;
 
   @IsOptional()
   @IsISO8601()

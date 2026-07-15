@@ -1,111 +1,184 @@
+/* Design tokens -- shared across all three modules (Ticketing, Monitoring,
+   Cost). Component classes live in App.css; this file only defines the
+   palette, scale, and a minimal reset so all three modules read as one
+   product instead of three differently-styled screens. */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Surfaces */
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f2f5;
+  --color-surface-hover: #eceef2;
+  --color-border: #e1e4e9;
+  --color-border-strong: #c9ced6;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Text */
+  --color-text: #1a1d23;
+  --color-text-secondary: #5c6370;
+  --color-text-tertiary: #8b93a1;
+  --color-text-on-primary: #ffffff;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* Brand */
+  --color-primary: #2f6fed;
+  --color-primary-hover: #2559c9;
+  --color-primary-bg: rgba(47, 111, 237, 0.09);
+  --color-primary-border: rgba(47, 111, 237, 0.35);
+
+  /* Semantic */
+  --color-success: #16965f;
+  --color-success-bg: rgba(22, 150, 95, 0.12);
+  --color-warning: #b6790a;
+  --color-warning-bg: rgba(182, 121, 10, 0.14);
+  --color-danger: #d8393f;
+  --color-danger-bg: rgba(216, 57, 63, 0.11);
+  --color-info: #2f6fed;
+  --color-info-bg: rgba(47, 111, 237, 0.1);
+  --color-neutral: #5c6370;
+  --color-neutral-bg: rgba(92, 99, 112, 0.1);
+
+  /* Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(47, 111, 237, 0.25);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  font: 14px/1.5 var(--sans);
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  color: var(--color-text);
+  background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --color-bg: #101216;
+    --color-surface: #181b21;
+    --color-surface-2: #1f232b;
+    --color-surface-hover: #262b34;
+    --color-border: #2b303a;
+    --color-border-strong: #3a4049;
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --color-text: #e7e9ee;
+    --color-text-secondary: #9aa1ac;
+    --color-text-tertiary: #6b7280;
+
+    --color-primary: #5b8def;
+    --color-primary-hover: #7ea3f3;
+    --color-primary-bg: rgba(91, 141, 239, 0.16);
+    --color-primary-border: rgba(91, 141, 239, 0.4);
+
+    --color-success: #2fbd83;
+    --color-success-bg: rgba(47, 189, 131, 0.15);
+    --color-warning: #e0a839;
+    --color-warning-bg: rgba(224, 168, 57, 0.16);
+    --color-danger: #f2555a;
+    --color-danger-bg: rgba(242, 85, 90, 0.15);
+    --color-info: #5b8def;
+    --color-info-bg: rgba(91, 141, 239, 0.15);
+    --color-neutral: #9aa1ac;
+    --color-neutral-bg: rgba(154, 161, 172, 0.14);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3,
+h4 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-size: 1.3rem;
 }
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: 1.15rem;
 }
+h3 {
+  font-size: 1rem;
+}
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+a {
+  color: var(--color-primary);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--color-surface-2);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+button {
+  cursor: pointer;
 }
