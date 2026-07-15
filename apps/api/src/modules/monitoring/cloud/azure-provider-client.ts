@@ -1,7 +1,9 @@
 import { ComputeManagementClient } from '@azure/arm-compute';
+import { CostManagementClient } from '@azure/arm-costmanagement';
 import { MonitorClient } from '@azure/arm-monitor';
 import { ClientSecretCredential } from '@azure/identity';
 import {
+  CloudCostLineItem,
   CloudMetricSample,
   CloudProviderClient,
   CloudResourceRef,
@@ -28,6 +30,8 @@ export class AzureCloudProviderClient implements CloudProviderClient {
   readonly provider = 'azure' as const;
   private readonly compute: ComputeManagementClient;
   private readonly monitor: MonitorClient;
+  private readonly costManagement: CostManagementClient;
+  private readonly subscriptionId: string;
 
   constructor(config: AzureCredentialsConfig) {
     const credential = new ClientSecretCredential(
@@ -35,11 +39,13 @@ export class AzureCloudProviderClient implements CloudProviderClient {
       config.clientId,
       config.clientSecret,
     );
+    this.subscriptionId = config.subscriptionId;
     this.compute = new ComputeManagementClient(
       credential,
       config.subscriptionId,
     );
     this.monitor = new MonitorClient(credential, config.subscriptionId);
+    this.costManagement = new CostManagementClient(credential);
   }
 
   async listResources(): Promise<CloudResourceRef[]> {
@@ -75,5 +81,61 @@ export class AzureCloudProviderClient implements CloudProviderClient {
     return [
       { metricName: 'Percentage CPU', value: latest.average, unit: 'Percent' },
     ];
+  }
+
+  /**
+   * startDate/endDate are YYYY-MM-DD. Cost Management's query API returns a
+   * generic {columns, rows} table rather than typed objects -- columns are
+   * looked up by name since their order isn't part of the documented
+   * contract. With granularity=Daily, Azure adds its own 'UsageDate' column
+   * as an integer in YYYYMMDD form (e.g. 20260715), not an ISO string.
+   */
+  async getCostAndUsage(
+    startDate: string,
+    endDate: string,
+  ): Promise<CloudCostLineItem[]> {
+    const scope = `/subscriptions/${this.subscriptionId}`;
+    const result = await this.costManagement.query.usage(scope, {
+      type: 'Usage',
+      timeframe: 'Custom',
+      timePeriod: { from: new Date(startDate), to: new Date(endDate) },
+      dataset: {
+        granularity: 'Daily',
+        aggregation: { totalCost: { name: 'Cost', function: 'Sum' } },
+        grouping: [
+          { type: 'Dimension', name: 'ServiceName' },
+          { type: 'Dimension', name: 'ResourceLocation' },
+        ],
+      },
+    });
+
+    const columns = result.columns ?? [];
+    const indexOf = (name: string) => columns.findIndex((c) => c.name === name);
+    const dateIdx = indexOf('UsageDate');
+    const costIdx = indexOf('totalCost');
+    const serviceIdx = indexOf('ServiceName');
+    const regionIdx = indexOf('ResourceLocation');
+    const currencyIdx = indexOf('Currency');
+
+    const lineItems: CloudCostLineItem[] = [];
+    for (const row of result.rows ?? []) {
+      const service = serviceIdx >= 0 ? row[serviceIdx] : undefined;
+      const amount = costIdx >= 0 ? Number(row[costIdx]) : undefined;
+      const rawDate = dateIdx >= 0 ? row[dateIdx] : undefined;
+      if (!service || amount === undefined || rawDate === undefined) continue;
+
+      const dateDigits = String(rawDate);
+      const usageDate = `${dateDigits.slice(0, 4)}-${dateDigits.slice(4, 6)}-${dateDigits.slice(6, 8)}`;
+
+      lineItems.push({
+        service,
+        region: regionIdx >= 0 ? row[regionIdx] || undefined : undefined,
+        usageDate,
+        amount,
+        currency: currencyIdx >= 0 ? row[currencyIdx] : 'USD',
+        raw: { columns: columns.map((c) => c.name), row },
+      });
+    }
+    return lineItems;
   }
 }

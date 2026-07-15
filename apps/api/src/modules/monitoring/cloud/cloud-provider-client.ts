@@ -12,6 +12,23 @@ export interface CloudMetricSample {
 }
 
 /**
+ * One row per service+region+day, matching what both AWS Cost Explorer
+ * (GetCostAndUsage, Granularity=DAILY, GroupBy SERVICE+REGION) and Azure
+ * Cost Management (query.usage, granularity=Daily, grouping by
+ * ServiceName+ResourceLocation) return -- the shape CostBillingSyncService
+ * upserts directly into cost_line_items, see
+ * docs/Cloud-Ops-Tool-Module3-Cost-FinOps-Scope.md section 3.
+ */
+export interface CloudCostLineItem {
+  service: string;
+  region?: string;
+  usageDate: string; // YYYY-MM-DD
+  amount: number;
+  currency: string;
+  raw: Record<string, unknown>;
+}
+
+/**
  * One implementation per provider (AwsCloudProviderClient,
  * AzureCloudProviderClient) behind this interface, the same way
  * ObjectStorage abstracts LocalDiskStorage for attachments -- lets
@@ -22,6 +39,11 @@ export interface CloudProviderClient {
   readonly provider: 'aws' | 'azure';
   listResources(): Promise<CloudResourceRef[]>;
   getMetrics(externalId: string): Promise<CloudMetricSample[]>;
+  /** startDate/endDate are YYYY-MM-DD, end exclusive (matches AWS Cost Explorer's own TimePeriod semantics). */
+  getCostAndUsage(
+    startDate: string,
+    endDate: string,
+  ): Promise<CloudCostLineItem[]>;
 }
 
 export type CloudProviderClientFactory = (

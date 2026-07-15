@@ -1,4 +1,5 @@
 import {
+  CloudCostLineItem,
   CloudMetricSample,
   CloudProviderClient,
   CloudProviderClientFactory,
@@ -18,6 +19,7 @@ export class FakeCloudProviderClient implements CloudProviderClient {
     readonly provider: 'aws' | 'azure',
     private resources: CloudResourceRef[],
     private metricsByExternalId: Record<string, CloudMetricSample[]>,
+    private costLineItems: CloudCostLineItem[] = [],
   ) {}
 
   async listResources(): Promise<CloudResourceRef[]> {
@@ -28,8 +30,21 @@ export class FakeCloudProviderClient implements CloudProviderClient {
     return this.metricsByExternalId[externalId] ?? [];
   }
 
+  async getCostAndUsage(
+    startDate: string,
+    endDate: string,
+  ): Promise<CloudCostLineItem[]> {
+    return this.costLineItems.filter(
+      (item) => item.usageDate >= startDate && item.usageDate < endDate,
+    );
+  }
+
   setMetrics(externalId: string, samples: CloudMetricSample[]): void {
     this.metricsByExternalId[externalId] = samples;
+  }
+
+  setCostLineItems(items: CloudCostLineItem[]): void {
+    this.costLineItems = items;
   }
 }
 

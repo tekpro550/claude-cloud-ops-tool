@@ -89,5 +89,10 @@ import { ResourcesService } from './resources.service';
           : new AzureCloudProviderClient(config as any),
     },
   ],
+  // CLOUD_PROVIDER_CLIENT_FACTORY is exported so Module 3 (Cost) can reuse
+  // the exact same provider-client wiring for its billing sync job instead
+  // of duplicating it -- see docs/Cloud-Ops-Tool-Module3-Cost-FinOps-Scope.md
+  // section 2.
+  exports: [CLOUD_PROVIDER_CLIENT_FACTORY],
 })
 export class MonitoringModule {}
