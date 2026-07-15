@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { ApiError } from "./lib/apiClient";
@@ -103,6 +103,39 @@ function HeaderAuth() {
   );
 }
 
+type NavItem = { label: string; to: string; icon: string; end?: boolean };
+
+const TICKETS_NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", to: "/dashboard", icon: "📊" },
+  { label: "Tickets", to: "/", icon: "🎫", end: true },
+  { label: "Contacts", to: "/contacts", icon: "👤" },
+  { label: "Companies", to: "/companies", icon: "🏢" },
+  { label: "Compose email", to: "/compose", icon: "✉️" },
+];
+
+const MONITORING_NAV_ITEMS: NavItem[] = [
+  { label: "Fleet", to: "/monitoring", icon: "🖥️" },
+  { label: "Alerts", to: "/alerts", icon: "🔔" },
+];
+
+function NavPanelButton({ item, extraClassName, onClick }: { item: NavItem; extraClassName?: string; onClick: () => void }) {
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        ["nav-panel-button", extraClassName, isActive && "nav-panel-button-active"].filter(Boolean).join(" ")
+      }
+    >
+      <span className="nav-panel-button-icon" aria-hidden="true">
+        {item.icon}
+      </span>
+      {item.label}
+    </NavLink>
+  );
+}
+
 function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
 
@@ -115,21 +148,18 @@ function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
         </button>
         <div className="nav-panel-group">
           <span className="nav-group-label">Tickets</span>
-          <Link to="/dashboard" onClick={onClose}>Dashboard</Link>
-          <Link to="/" onClick={onClose}>Tickets</Link>
-          <Link to="/contacts" onClick={onClose}>Contacts</Link>
-          <Link to="/companies" onClick={onClose}>Companies</Link>
-          <Link to="/compose" onClick={onClose}>Compose email</Link>
+          {TICKETS_NAV_ITEMS.map((item) => (
+            <NavPanelButton key={item.to} item={item} onClick={onClose} />
+          ))}
         </div>
         <div className="nav-panel-group">
           <span className="nav-group-label">Monitoring</span>
-          <Link to="/monitoring" onClick={onClose}>Fleet</Link>
-          <Link to="/alerts" onClick={onClose}>Alerts</Link>
+          {MONITORING_NAV_ITEMS.map((item) => (
+            <NavPanelButton key={item.to} item={item} onClick={onClose} />
+          ))}
         </div>
         <div className="nav-panel-group">
-          <Link to="/admin" className="nav-admin-link" onClick={onClose}>
-            Admin
-          </Link>
+          <NavPanelButton item={{ label: "Admin", to: "/admin", icon: "⚙️" }} extraClassName="nav-admin-button" onClick={onClose} />
         </div>
       </nav>
     </>
