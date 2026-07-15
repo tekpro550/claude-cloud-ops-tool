@@ -14,6 +14,7 @@ import ContactsPage from "./pages/ContactsPage";
 import CostAccountDetailPage from "./pages/CostAccountDetailPage";
 import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
+import RecommendationsPage from "./pages/RecommendationsPage";
 import MonitoringFleetPage from "./pages/MonitoringFleetPage";
 import NewTicketPage from "./pages/NewTicketPage";
 import ResourceDashboardPage from "./pages/ResourceDashboardPage";
@@ -121,7 +122,10 @@ const MONITORING_NAV_ITEMS: NavItem[] = [
   { label: "Alerts", to: "/alerts", icon: "🔔" },
 ];
 
-const COST_NAV_ITEMS: NavItem[] = [{ label: "Cost", to: "/cost", icon: "💰" }];
+const COST_NAV_ITEMS: NavItem[] = [
+  { label: "Cost", to: "/cost", icon: "💰" },
+  { label: "Recommendations", to: "/cost/recommendations", icon: "💡" },
+];
 
 function NavPanelButton({ item, extraClassName, onClick }: { item: NavItem; extraClassName?: string; onClick: () => void }) {
   return (
@@ -223,6 +227,7 @@ function App() {
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/cost" element={<CostRollupPage />} />
           <Route path="/cost/accounts/:id" element={<CostAccountDetailPage />} />
+          <Route path="/cost/recommendations" element={<RecommendationsPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/compose" element={<ComposeOutboundPage />} />

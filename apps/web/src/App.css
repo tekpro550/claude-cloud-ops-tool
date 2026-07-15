@@ -900,6 +900,12 @@ td {
   justify-content: space-between;
 }
 
+.alert-card-header > span:last-child {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .cost-account-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

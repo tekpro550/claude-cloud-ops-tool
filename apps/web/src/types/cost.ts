@@ -50,3 +50,18 @@ export interface CostBudget {
   is_active: boolean;
   created_at: string;
 }
+
+export type RightsizingRecommendationType = "rightsize" | "idle" | "terminate";
+export type RightsizingRecommendationStatus = "open" | "dismissed" | "ticket_created" | "resolved";
+
+export interface RightsizingRecommendation {
+  id: string;
+  resource_id: string;
+  recommendation_type: RightsizingRecommendationType;
+  reason_text: string;
+  estimated_monthly_saving: number | null;
+  status: RightsizingRecommendationStatus;
+  ticket_id: string | null;
+  created_at: string;
+  updated_at: string;
+}

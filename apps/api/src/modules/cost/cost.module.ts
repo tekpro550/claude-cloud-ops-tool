@@ -8,6 +8,9 @@ import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
 import { CostBudgetsService } from './cost-budgets.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
+import { RecommendationsController } from './recommendations.controller';
+import { RecommendationsService } from './recommendations.service';
+import { RightsizingSweepService } from './rightsizing-sweep.service';
 
 /**
  * Cost/FinOps Service boundary from section 4 of the architecture plan —
@@ -20,12 +23,18 @@ import { CostPaceCheckService } from './cost-pace-check.service';
  */
 @Module({
   imports: [PlatformModule, MonitoringModule, NotificationsModule],
-  controllers: [CostBudgetsController, CostAccountsController],
+  controllers: [
+    CostBudgetsController,
+    CostAccountsController,
+    RecommendationsController,
+  ],
   providers: [
     CostBudgetsService,
     CostBillingSyncService,
     CostPaceCheckService,
     CostAccountsService,
+    RightsizingSweepService,
+    RecommendationsService,
   ],
 })
 export class CostModule {}

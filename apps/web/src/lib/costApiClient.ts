@@ -1,5 +1,13 @@
 import { request } from "./apiClient";
-import type { AccountCostSummary, CostBudget, CostLineItem, NotifyChannel } from "../types/cost";
+import type {
+  AccountCostSummary,
+  CostBudget,
+  CostLineItem,
+  NotifyChannel,
+  RightsizingRecommendation,
+  RightsizingRecommendationStatus,
+  RightsizingRecommendationType,
+} from "../types/cost";
 
 // ---- MSP rollup / drill-down ----
 
@@ -62,4 +70,39 @@ export function updateCostBudget(
 
 export function deleteCostBudget(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/cost-budgets/${id}`);
+}
+
+// ---- Rightsizing recommendations ----
+
+export interface RecommendationFilters {
+  resourceId?: string;
+  status?: RightsizingRecommendationStatus;
+  type?: RightsizingRecommendationType;
+}
+
+export function listRecommendations(
+  tenantId: string,
+  filters: RecommendationFilters = {},
+): Promise<RightsizingRecommendation[]> {
+  const params = new URLSearchParams();
+  if (filters.resourceId) params.set("resourceId", filters.resourceId);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.type) params.set("type", filters.type);
+  const qs = params.toString();
+  return request(tenantId, "GET", `/cost/recommendations${qs ? `?${qs}` : ""}`);
+}
+
+export function dismissRecommendation(tenantId: string, id: string): Promise<RightsizingRecommendation> {
+  return request(tenantId, "PATCH", `/cost/recommendations/${id}`, { status: "dismissed" });
+}
+
+export function resolveRecommendation(tenantId: string, id: string): Promise<RightsizingRecommendation> {
+  return request(tenantId, "PATCH", `/cost/recommendations/${id}`, { status: "resolved" });
+}
+
+export function createTicketFromRecommendation(
+  tenantId: string,
+  id: string,
+): Promise<{ ticketId: string }> {
+  return request(tenantId, "POST", `/cost/recommendations/${id}/create_ticket`);
 }
