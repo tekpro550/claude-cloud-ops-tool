@@ -292,6 +292,11 @@ button:disabled {
   flex-direction: column;
   gap: 0.85rem;
   max-width: 640px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
 }
 
 .new-ticket-full-form label {
@@ -523,6 +528,11 @@ button:disabled {
   flex-direction: column;
   gap: 0.75rem;
   max-width: 500px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
 }
 
 .compose-outbound-form label {
@@ -1150,9 +1160,11 @@ td {
 }
 
 .admin-entity {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.1rem;
   margin: 1.5rem 0;
 }
 

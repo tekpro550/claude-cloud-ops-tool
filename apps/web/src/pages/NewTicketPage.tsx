@@ -187,7 +187,7 @@ export default function NewTicketPage() {
           />
         </label>
 
-        <button type="submit" disabled={creating}>
+        <button type="submit" className="btn-primary" disabled={creating}>
           {creating ? "Creating…" : "Create ticket"}
         </button>
       </form>

@@ -81,7 +81,7 @@ export default function ComposeOutboundPage() {
         )}
         <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} required />
         <textarea placeholder="Message" value={body} onChange={(e) => setBody(e.target.value)} rows={8} required />
-        <button type="submit" disabled={sending}>
+        <button type="submit" className="btn-primary" disabled={sending}>
           {sending ? "Sending…" : "Send and create ticket"}
         </button>
       </form>
