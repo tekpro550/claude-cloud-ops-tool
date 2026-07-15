@@ -249,6 +249,22 @@ export class TicketsService {
         params.push(query.agentId);
         conditions.push(`agent_id = $${params.length}`);
       }
+      if (query.createdFrom) {
+        params.push(query.createdFrom);
+        conditions.push(`created_at >= $${params.length}`);
+      }
+      if (query.createdTo) {
+        params.push(query.createdTo);
+        conditions.push(`created_at <= $${params.length}`);
+      }
+      if (query.resolvedFrom) {
+        params.push(query.resolvedFrom);
+        conditions.push(`resolved_at >= $${params.length}`);
+      }
+      if (query.resolvedTo) {
+        params.push(query.resolvedTo);
+        conditions.push(`resolved_at <= $${params.length}`);
+      }
 
       const where = conditions.length
         ? `WHERE ${conditions.join(' AND ')}`
@@ -293,7 +309,12 @@ export class TicketsService {
     });
   }
 
-  async update(tenantId: string, id: string, dto: UpdateTicketDto) {
+  async update(
+    tenantId: string,
+    id: string,
+    dto: UpdateTicketDto,
+    actorAgentId?: string,
+  ) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(
         `SELECT * FROM tickets WHERE id = $1`,
@@ -422,13 +443,14 @@ export class TicketsService {
 
       for (const change of activityChanges) {
         await queryRunner.query(
-          `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value) VALUES ($1, $2, $3, $4, $5)`,
+          `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value, actor_agent_id) VALUES ($1, $2, $3, $4, $5, $6)`,
           [
             tenantId,
             id,
             change.field,
             change.oldValue ?? null,
             change.newValue ?? null,
+            actorAgentId ?? null,
           ],
         );
       }

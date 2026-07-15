@@ -99,6 +99,10 @@ export default function CompaniesPage() {
                 <span>
                   <strong>{company.name}</strong>
                   {company.domain && <span className="hint"> — {company.domain}</span>}
+                  <span className="hint">
+                    {" "}
+                    · {company.contact_count} contact{company.contact_count === 1 ? "" : "s"}
+                  </span>
                 </span>
                 <span>
                   <button type="button" className="link-button" onClick={() => startEdit(company)}>

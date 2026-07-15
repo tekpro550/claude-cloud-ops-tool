@@ -13,6 +13,7 @@ import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
 import DashboardPage from "./pages/DashboardPage";
 import MonitoringFleetPage from "./pages/MonitoringFleetPage";
+import NewTicketPage from "./pages/NewTicketPage";
 import ResourceDashboardPage from "./pages/ResourceDashboardPage";
 import SearchPage from "./pages/SearchPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
@@ -204,6 +205,7 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<TicketListPage />} />
+          <Route path="/tickets/new" element={<NewTicketPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/monitoring" element={<MonitoringFleetPage />} />

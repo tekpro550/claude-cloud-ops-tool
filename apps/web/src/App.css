@@ -178,10 +178,103 @@
   margin-bottom: 1rem;
 }
 
-.new-ticket-form {
+.new-ticket-full-form {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 640px;
+}
+
+.new-ticket-full-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.new-ticket-full-form .admin-form-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.new-ticket-full-form .admin-form-row label {
+  flex: 1 1 140px;
+}
+
+.toolbar-dates {
+  margin-top: -0.4rem;
+}
+
+.date-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.ticket-table-wrap {
+  overflow-x: auto;
+}
+
+.ticket-table {
+  font-size: 0.9rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ticket-table th:nth-child(1),
+.ticket-table td:nth-child(1) {
+  width: 4.5rem;
+}
+.ticket-table th:nth-child(2),
+.ticket-table td:nth-child(2) {
+  width: auto;
+}
+.ticket-table th:nth-child(3),
+.ticket-table th:nth-child(4),
+.ticket-table th:nth-child(5),
+.ticket-table th:nth-child(6),
+.ticket-table td:nth-child(3),
+.ticket-table td:nth-child(4),
+.ticket-table td:nth-child(5),
+.ticket-table td:nth-child(6) {
+  width: 7rem;
+}
+.ticket-table th:nth-child(7),
+.ticket-table td:nth-child(7) {
+  width: 5.5rem;
+  white-space: nowrap;
+}
+
+.ticket-table-number {
+  font-family: monospace;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.ticket-table-subject a {
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inline-select {
+  width: 100%;
+  min-width: 0;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.ticket-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .compose-outbound-form {
@@ -238,52 +331,6 @@ td {
 }
 .sla-state-met {
   background: #1f5c2c;
-}
-
-.ticket-fleet {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.ticket-card {
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.ticket-card-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-
-.ticket-card-number {
-  font-family: monospace;
-  opacity: 0.7;
-  font-size: 0.85rem;
-}
-
-.ticket-card-subject {
-  font-weight: 600;
-}
-
-.ticket-card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.ticket-card-footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
 }
 
 .properties-panel {
@@ -520,6 +567,31 @@ td {
 
 .stat-tile-critical .stat-tile-value {
   color: #ff6b6b;
+}
+
+.activity-feed {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.activity-feed li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #333;
+  font-size: 0.88rem;
+}
+
+.activity-feed li:last-child {
+  border-bottom: none;
 }
 
 .setup-checklist {

@@ -63,6 +63,7 @@ export interface Company {
   id: string;
   name: string;
   domain: string | null;
+  contact_count: number;
 }
 
 export interface Contact {
@@ -273,6 +274,20 @@ export interface NeedsAttentionItem {
   severity: "warning" | "critical";
   message: string;
   count: number;
+}
+
+export interface DashboardActivityItem {
+  kind: "ticket_created" | "activity" | "message";
+  ticket_id: string;
+  ticket_number: number;
+  subject: string;
+  timestamp: string;
+  field: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  message_type: TicketMessageType | null;
+  actor_name: string | null;
+  actor_kind: "contact" | "agent" | "system";
 }
 
 export interface SetupStatusItem {

@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, createTicket, listAgents, listGroups, listTickets } from "../lib/apiClient";
+import { ApiError, listAgents, listContacts, listGroups, listTickets, updateTicket } from "../lib/apiClient";
 import { platformLabel, PLATFORMS } from "../lib/platform";
 import { relativeTime } from "../lib/relativeTime";
-import { SLA_STATE_LABELS, ticketSlaState } from "../lib/slaState";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
-import type { Agent, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus } from "../types/ticket";
+import type { Agent, Contact, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus } from "../types/ticket";
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
+const PAGE_SIZE = 25;
 
 export default function TicketListPage() {
   const { tenantId } = useTenant();
@@ -21,16 +20,16 @@ export default function TicketListPage() {
   const [platform, setPlatform] = useState<TicketPlatform | "">("");
   const [groupId, setGroupId] = useState("");
   const [agentId, setAgentId] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [resolvedFrom, setResolvedFrom] = useState("");
+  const [resolvedTo, setResolvedTo] = useState("");
+  const [offset, setOffset] = useState(0);
   const [groups, setGroups] = useState<Group[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newSubject, setNewSubject] = useState("");
-  const [newContactName, setNewContactName] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const load = () => {
     if (!tenantId) return;
@@ -42,6 +41,12 @@ export default function TicketListPage() {
       platform: platform || undefined,
       groupId: groupId || undefined,
       agentId: agentId || undefined,
+      createdFrom: createdFrom ? new Date(createdFrom).toISOString() : undefined,
+      createdTo: createdTo ? new Date(createdTo).toISOString() : undefined,
+      resolvedFrom: resolvedFrom ? new Date(resolvedFrom).toISOString() : undefined,
+      resolvedTo: resolvedTo ? new Date(resolvedTo).toISOString() : undefined,
+      limit: PAGE_SIZE,
+      offset,
     })
       .then((res) => {
         setTickets(res.items);
@@ -51,47 +56,54 @@ export default function TicketListPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [tenantId, status, priority, platform, groupId, agentId]);
+  useEffect(load, [tenantId, status, priority, platform, groupId, agentId, createdFrom, createdTo, resolvedFrom, resolvedTo, offset]);
+
+  // Any filter change should snap back to page 1, not keep whatever offset
+  // was scrolled to under the previous filter set.
+  useEffect(() => {
+    setOffset(0);
+  }, [status, priority, platform, groupId, agentId, createdFrom, createdTo, resolvedFrom, resolvedTo]);
 
   useEffect(() => {
     if (!tenantId) return;
-    Promise.all([listGroups(tenantId), listAgents(tenantId)])
-      .then(([groupsRes, agentsRes]) => {
+    Promise.all([listGroups(tenantId), listAgents(tenantId), listContacts(tenantId)])
+      .then(([groupsRes, agentsRes, contactsRes]) => {
         setGroups(groupsRes);
         setAgents(agentsRes);
+        setContacts(contactsRes);
       })
       .catch(() => {
-        // Reference data only powers the filter dropdowns and the agent
-        // column; a failure here shouldn't block viewing the ticket list.
+        // Reference data only powers the filter dropdowns and the
+        // contact/agent columns; a failure here shouldn't block the list.
       });
   }, [tenantId]);
 
-  const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
+  const contactNameById = new Map(contacts.map((c) => [c.id, c.name]));
 
-  const handleCreate = (event: FormEvent) => {
-    event.preventDefault();
+  const patchLocal = (id: string, changes: Partial<Ticket>) => {
+    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...changes } : t)));
+  };
+
+  const handleInlineChange = <K extends keyof Ticket>(
+    ticket: Ticket,
+    field: K,
+    value: string,
+    input: Record<string, string>,
+  ) => {
     if (!tenantId) return;
-    setCreating(true);
-    setError(null);
-    createTicket(tenantId, {
-      subject: newSubject,
-      contact: { name: newContactName, email: newContactEmail },
-      source: "web_form",
-    })
-      .then(() => {
-        setNewSubject("");
-        setNewContactName("");
-        setNewContactEmail("");
-        setShowNewForm(false);
-        load();
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to create ticket"))
-      .finally(() => setCreating(false));
+    patchLocal(ticket.id, { [field]: value } as Partial<Ticket>);
+    updateTicket(tenantId, ticket.id, input).catch((err) => {
+      setError(err instanceof ApiError ? err.message : "Failed to update ticket");
+      load();
+    });
   };
 
   if (!tenantId) {
     return <p className="hint">Set a tenant id above to load tickets.</p>;
   }
+
+  const rangeStart = total === 0 ? 0 : offset + 1;
+  const rangeEnd = Math.min(offset + PAGE_SIZE, total);
 
   return (
     <div>
@@ -136,32 +148,29 @@ export default function TicketListPage() {
             </option>
           ))}
         </select>
-        <button type="button" onClick={() => setShowNewForm((v) => !v)}>
-          {showNewForm ? "Cancel" : "New ticket"}
-        </button>
+        <Link to="/tickets/new">
+          <button type="button">New ticket</button>
+        </Link>
       </div>
 
-      {showNewForm && (
-        <form className="new-ticket-form" onSubmit={handleCreate}>
-          <input placeholder="Subject" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} required />
-          <input
-            placeholder="Contact name"
-            value={newContactName}
-            onChange={(e) => setNewContactName(e.target.value)}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Contact email"
-            value={newContactEmail}
-            onChange={(e) => setNewContactEmail(e.target.value)}
-            required
-          />
-          <button type="submit" disabled={creating}>
-            {creating ? "Creating…" : "Create"}
-          </button>
-        </form>
-      )}
+      <div className="toolbar toolbar-dates">
+        <label className="date-filter">
+          Created from
+          <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+        </label>
+        <label className="date-filter">
+          to
+          <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+        </label>
+        <label className="date-filter">
+          Resolved from
+          <input type="date" value={resolvedFrom} onChange={(e) => setResolvedFrom(e.target.value)} />
+        </label>
+        <label className="date-filter">
+          to
+          <input type="date" value={resolvedTo} onChange={(e) => setResolvedTo(e.target.value)} />
+        </label>
+      </div>
 
       {error && <p className="error">{error}</p>}
       {loading && <p>Loading…</p>}
@@ -169,43 +178,115 @@ export default function TicketListPage() {
       {!loading && tickets.length === 0 && <p className="hint">No tickets found.</p>}
 
       {tickets.length > 0 && (
-        <ul className="ticket-fleet">
-          {tickets.map((ticket) => {
-            const slaState = ticketSlaState(ticket);
-            return (
-              <li key={ticket.id} className="ticket-card">
-                <div className="ticket-card-header">
-                  <span className="ticket-card-number">{formatTicketNumber(ticket)}</span>
-                  <Link to={`/tickets/${ticket.id}`} className="ticket-card-subject">
-                    {ticket.subject}
-                  </Link>
-                </div>
-                <div className="ticket-card-badges">
-                  <span className={`badge status-${ticket.status}`}>{ticket.status}</span>
-                  <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
-                  {slaState !== "no_sla" && (
-                    <span className={`badge sla-state-${slaState}`}>{SLA_STATE_LABELS[slaState]}</span>
-                  )}
-                  {ticket.platform && <span className="badge">{platformLabel(ticket.platform)}</span>}
-                </div>
-                <div className="ticket-card-footer">
-                  <span className={ticket.agent_id ? undefined : "hint"}>
-                    {ticket.agent_id ? (agentNameById.get(ticket.agent_id) ?? "Unknown agent") : "Unassigned"}
-                  </span>
-                  <span className="hint" title={new Date(ticket.created_at).toLocaleString()}>
+        <div className="ticket-table-wrap">
+          <table className="ticket-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Group</th>
+                <th>Agent</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tickets.map((ticket) => (
+                <tr key={ticket.id}>
+                  <td className="ticket-table-number">{formatTicketNumber(ticket)}</td>
+                  <td className="ticket-table-subject">
+                    <Link to={`/tickets/${ticket.id}`} title={ticket.subject}>
+                      {ticket.subject}
+                    </Link>
+                    <div className="hint">{contactNameById.get(ticket.contact_id) ?? ""}</div>
+                  </td>
+                  <td>
+                    <select
+                      className={`inline-select status-${ticket.status}`}
+                      value={ticket.status}
+                      onChange={(e) =>
+                        handleInlineChange(ticket, "status", e.target.value, { status: e.target.value as TicketStatus })
+                      }
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className={`inline-select priority-${ticket.priority}`}
+                      value={ticket.priority}
+                      onChange={(e) =>
+                        handleInlineChange(ticket, "priority", e.target.value, {
+                          priority: e.target.value as TicketPriority,
+                        })
+                      }
+                    >
+                      {PRIORITIES.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className="inline-select"
+                      value={ticket.group_id ?? ""}
+                      onChange={(e) =>
+                        handleInlineChange(ticket, "group_id", e.target.value, { groupId: e.target.value || undefined })
+                      }
+                    >
+                      <option value="">—</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className="inline-select"
+                      value={ticket.agent_id ?? ""}
+                      onChange={(e) =>
+                        handleInlineChange(ticket, "agent_id", e.target.value, { agentId: e.target.value || undefined })
+                      }
+                    >
+                      <option value="">Unassigned</option>
+                      {agents.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="hint" title={new Date(ticket.created_at).toLocaleString()}>
                     {relativeTime(ticket.created_at)}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {tickets.length > 0 && (
-        <p className="hint">
-          Showing {tickets.length} of {total}
-        </p>
+      {total > 0 && (
+        <div className="ticket-pager">
+          <span className="hint">
+            Showing {rangeStart}–{rangeEnd} of {total}
+          </span>
+          <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
+            Prev
+          </button>
+          <button type="button" disabled={rangeEnd >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>
+            Next
+          </button>
+        </div>
       )}
     </div>
   );

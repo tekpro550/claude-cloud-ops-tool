@@ -222,4 +222,56 @@ export class DashboardService {
       return { items };
     });
   }
+
+  /**
+   * Team-wide "who did what, when" feed for the dashboard -- Freshdesk's
+   * "Recent activities" panel, per the UI review. Merges three sources into
+   * one chronological list the same way getTimeline() merges a single
+   * ticket's messages/activities/time-logs: ticket creation (attributed to
+   * the requesting contact, since tickets don't track who on the team
+   * created them -- Freshdesk's own feed does the same, e.g. "Support Team
+   * raised a new ticket"), property changes (attributed to actor_agent_id,
+   * added specifically to make this feed possible), and messages
+   * (attributed to whichever agent/contact authored them).
+   */
+  activity(tenantId: string, limit: number) {
+    return withTenantContext(this.dataSource, tenantId, (queryRunner) =>
+      queryRunner.query(
+        `
+        (
+          SELECT 'ticket_created' AS kind, t.id AS ticket_id, t.ticket_number,
+                 t.subject, t.created_at AS timestamp,
+                 NULL::text AS field, NULL::text AS old_value, NULL::text AS new_value,
+                 NULL::text AS message_type, c.name AS actor_name, 'contact' AS actor_kind
+          FROM tickets t
+          JOIN contacts c ON c.id = t.contact_id
+        )
+        UNION ALL
+        (
+          SELECT 'activity' AS kind, t.id, t.ticket_number, t.subject, a.created_at,
+                 a.field, a.old_value, a.new_value,
+                 NULL, agu.name, 'agent'
+          FROM ticket_activities a
+          JOIN tickets t ON t.id = a.ticket_id
+          LEFT JOIN agents ag ON ag.id = a.actor_agent_id
+          LEFT JOIN users agu ON agu.id = ag.user_id
+        )
+        UNION ALL
+        (
+          SELECT 'message' AS kind, t.id, t.ticket_number, t.subject, m.created_at,
+                 NULL, NULL, NULL,
+                 m.type::text, COALESCE(ag2u.name, ct2.name, 'System'), m.author_type::text
+          FROM ticket_messages m
+          JOIN tickets t ON t.id = m.ticket_id
+          LEFT JOIN agents ag2 ON ag2.id = m.author_id AND m.author_type = 'agent'
+          LEFT JOIN users ag2u ON ag2u.id = ag2.user_id
+          LEFT JOIN contacts ct2 ON ct2.id = m.author_id AND m.author_type = 'contact'
+        )
+        ORDER BY timestamp DESC
+        LIMIT $1
+        `,
+        [limit],
+      ),
+    );
+  }
 }

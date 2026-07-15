@@ -28,4 +28,13 @@ export class DashboardController {
   needsAttention(@CurrentTenantId() tenantId: string) {
     return this.dashboard.needsAttention(tenantId);
   }
+
+  @Get('activity')
+  activity(
+    @CurrentTenantId() tenantId: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsed = Math.min(Math.max(Number(limit) || 30, 1), 100);
+    return this.dashboard.activity(tenantId, parsed);
+  }
 }

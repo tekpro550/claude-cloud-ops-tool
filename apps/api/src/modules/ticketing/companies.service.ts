@@ -10,7 +10,17 @@ export class CompaniesService {
 
   list(tenantId: string) {
     return withTenantContext(this.dataSource, tenantId, (queryRunner) =>
-      queryRunner.query(`SELECT * FROM companies ORDER BY name`),
+      queryRunner.query(`
+        SELECT c.*, COALESCE(ct.contact_count, 0)::int AS contact_count
+        FROM companies c
+        LEFT JOIN (
+          SELECT company_id, count(*)::int AS contact_count
+          FROM contacts
+          WHERE company_id IS NOT NULL
+          GROUP BY company_id
+        ) ct ON ct.company_id = c.id
+        ORDER BY c.name
+      `),
     );
   }
 

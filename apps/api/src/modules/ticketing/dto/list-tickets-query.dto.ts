@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 const TICKET_STATUSES = [
   'new',
@@ -38,6 +46,22 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsUUID()
   agentId?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  createdFrom?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  createdTo?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  resolvedFrom?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  resolvedTo?: string;
 
   @IsOptional()
   @Type(() => Number)

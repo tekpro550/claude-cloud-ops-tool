@@ -58,12 +58,21 @@ export class TicketsController {
   }
 
   @Patch(':id')
-  update(
+  async update(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTicketDto,
   ) {
-    return this.ticketsService.update(tenantId, id, dto);
+    // Same "resolve the real agent from the verified login, not the request
+    // body" pattern as addMessage() above -- attributes property changes in
+    // the activity feed to whoever actually made them.
+    let actorAgentId: string | undefined;
+    if (userId) {
+      const agent = await this.agentsService.findByUserId(tenantId, userId);
+      if (agent) actorAgentId = agent.id;
+    }
+    return this.ticketsService.update(tenantId, id, dto, actorAgentId);
   }
 
   @Post(':id/messages')

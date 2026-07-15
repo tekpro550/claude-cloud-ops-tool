@@ -8,6 +8,7 @@ import type {
   CannedResponseFolder,
   Company,
   Contact,
+  DashboardActivityItem,
   DashboardSlaSummary,
   DashboardSummary,
   DashboardTrendPoint,
@@ -88,6 +89,12 @@ export interface ListTicketsFilters {
   platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  resolvedFrom?: string;
+  resolvedTo?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export function listTickets(tenantId: string, filters: ListTicketsFilters = {}): Promise<TicketList> {
@@ -97,6 +104,12 @@ export function listTickets(tenantId: string, filters: ListTicketsFilters = {}):
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.agentId) params.set("agentId", filters.agentId);
+  if (filters.createdFrom) params.set("createdFrom", filters.createdFrom);
+  if (filters.createdTo) params.set("createdTo", filters.createdTo);
+  if (filters.resolvedFrom) params.set("resolvedFrom", filters.resolvedFrom);
+  if (filters.resolvedTo) params.set("resolvedTo", filters.resolvedTo);
+  if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+  if (filters.offset !== undefined) params.set("offset", String(filters.offset));
   const query = params.toString();
   return request(tenantId, "GET", `/tickets${query ? `?${query}` : ""}`);
 }
@@ -107,8 +120,13 @@ export function getTicket(tenantId: string, id: string): Promise<Ticket> {
 
 export interface CreateTicketInput {
   subject: string;
-  contact: { name: string; email: string };
-  source: "web_form";
+  contactId?: string;
+  contact?: { name: string; email: string };
+  source: "web_form" | "agent_outbound";
+  ticketTypeId?: string;
+  groupId?: string;
+  agentId?: string;
+  priority?: TicketPriority;
   platform?: TicketPlatform;
 }
 
@@ -288,6 +306,10 @@ export function getDashboardSlaSummary(tenantId: string): Promise<DashboardSlaSu
 
 export function getNeedsAttention(tenantId: string): Promise<{ items: NeedsAttentionItem[] }> {
   return request(tenantId, "GET", "/dashboard/needs-attention");
+}
+
+export function getDashboardActivity(tenantId: string, limit = 30): Promise<DashboardActivityItem[]> {
+  return request(tenantId, "GET", `/dashboard/activity?limit=${limit}`);
 }
 
 export function getSetupStatus(tenantId: string): Promise<SetupStatus> {
