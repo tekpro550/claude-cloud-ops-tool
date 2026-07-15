@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, createCompany, deleteCompany, listCompanies, updateCompany } from "../lib/apiClient";
+import { avatarColor, initials } from "../lib/avatar";
 import { useTenant } from "../lib/tenant";
 import type { Company } from "../types/ticket";
 
@@ -97,11 +98,16 @@ export default function CompaniesPage() {
             ) : (
               <li key={company.id}>
                 <span>
-                  <strong>{company.name}</strong>
-                  {company.domain && <span className="hint"> — {company.domain}</span>}
-                  <span className="hint">
-                    {" "}
-                    · {company.contact_count} contact{company.contact_count === 1 ? "" : "s"}
+                  <span className="avatar avatar-sm" style={{ background: avatarColor(company.name) }}>
+                    {initials(company.name)}
+                  </span>
+                  <span>
+                    <strong>{company.name}</strong>
+                    {company.domain && <span className="hint"> — {company.domain}</span>}
+                    <span className="hint">
+                      {" "}
+                      · {company.contact_count} contact{company.contact_count === 1 ? "" : "s"}
+                    </span>
                   </span>
                 </span>
                 <span>
@@ -120,7 +126,7 @@ export default function CompaniesPage() {
       <form className="admin-form" onSubmit={handleCreate}>
         <input placeholder="Company name" value={name} onChange={(e) => setName(e.target.value)} required />
         <input placeholder="Domain (optional)" value={domain} onChange={(e) => setDomain(e.target.value)} />
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           Add company
         </button>
       </form>

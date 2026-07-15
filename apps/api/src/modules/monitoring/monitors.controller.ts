@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
@@ -31,6 +32,16 @@ export class MonitorsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.monitors.get(tenantId, id);
+  }
+
+  @Get(':id/checks')
+  checks(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsed = Math.min(Math.max(Number(limit) || 50, 1), 200);
+    return this.monitors.checks(tenantId, id, parsed);
   }
 
   @Post()

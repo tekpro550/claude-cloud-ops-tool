@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, createContact, listCompanies, listContacts, updateContact } from "../lib/apiClient";
+import { avatarColor, initials } from "../lib/avatar";
 import { useTenant } from "../lib/tenant";
 import type { Company, Contact } from "../types/ticket";
 
@@ -136,11 +137,16 @@ export default function ContactsPage() {
             ) : (
               <li key={contact.id}>
                 <span>
-                  <strong>{contact.name}</strong>{" "}
-                  <span className="hint">
-                    {[contact.email, contact.phone, companyName(contact.company_id)].filter(Boolean).join(" · ")}
+                  <span className="avatar avatar-sm" style={{ background: avatarColor(contact.name) }}>
+                    {initials(contact.name)}
                   </span>
-                  {!contact.email_valid && <span className="badge sla-state-breached"> invalid email</span>}
+                  <span>
+                    <strong>{contact.name}</strong>{" "}
+                    <span className="hint">
+                      {[contact.email, contact.phone, companyName(contact.company_id)].filter(Boolean).join(" · ")}
+                    </span>
+                    {!contact.email_valid && <span className="badge sla-state-breached"> invalid email</span>}
+                  </span>
                 </span>
                 <button type="button" className="link-button" onClick={() => startEdit(contact)}>
                   Edit
@@ -162,7 +168,7 @@ export default function ContactsPage() {
             </option>
           ))}
         </select>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           Add contact
         </button>
       </form>

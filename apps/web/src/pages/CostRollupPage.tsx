@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import BudgetPaceGauge from "../components/BudgetPaceGauge";
 import CostSparkline from "../components/CostSparkline";
 import { getAccountsSummary } from "../lib/costApiClient";
 import { useTenant } from "../lib/tenant";
@@ -83,6 +84,12 @@ export default function CostRollupPage() {
             </div>
 
             {account.insightText && <p className="hint">{account.insightText}</p>}
+
+            <BudgetPaceGauge
+              mtdSpend={account.mtdSpend}
+              previousMonthTotal={account.previousMonthTotal}
+              forecastPctChange={account.forecastPctChange}
+            />
 
             <CostSparkline data={account.trend} />
 

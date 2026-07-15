@@ -155,6 +155,27 @@ async function main() {
       'monitor_checks.raw_output captures the HTTP status code',
     );
 
+    // --- checks() history endpoint (the uptime history bar's data source) ---
+    const history = await monitors.checks(tenant.id, httpUp.id, 10);
+    assert(
+      history.length === 1 && history[0].status === 'up',
+      `checks() returns the one recorded check for this monitor (got ${history.length})`,
+    );
+    let historyRejected = false;
+    try {
+      await monitors.checks(
+        tenant.id,
+        '00000000-0000-0000-0000-000000000000',
+        10,
+      );
+    } catch {
+      historyRejected = true;
+    }
+    assert(
+      historyRejected,
+      "checks() 404s for a monitor id that doesn't exist rather than returning an empty array",
+    );
+
     // --- Scheduler: a monitor just checked within its interval isn't due again ---
     const secondSweepCount = await scheduler.runSweepOnce();
     assert(

@@ -9,6 +9,7 @@ import type {
   FleetSummaryItem,
   Monitor,
   MonitoringDashboardSummary,
+  MonitorStatus,
   NotificationTemplate,
   OnCallSchedule,
   Resource,
@@ -71,6 +72,16 @@ export function updateMonitor(
 
 export function deleteMonitor(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/monitors/${id}`);
+}
+
+export interface MonitorCheck {
+  status: MonitorStatus;
+  checked_at: string;
+  response_time_ms: number | null;
+}
+
+export function getMonitorChecks(tenantId: string, monitorId: string, limit = 50): Promise<MonitorCheck[]> {
+  return request(tenantId, "GET", `/monitors/${monitorId}/checks?limit=${limit}`);
 }
 
 // ---- Alert rules ----

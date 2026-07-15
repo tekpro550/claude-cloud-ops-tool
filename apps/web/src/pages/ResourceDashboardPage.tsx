@@ -7,10 +7,13 @@ import {
   createMonitor,
   deleteMonitor,
   endDowntimeEvent,
+  getMonitorChecks,
   getResourceDashboard,
+  type MonitorCheck,
 } from "../lib/monitoringApiClient";
 import { useTenant } from "../lib/tenant";
 import type { MonitorType, ResourceDashboard } from "../types/monitoring";
+import UptimeHistoryBar from "../components/UptimeHistoryBar";
 
 const MONITOR_TYPES: MonitorType[] = ["http", "ping", "port", "dns", "ssl", "server_agent", "cloud_metric"];
 
@@ -20,6 +23,7 @@ export default function ResourceDashboardPage() {
   const { tenantId } = useTenant();
   const [data, setData] = useState<ResourceDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checksByMonitor, setChecksByMonitor] = useState<Record<string, MonitorCheck[]>>({});
 
   const [monitorName, setMonitorName] = useState("");
   const [monitorType, setMonitorType] = useState<MonitorType>("http");
@@ -30,7 +34,16 @@ export default function ResourceDashboardPage() {
 
   const load = () => {
     if (!tenantId || !id) return;
-    getResourceDashboard(tenantId, id).then(setData);
+    getResourceDashboard(tenantId, id).then((res) => {
+      setData(res);
+      Promise.all(res.monitors.map((m) => getMonitorChecks(tenantId, m.id, 30).then((checks) => [m.id, checks] as const)))
+        .then((pairs) => setChecksByMonitor(Object.fromEntries(pairs)))
+        .catch(() => {
+          // The history bar is a secondary visual on top of the last_status
+          // badge, which already loaded -- a failure here shouldn't block
+          // the rest of the page.
+        });
+    });
   };
 
   useEffect(load, [tenantId, id]);
@@ -166,6 +179,7 @@ export default function ResourceDashboardPage() {
                     <span className="monitor-reason">{String(m.last_raw_output.error)}</span>
                   ) : null}
                 </span>
+                <UptimeHistoryBar checks={checksByMonitor[m.id] ?? []} />
                 <span className={`badge status-${m.last_status ?? "none"}`}>{m.last_status ?? "pending"}</span>
                 <button type="button" className="link-button" onClick={() => handleDeleteMonitor(m.id)}>
                   Delete

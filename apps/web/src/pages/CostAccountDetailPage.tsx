@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useParams } from "react-router-dom";
+import BudgetPaceGauge from "../components/BudgetPaceGauge";
 import CostSparkline from "../components/CostSparkline";
 import { getAccountLineItems, getAccountSummary } from "../lib/costApiClient";
 import type { LineItemFilters } from "../lib/costApiClient";
@@ -86,6 +87,12 @@ export default function CostAccountDetailPage() {
       </div>
 
       {summary.insightText && <p className="hint">{summary.insightText}</p>}
+
+      <BudgetPaceGauge
+        mtdSpend={summary.mtdSpend}
+        previousMonthTotal={summary.previousMonthTotal}
+        forecastPctChange={summary.forecastPctChange}
+      />
 
       <h3>Trend</h3>
       <CostSparkline data={summary.trend} />

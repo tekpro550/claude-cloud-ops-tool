@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BudgetPaceGauge from "../components/BudgetPaceGauge";
 import CostSparkline from "../components/CostSparkline";
 import { getCostDashboardSummary, getCostDashboardTrend } from "../lib/costApiClient";
 import { useTenant } from "../lib/tenant";
@@ -86,6 +87,12 @@ export default function CostDashboardPage() {
           <div className="stat-tile-label">Open recommendations</div>
         </div>
       </div>
+
+      <BudgetPaceGauge
+        mtdSpend={summary.mtdSpend}
+        previousMonthTotal={summary.previousMonthTotal}
+        forecastPctChange={summary.forecastPctChange}
+      />
 
       <h3>Spend trend (all accounts)</h3>
       <CostSparkline data={trend} />

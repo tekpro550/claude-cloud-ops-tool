@@ -109,6 +109,32 @@ export class MonitorsService {
     });
   }
 
+  /**
+   * Recent check history for one monitor, oldest first -- the data source
+   * for a Site24x7-style uptime history bar (a strip of colored blocks, one
+   * per check). Distinct from list()'s single "last check" join, which only
+   * needs the latest status for a row, not the trailing history.
+   */
+  checks(tenantId: string, monitorId: string, limit: number) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [monitor] = await queryRunner.query(
+        `SELECT id FROM monitors WHERE id = $1`,
+        [monitorId],
+      );
+      if (!monitor) {
+        throw new NotFoundException(`Monitor ${monitorId} not found`);
+      }
+      const rows = await queryRunner.query(
+        `SELECT status, checked_at, response_time_ms FROM monitor_checks
+         WHERE monitor_id = $1
+         ORDER BY checked_at DESC
+         LIMIT $2`,
+        [monitorId, limit],
+      );
+      return rows.reverse();
+    });
+  }
+
   async remove(tenantId: string, id: string): Promise<void> {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [rows] = await queryRunner.query(

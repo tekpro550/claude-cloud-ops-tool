@@ -67,12 +67,12 @@ export default function RecommendationsPage() {
   return (
     <div>
       <h2>Rightsizing recommendations</h2>
-      <div className="toolbar">
+      <div className="view-tabs">
         {STATUSES.map((s) => (
           <button
             key={s}
             type="button"
-            className={s === status ? "" : "link-button"}
+            className={`view-tab${s === status ? " view-tab-active" : ""}`}
             onClick={() => setStatus(s)}
           >
             {s}
@@ -93,7 +93,7 @@ export default function RecommendationsPage() {
                 <>
                   <button
                     type="button"
-                    className="link-button"
+                    className="btn-sm btn-primary"
                     disabled={busyId === r.id}
                     onClick={() => handleCreateTicket(r.id)}
                   >
@@ -101,19 +101,19 @@ export default function RecommendationsPage() {
                   </button>
                   <button
                     type="button"
-                    className="link-button"
-                    disabled={busyId === r.id}
-                    onClick={() => handleDismiss(r.id)}
-                  >
-                    Dismiss
-                  </button>
-                  <button
-                    type="button"
-                    className="link-button"
+                    className="btn-sm"
                     disabled={busyId === r.id}
                     onClick={() => handleResolve(r.id)}
                   >
                     Mark resolved
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-sm btn-ghost"
+                    disabled={busyId === r.id}
+                    onClick={() => handleDismiss(r.id)}
+                  >
+                    Dismiss
                   </button>
                 </>
               )}

@@ -31,12 +31,12 @@ export default function SavingsLogPage() {
   return (
     <div>
       <h2>Savings log</h2>
-      <div className="toolbar">
+      <div className="view-tabs">
         {STATUSES.map((s) => (
           <button
             key={s}
             type="button"
-            className={s === status ? "" : "link-button"}
+            className={`view-tab${s === status ? " view-tab-active" : ""}`}
             onClick={() => setStatus(s)}
           >
             {s}
@@ -45,32 +45,34 @@ export default function SavingsLogPage() {
       </div>
       {entries.length === 0 && <p className="hint">No savings logged yet.</p>}
       {entries.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Logged</th>
-              <th>Expected/mo</th>
-              <th>Actual/mo</th>
-              <th>Status</th>
-              <th>Ticket</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td>{new Date(entry.logged_at).toLocaleDateString()}</td>
-                <td>{formatMoney(entry.expected_monthly_saving)}</td>
-                <td>{formatMoney(entry.actual_monthly_saving)}</td>
-                <td>
-                  <span className="badge">{entry.status}</span>
-                </td>
-                <td>
-                  {entry.ticket_id ? <Link to={`/tickets/${entry.ticket_id}`}>View ticket</Link> : "—"}
-                </td>
+        <div className="line-items-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Logged</th>
+                <th>Expected/mo</th>
+                <th>Actual/mo</th>
+                <th>Status</th>
+                <th>Ticket</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr key={entry.id}>
+                  <td>{new Date(entry.logged_at).toLocaleDateString()}</td>
+                  <td>{formatMoney(entry.expected_monthly_saving)}</td>
+                  <td>{formatMoney(entry.actual_monthly_saving)}</td>
+                  <td>
+                    <span className="badge">{entry.status}</span>
+                  </td>
+                  <td>
+                    {entry.ticket_id ? <Link to={`/tickets/${entry.ticket_id}`}>View ticket</Link> : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
