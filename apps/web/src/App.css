@@ -899,3 +899,55 @@ td {
   gap: 0.6rem;
   justify-content: space-between;
 }
+
+.cost-account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.cost-account-card {
+  padding: 0.9rem 1.1rem;
+  background: #1c1c1c;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cost-account-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cost-account-stats {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.cost-account-breakdowns {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.cost-breakdown-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+}
+
+.cost-sparkline-bar {
+  fill: #4a9eff;
+}
+
+.cost-pct-critical {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.cost-pct-warning {
+  color: #eda100;
+}

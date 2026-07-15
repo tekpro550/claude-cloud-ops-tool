@@ -55,7 +55,8 @@
     "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts",
     "escalation:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-escalation.ts",
     "cost-sync:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-sync.ts",
-    "cost-pace:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-pace-alerting.ts"
+    "cost-pace:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-pace-alerting.ts",
+    "cost-accounts:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-accounts.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.1086.0",

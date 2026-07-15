@@ -11,6 +11,8 @@ import AlertsPage from "./pages/AlertsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
+import CostAccountDetailPage from "./pages/CostAccountDetailPage";
+import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
 import MonitoringFleetPage from "./pages/MonitoringFleetPage";
 import NewTicketPage from "./pages/NewTicketPage";
@@ -119,6 +121,8 @@ const MONITORING_NAV_ITEMS: NavItem[] = [
   { label: "Alerts", to: "/alerts", icon: "🔔" },
 ];
 
+const COST_NAV_ITEMS: NavItem[] = [{ label: "Cost", to: "/cost", icon: "💰" }];
+
 function NavPanelButton({ item, extraClassName, onClick }: { item: NavItem; extraClassName?: string; onClick: () => void }) {
   return (
     <NavLink
@@ -156,6 +160,12 @@ function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div className="nav-panel-group">
           <span className="nav-group-label">Monitoring</span>
           {MONITORING_NAV_ITEMS.map((item) => (
+            <NavPanelButton key={item.to} item={item} onClick={onClose} />
+          ))}
+        </div>
+        <div className="nav-panel-group">
+          <span className="nav-group-label">Cost</span>
+          {COST_NAV_ITEMS.map((item) => (
             <NavPanelButton key={item.to} item={item} onClick={onClose} />
           ))}
         </div>
@@ -211,6 +221,8 @@ function App() {
           <Route path="/monitoring" element={<MonitoringFleetPage />} />
           <Route path="/monitoring/resources/:id" element={<ResourceDashboardPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/cost" element={<CostRollupPage />} />
+          <Route path="/cost/accounts/:id" element={<CostAccountDetailPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/compose" element={<ComposeOutboundPage />} />

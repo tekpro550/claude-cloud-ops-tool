@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { PlatformModule } from '../platform/platform.module';
+import { CostAccountsController } from './cost-accounts.controller';
+import { CostAccountsService } from './cost-accounts.service';
 import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
 import { CostBudgetsService } from './cost-budgets.service';
@@ -18,7 +20,12 @@ import { CostPaceCheckService } from './cost-pace-check.service';
  */
 @Module({
   imports: [PlatformModule, MonitoringModule, NotificationsModule],
-  controllers: [CostBudgetsController],
-  providers: [CostBudgetsService, CostBillingSyncService, CostPaceCheckService],
+  controllers: [CostBudgetsController, CostAccountsController],
+  providers: [
+    CostBudgetsService,
+    CostBillingSyncService,
+    CostPaceCheckService,
+    CostAccountsService,
+  ],
 })
 export class CostModule {}
