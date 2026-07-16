@@ -178,3 +178,28 @@ export function listCostAnomalies(tenantId: string): Promise<CostAnomaly[]> {
 export function dismissCostAnomaly(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "PATCH", `/cost/anomalies/${id}/dismiss`);
 }
+
+// ---- Tag-based cost allocation ----
+
+export interface AllocationRow {
+  tagValue: string;
+  amount: number;
+}
+
+export interface CostAllocation {
+  tagKey: string;
+  total: number;
+  rows: AllocationRow[];
+}
+
+export function listCostTagKeys(tenantId: string): Promise<string[]> {
+  return request(tenantId, "GET", "/cost/allocation/tag-keys");
+}
+
+export function getCostAllocation(
+  tenantId: string,
+  tagKey: string,
+): Promise<CostAllocation> {
+  const qs = new URLSearchParams({ tagKey }).toString();
+  return request(tenantId, "GET", `/cost/allocation?${qs}`);
+}

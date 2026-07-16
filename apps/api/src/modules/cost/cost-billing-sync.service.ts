@@ -14,6 +14,7 @@ import {
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
 import { credentialsEncryptionKey } from '../monitoring/credentials-crypto';
+import { normalizeAllocationTags } from './cost-allocation';
 import { CostAnomalyCheckService } from './cost-anomaly-check.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
 
@@ -147,11 +148,12 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
 
     await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       for (const item of lineItems) {
+        const tags = normalizeAllocationTags(item.tags);
         await queryRunner.query(
-          `INSERT INTO cost_line_items (tenant_id, cloud_credential_id, service, region, usage_date, amount, currency, raw, synced_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+          `INSERT INTO cost_line_items (tenant_id, cloud_credential_id, service, region, usage_date, amount, currency, tags, raw, synced_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
            ON CONFLICT (cloud_credential_id, service, COALESCE(region, ''), usage_date)
-           DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency, raw = EXCLUDED.raw, synced_at = now()`,
+           DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency, tags = EXCLUDED.tags, raw = EXCLUDED.raw, synced_at = now()`,
           [
             tenantId,
             credential.id,
@@ -160,6 +162,7 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
             item.usageDate,
             item.amount,
             item.currency,
+            JSON.stringify(tags),
             JSON.stringify(item.raw),
           ],
         );

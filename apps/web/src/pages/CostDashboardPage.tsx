@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import BudgetPaceGauge from "../components/BudgetPaceGauge";
+import CostAllocation from "../components/CostAllocation";
 import CostSparkline from "../components/CostSparkline";
 import {
   dismissCostAnomaly,
@@ -129,6 +130,8 @@ export default function CostDashboardPage() {
           </ul>
         </>
       )}
+
+      <CostAllocation tenantId={tenantId} />
 
       <h3>Spend trend (all accounts)</h3>
       <CostSparkline data={trend} />

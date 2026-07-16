@@ -25,6 +25,12 @@ export interface CloudCostLineItem {
   usageDate: string; // YYYY-MM-DD
   amount: number;
   currency: string;
+  /**
+   * Cost-allocation tags for this line item (e.g. { team: 'platform',
+   * environment: 'prod' }). Optional -- providers that aren't configured with
+   * activated cost-allocation tags simply omit it, and it stores as {}.
+   */
+  tags?: Record<string, string>;
   raw: Record<string, unknown>;
 }
 
