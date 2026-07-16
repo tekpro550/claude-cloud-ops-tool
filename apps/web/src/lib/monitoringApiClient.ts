@@ -238,3 +238,26 @@ export function getMonitoringDashboardSummary(tenantId: string): Promise<Monitor
 export function getMonitoringDashboardTrends(tenantId: string, days = 14): Promise<DashboardTrendPoint[]> {
   return request(tenantId, "GET", `/monitoring/dashboard/trends?days=${days}`);
 }
+
+// ---- Disk-full forecasts ----
+
+export interface DiskForecast {
+  id: string;
+  monitor_id: string;
+  resource_id: string | null;
+  resource_name: string | null;
+  current_pct: string;
+  rate_per_day: string;
+  days_to_full: string;
+  reason_text: string;
+  status: string;
+  updated_at: string;
+}
+
+export function listDiskForecasts(tenantId: string): Promise<DiskForecast[]> {
+  return request(tenantId, "GET", "/monitoring/disk-forecasts");
+}
+
+export function dismissDiskForecast(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "PATCH", `/monitoring/disk-forecasts/${id}/dismiss`);
+}

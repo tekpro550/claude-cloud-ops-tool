@@ -18,6 +18,9 @@ import { CLOUD_PROVIDER_CLIENT_FACTORY } from './cloud/cloud-provider-client';
 import { CloudCredentialsController } from './cloud-credentials.controller';
 import { CloudCredentialsService } from './cloud-credentials.service';
 import { CloudResourcePollerService } from './cloud-resource-poller.service';
+import { DiskForecastSweepService } from './disk-forecast-sweep.service';
+import { DiskForecastsController } from './disk-forecasts.controller';
+import { DiskForecastsService } from './disk-forecasts.service';
 import { DowntimeEventsController } from './downtime-events.controller';
 import { DowntimeEventsService } from './downtime-events.service';
 import { EscalationPoliciesController } from './escalation-policies.controller';
@@ -61,6 +64,7 @@ import { ResourcesService } from './resources.service';
     ResourcesController,
     FleetSummaryController,
     MonitoringDashboardController,
+    DiskForecastsController,
   ],
   providers: [
     ResourcesService,
@@ -80,6 +84,8 @@ import { ResourcesService } from './resources.service';
     OnCallSchedulesService,
     NotificationTemplatesService,
     DowntimeEventsService,
+    DiskForecastsService,
+    DiskForecastSweepService,
     {
       // The real AWS/Azure clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,

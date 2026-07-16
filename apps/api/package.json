@@ -64,6 +64,7 @@
     "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts",
     "agent:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-agent.ts",
     "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts",
+    "disk-forecast:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-disk-forecast.ts",
     "escalation:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-escalation.ts",
     "monitoring-dashboard:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitoring-dashboard.ts",
     "cost-sync:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-sync.ts",
