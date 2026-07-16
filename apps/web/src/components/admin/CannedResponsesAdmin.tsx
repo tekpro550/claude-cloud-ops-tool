@@ -150,6 +150,9 @@ export default function CannedResponsesAdmin({
       <form className="admin-form" onSubmit={handleCreate}>
         <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea placeholder="Response body" value={body} onChange={(e) => setBody(e.target.value)} required rows={3} />
+        <p className="hint">
+          Placeholders filled in on insert: {"{{ticket.number}}"}, {"{{ticket.subject}}"}, {"{{contact.name}}"}, {"{{contact.email}}"}, {"{{agent.name}}"}
+        </p>
         <select value={folderId} onChange={(e) => setFolderId(e.target.value)}>
           <option value="">No folder</option>
           {folders.map((f) => (

@@ -356,155 +356,213 @@ export class TicketsService {
     dto: UpdateTicketDto,
     actorAgentId?: string,
   ) {
-    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [existing] = await queryRunner.query(
-        `SELECT * FROM tickets WHERE id = $1`,
-        [id],
-      );
-      if (!existing) {
-        throw new NotFoundException(`Ticket ${id} not found`);
-      }
-
-      if (dto.groupId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'groups',
-          dto.groupId,
-          'group',
+    const { result, assignedAgentId } = await withTenantContext(
+      this.dataSource,
+      tenantId,
+      async (queryRunner) => {
+        const [existing] = await queryRunner.query(
+          `SELECT * FROM tickets WHERE id = $1`,
+          [id],
         );
-      if (dto.agentId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'agents',
-          dto.agentId,
-          'agent',
-        );
-      if (dto.ticketTypeId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'ticket_types',
-          dto.ticketTypeId,
-          'ticket type',
-        );
-
-      const sets: string[] = [];
-      const params: unknown[] = [];
-      const assign = (column: string, value: unknown) => {
-        params.push(value);
-        sets.push(`${column} = $${params.length}`);
-      };
-
-      // Tracked separately from `sets` -- one row per changed field, written
-      // to ticket_activities after the UPDATE succeeds, so the ticket detail
-      // UI can show a timeline of property changes (who/what/when), not just
-      // the message thread.
-      const activityChanges: {
-        field: string;
-        oldValue: unknown;
-        newValue: unknown;
-      }[] = [];
-      const trackChange = (
-        field: string,
-        oldValue: unknown,
-        newValue: unknown,
-      ) => {
-        if (oldValue !== newValue) {
-          activityChanges.push({ field, oldValue, newValue });
+        if (!existing) {
+          throw new NotFoundException(`Ticket ${id} not found`);
         }
-      };
-
-      if (dto.status !== undefined) {
-        trackChange('status', existing.status, dto.status);
-        assign('status', dto.status);
-        const closing = dto.status === 'resolved' || dto.status === 'closed';
-        assign('resolved_at', closing ? new Date() : null);
-      }
-      if (dto.priority !== undefined) {
-        trackChange('priority', existing.priority, dto.priority);
-        assign('priority', dto.priority);
-      }
-      if (dto.platform !== undefined) {
-        trackChange('platform', existing.platform, dto.platform);
-        assign('platform', dto.platform);
-      }
-      if (dto.groupId !== undefined) {
-        trackChange('group_id', existing.group_id, dto.groupId);
-        assign('group_id', dto.groupId);
-      }
-      if (dto.agentId !== undefined) {
-        trackChange('agent_id', existing.agent_id, dto.agentId);
-        assign('agent_id', dto.agentId);
-      }
-      if (dto.ticketTypeId !== undefined) {
-        trackChange(
-          'ticket_type_id',
-          existing.ticket_type_id,
-          dto.ticketTypeId,
-        );
-        assign('ticket_type_id', dto.ticketTypeId);
-
-        // Changing ticket type can change which SLA policy applies (section
-        // 5: "recalculates ... whenever a ticket's SLA policy ... changes").
-        // Due dates stay anchored to the ticket's original created_at, not
-        // the moment of this update.
-        const [ticketType] = await queryRunner.query(
-          `SELECT default_sla_policy_id FROM ticket_types WHERE id = $1`,
-          [dto.ticketTypeId],
-        );
-        const newSlaPolicyId: string | null =
-          ticketType?.default_sla_policy_id ?? null;
-
-        if (newSlaPolicyId !== existing.sla_policy_id) {
-          const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
-          const businessHours = slaPolicy?.business_hours_only
-            ? await fetchBusinessHours(queryRunner, tenantId)
+        // Capture a genuine (re)assignment to a real agent so the assigned
+        // agent can be emailed after the transaction commits.
+        const assignedAgentId =
+          dto.agentId !== undefined &&
+          dto.agentId &&
+          dto.agentId !== existing.agent_id
+            ? dto.agentId
             : null;
-          const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
-            existing.created_at,
-            slaPolicy,
-            businessHours,
+
+        if (dto.groupId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'groups',
+            dto.groupId,
+            'group',
           );
-          assign('sla_policy_id', newSlaPolicyId);
-          assign('first_response_due_at', firstResponseDueAt);
-          assign('resolution_due_at', resolutionDueAt);
+        if (dto.agentId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'agents',
+            dto.agentId,
+            'agent',
+          );
+        if (dto.ticketTypeId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'ticket_types',
+            dto.ticketTypeId,
+            'ticket type',
+          );
+
+        const sets: string[] = [];
+        const params: unknown[] = [];
+        const assign = (column: string, value: unknown) => {
+          params.push(value);
+          sets.push(`${column} = $${params.length}`);
+        };
+
+        // Tracked separately from `sets` -- one row per changed field, written
+        // to ticket_activities after the UPDATE succeeds, so the ticket detail
+        // UI can show a timeline of property changes (who/what/when), not just
+        // the message thread.
+        const activityChanges: {
+          field: string;
+          oldValue: unknown;
+          newValue: unknown;
+        }[] = [];
+        const trackChange = (
+          field: string,
+          oldValue: unknown,
+          newValue: unknown,
+        ) => {
+          if (oldValue !== newValue) {
+            activityChanges.push({ field, oldValue, newValue });
+          }
+        };
+
+        if (dto.status !== undefined) {
+          trackChange('status', existing.status, dto.status);
+          assign('status', dto.status);
+          const closing = dto.status === 'resolved' || dto.status === 'closed';
+          assign('resolved_at', closing ? new Date() : null);
         }
-      }
+        if (dto.priority !== undefined) {
+          trackChange('priority', existing.priority, dto.priority);
+          assign('priority', dto.priority);
+        }
+        if (dto.platform !== undefined) {
+          trackChange('platform', existing.platform, dto.platform);
+          assign('platform', dto.platform);
+        }
+        if (dto.groupId !== undefined) {
+          trackChange('group_id', existing.group_id, dto.groupId);
+          assign('group_id', dto.groupId);
+        }
+        if (dto.agentId !== undefined) {
+          trackChange('agent_id', existing.agent_id, dto.agentId);
+          assign('agent_id', dto.agentId);
+        }
+        if (dto.ticketTypeId !== undefined) {
+          trackChange(
+            'ticket_type_id',
+            existing.ticket_type_id,
+            dto.ticketTypeId,
+          );
+          assign('ticket_type_id', dto.ticketTypeId);
 
-      if (sets.length === 0) {
-        return existing;
-      }
+          // Changing ticket type can change which SLA policy applies (section
+          // 5: "recalculates ... whenever a ticket's SLA policy ... changes").
+          // Due dates stay anchored to the ticket's original created_at, not
+          // the moment of this update.
+          const [ticketType] = await queryRunner.query(
+            `SELECT default_sla_policy_id FROM ticket_types WHERE id = $1`,
+            [dto.ticketTypeId],
+          );
+          const newSlaPolicyId: string | null =
+            ticketType?.default_sla_policy_id ?? null;
 
-      sets.push('updated_at = now()');
-      params.push(id);
+          if (newSlaPolicyId !== existing.sla_policy_id) {
+            const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
+            const businessHours = slaPolicy?.business_hours_only
+              ? await fetchBusinessHours(queryRunner, tenantId)
+              : null;
+            const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
+              existing.created_at,
+              slaPolicy,
+              businessHours,
+            );
+            assign('sla_policy_id', newSlaPolicyId);
+            assign('first_response_due_at', firstResponseDueAt);
+            assign('resolution_due_at', resolutionDueAt);
+          }
+        }
 
-      // TypeORM's postgres driver returns UPDATE/DELETE results as
-      // [rows, rowCount] (unlike SELECT/INSERT, which just return rows) —
-      // destructure accordingly, not [ticket] = ... like the INSERT calls
-      // elsewhere in this file.
-      const [rows] = await queryRunner.query(
-        `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
-        params,
-      );
+        if (sets.length === 0) {
+          return { result: existing, assignedAgentId: null };
+        }
 
-      for (const change of activityChanges) {
-        await queryRunner.query(
-          `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value, actor_agent_id) VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            tenantId,
-            id,
-            change.field,
-            change.oldValue ?? null,
-            change.newValue ?? null,
-            actorAgentId ?? null,
-          ],
+        sets.push('updated_at = now()');
+        params.push(id);
+
+        // TypeORM's postgres driver returns UPDATE/DELETE results as
+        // [rows, rowCount] (unlike SELECT/INSERT, which just return rows) —
+        // destructure accordingly, not [ticket] = ... like the INSERT calls
+        // elsewhere in this file.
+        const [rows] = await queryRunner.query(
+          `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+          params,
         );
-      }
-      return this.automationRules.runRules(
-        tenantId,
-        'ticket_updated',
-        rows[0],
-        queryRunner,
+
+        for (const change of activityChanges) {
+          await queryRunner.query(
+            `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value, actor_agent_id) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              tenantId,
+              id,
+              change.field,
+              change.oldValue ?? null,
+              change.newValue ?? null,
+              actorAgentId ?? null,
+            ],
+          );
+        }
+        const result = await this.automationRules.runRules(
+          tenantId,
+          'ticket_updated',
+          rows[0],
+          queryRunner,
+        );
+        return { result, assignedAgentId };
+      },
+    );
+
+    // Notify the newly-assigned agent, after commit (fire-and-forget).
+    if (assignedAgentId) {
+      await this.notifyAgentAssignment(tenantId, assignedAgentId, result).catch(
+        (err) =>
+          this.logger.error(
+            `failed to enqueue assignment email for ticket ${id}: ${(err as Error).message}`,
+          ),
       );
+    }
+
+    return result;
+  }
+
+  /** Emails the agent a ticket was just assigned to. */
+  private async notifyAgentAssignment(
+    tenantId: string,
+    agentId: string,
+    ticket: Record<string, unknown>,
+  ): Promise<void> {
+    const email = await this.resolveAgentEmail(tenantId, agentId);
+    if (!email) return;
+    await this.notifications.enqueue({
+      tenantId,
+      channel: 'email',
+      recipient: email,
+      templateName: 'ticket.assigned',
+      payload: {
+        ticketNumber: ticket.ticket_number,
+        subject: ticket.subject,
+      },
+    });
+  }
+
+  private resolveAgentEmail(
+    tenantId: string,
+    agentId: string,
+  ): Promise<string | null> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [row] = await queryRunner.query(
+        `SELECT u.email FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+        [agentId],
+      );
+      return row?.email ?? null;
     });
   }
 
@@ -513,12 +571,12 @@ export class TicketsService {
     ticketId: string,
     dto: AddTicketMessageDto,
   ) {
-    const { message, outbound } = await withTenantContext(
+    const { message, outbound, agentNotify } = await withTenantContext(
       this.dataSource,
       tenantId,
       async (queryRunner) => {
         const [ticket] = await queryRunner.query(
-          `SELECT id, ticket_number, subject, contact_id, first_response_at FROM tickets WHERE id = $1`,
+          `SELECT id, ticket_number, subject, contact_id, agent_id, first_response_at FROM tickets WHERE id = $1`,
           [ticketId],
         );
         if (!ticket) {
@@ -615,7 +673,33 @@ export class TicketsService {
           }
         }
 
-        return { message, outbound };
+        // A contact reply on an assigned ticket notifies the assigned agent.
+        let agentNotify: {
+          agentId: string;
+          ticketNumber: number;
+          subject: string;
+          contactName: string;
+          body: string;
+        } | null = null;
+        if (
+          dto.type === 'reply' &&
+          dto.authorType === 'contact' &&
+          ticket.agent_id
+        ) {
+          const [c] = await queryRunner.query(
+            `SELECT name FROM contacts WHERE id = $1`,
+            [ticket.contact_id],
+          );
+          agentNotify = {
+            agentId: ticket.agent_id,
+            ticketNumber: ticket.ticket_number,
+            subject: ticket.subject,
+            contactName: c?.name ?? 'The customer',
+            body: htmlToPlainText(safeBody),
+          };
+        }
+
+        return { message, outbound, agentNotify };
       },
     );
 
@@ -643,6 +727,31 @@ export class TicketsService {
             `failed to enqueue outbound reply email for ticket ${ticketId}: ${(err as Error).message}`,
           ),
         );
+    }
+
+    // Notify the assigned agent that the customer replied.
+    if (agentNotify) {
+      const email = await this.resolveAgentEmail(tenantId, agentNotify.agentId);
+      if (email) {
+        await this.notifications
+          .enqueue({
+            tenantId,
+            channel: 'email',
+            recipient: email,
+            templateName: 'ticket.contact_reply',
+            payload: {
+              ticketNumber: agentNotify.ticketNumber,
+              subject: agentNotify.subject,
+              contactName: agentNotify.contactName,
+              body: agentNotify.body,
+            },
+          })
+          .catch((err) =>
+            this.logger.error(
+              `failed to enqueue contact-reply email for ticket ${ticketId}: ${(err as Error).message}`,
+            ),
+          );
+      }
     }
 
     return message;

@@ -213,7 +213,21 @@ export default function TicketDetailPage() {
 
   const handlePickCannedResponse = (id: string) => {
     const response = cannedResponses.find((r) => r.id === id);
-    if (response) setMessageBody(response.body);
+    if (!response) return;
+    // Freshdesk-style placeholder substitution on insert, using the live
+    // ticket/contact/agent context. Unknown placeholders are left as-is.
+    const agentName = ticket?.agent_id ? agents.find((a) => a.id === ticket.agent_id)?.name ?? "" : user?.name ?? "";
+    const values: Record<string, string> = {
+      "ticket.number": ticket ? formatTicketNumber(ticket) : "",
+      "ticket.subject": ticket?.subject ?? "",
+      "contact.name": contact?.name ?? "",
+      "contact.email": contact?.email ?? "",
+      "agent.name": agentName,
+    };
+    const filled = response.body.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key) =>
+      key in values ? values[key] : match,
+    );
+    setMessageBody(filled);
   };
 
   if (!tenantId) {

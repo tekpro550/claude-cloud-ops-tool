@@ -37,6 +37,16 @@ const templates: Record<string, TemplateRenderer> = {
         : undefined,
     };
   },
+  // Sent to an agent when a ticket is assigned to them.
+  'ticket.assigned': (payload) => ({
+    subject: `Ticket #${payload.ticketNumber} assigned to you: ${payload.subject}`,
+    body: `Ticket #${payload.ticketNumber} "${payload.subject}" has been assigned to you.`,
+  }),
+  // Sent to the assigned agent when the customer replies.
+  'ticket.contact_reply': (payload) => ({
+    subject: `New reply on ticket #${payload.ticketNumber}: ${payload.subject}`,
+    body: `${payload.contactName ?? 'The customer'} replied to ticket #${payload.ticketNumber} "${payload.subject}":\n\n${payload.body}`,
+  }),
   // EscalationSweepService (Module 2) does its own notification_templates
   // lookup and $VARIABLE substitution before enqueueing, so this renderer is
   // just a passthrough for the already-rendered subject/body -- the DB-backed
