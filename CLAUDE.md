@@ -261,51 +261,57 @@ long-lived device JWT from `POST /agent-tokens`. Metrics come from `/proc` on
 Linux (`metrics_linux.go`; `metrics_other.go` is the non-Linux stub). See
 `agent/README.md`. Build with `cd agent && go build -o cloud-ops-agent .`.
 
-## Current state, stubs & known seams
+## Current state: closed seams & what's still open
 
-Several parts of the codebase are deliberate stand-ins that the code itself
-flags. Know these before extending or relying on them — don't assume they work,
-and don't "fix" one without reading its comment, since some are intentional
-until a prerequisite exists.
+The first version of this file listed several deliberate stand-ins (unenforced
+RBAC, plaintext credentials, an open reply-email loop, ignored business hours,
+etc.). The **fix work on branch `claude/gallant-pasteur-9yuu2f`** (15 commits on
+top of `main`/`ad542b4`) closes almost all of them. The status below is
+**verified against that branch's code**, not just its commit messages.
 
-**Auth & authorization (the biggest gap; hardening is priority #1 for any real deployment):**
-- **`X-Tenant-Id` is effectively authentication.** `TenantHeaderGuard` accepts a
-  bare tenant UUID with no other secret and grants full agent-level read/write.
-  RLS still prevents *cross*-tenant access, but the header path is a stand-in for
-  mandatory JWT — see the guard's own comment. Treat the UUID as non-secret.
-- **RBAC is not enforced.** `users.role` is stored, put in the JWT, and attached
-  to the request as `userRole` by the guard — but **no code reads it**. There are
-  no role checks (`ForbiddenException`, `@Roles`, etc.); every authenticated agent
-  can do everything. Portal contacts are the one genuinely enforced authz boundary.
-- **Cloud credentials are stored as plaintext `jsonb`** (`cloud_credentials.config`).
-  The API never returns them (`SAFE_COLUMNS` / write-only), but they are not
-  encrypted at rest. Don't add code paths that echo `config` back.
-- No rate limiting/lockout on login, no 2FA/SSO, no password reset; the agent seed
-  ships a shared dev password. No audit logging of auth/admin/credential events.
+> ⚠️ **Merge caveat.** As of this writing that branch is **not yet merged into
+> `main`** (main is still `ad542b4`). If you are working directly on `main`, the
+> old behavior still applies. The "Resolved" items below describe the
+> post-merge state — confirm the fix branch is present before relying on them.
 
-**Ticketing:**
-- **The outbound email loop is not closed.** Email *intake* creates tickets, but
-  `TicketsService.addMessage` only inserts the message and tracks first-response —
-  it does **not** dispatch email to the contact. Agent replies are visible only in
-  the portal. The `NotificationsService` dispatcher exists but is currently wired
-  only to the SLA overdue sweep, not to ticket replies or agent notifications.
-- **Business hours are not honored.** `calculate-due-dates.ts` intentionally
-  ignores `sla_policies.business_hours_only` and applies flat 24/7 math, because
-  no business-hours/holiday/timezone schema exists yet. The boolean is stored and
-  shown in the UI but has no effect on the engine — this is a documented seam, not
-  a bug to silently "correct." Implementing it means adding the hours schema first.
-- No ticket tags, custom fields, merge/split, or canned-response placeholders.
+**Resolved by the fix branch:**
+- **Outbound reply email loop is closed.** `TicketsService.addMessage` now
+  dispatches the reply (sanitized HTML) to the contact and to ticket watchers
+  after commit, via `NotificationsService` — plus agent assignment/reply
+  notifications and canned-response placeholders.
+- **RBAC is enforced.** New `RolesGuard` + `@Roles(...)` decorator
+  (`modules/platform/http/`) gate admin-only routes (agents, ticket types,
+  custom fields, cloud credentials, agent tokens, cost settings, business-hours
+  settings, audit log). `userRole` from the JWT is now actually read.
+- **Cloud credentials are encrypted at rest.** Stored in `config_encrypted` via
+  pgcrypto `pgp_sym_encrypt`/`pgp_sym_decrypt` (`credentials-crypto.ts`,
+  `EncryptCloudCredentials` migration) — no longer plaintext jsonb, still never
+  returned by the API.
+- **Business hours are honored.** `calculate-due-dates.ts` applies a tenant
+  business-hours window when a policy is `business_hours_only` and hours are
+  configured (`AddTenantBusinessHours` schema), falling back to 24/7 otherwise.
+- **Alert notification channels beyond email.** Slack + webhook channels added
+  (`AddSlackWebhookNotificationChannels`); the dispatcher is no longer wired only
+  to the SLA sweep.
+- **Ticket tags + tag-based cost allocation.** `AddTicketTags` and
+  `AddCostLineItemTags` schema, a `cost-allocation` module (showback/chargeback),
+  plus custom fields, ticket merge, parent/child links, watchers, an **admin
+  audit log**, ticketing analytics/reporting, cost anomaly detection, disk-full
+  forecast alerts, and AI-assist (thread summarize + suggested reply).
 
-**Monitoring:** all checks run from a **single location** (the app server), and
-alerting is **email-only** — escalation policies can only escalate to more email.
-No Slack/webhook/SMS channels exist yet. Cloud coverage is AWS + Azure only.
+**Still open (per the delivery notes — genuinely not built yet):**
+- **Multi-location / multi-region probing** — checks still run from one location.
+- **Escalation depth** — SMS, voice, and richer multi-channel escalation routing
+  (Slack + webhook exist as channels; the escalation engine doesn't route to them deeply).
+- **GCP (and Alibaba/DO) billing ingestion** — cloud coverage is still AWS + Azure.
+- **i18n** — user-facing strings are hardcoded English.
+- **SSO / SAML** — plus the broader auth-hygiene items (2FA, password reset,
+  login rate-limiting, JWT revocation). Note `X-Tenant-Id` header auth remains a
+  fallback path; treat the tenant UUID as non-secret until it's removed.
+- **Native chat / telephony** channels.
 
-**Cost:** line items are per credential/service/region/**day**; the raw provider
-payload is kept in a `raw` jsonb column but **tags are not extracted or
-queryable**, so there is no tag-based cost allocation. Rightsizing is CPU-only.
-
-When you close one of these seams, also add/extend the relevant `verify-*.ts`
-script and remove the now-stale caveat here.
+When you close one of the remaining items, update this list and add/extend the
+relevant `verify-*.ts` script.
 
 ## Conventions checklist for changes
 
