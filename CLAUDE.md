@@ -261,6 +261,52 @@ long-lived device JWT from `POST /agent-tokens`. Metrics come from `/proc` on
 Linux (`metrics_linux.go`; `metrics_other.go` is the non-Linux stub). See
 `agent/README.md`. Build with `cd agent && go build -o cloud-ops-agent .`.
 
+## Current state, stubs & known seams
+
+Several parts of the codebase are deliberate stand-ins that the code itself
+flags. Know these before extending or relying on them — don't assume they work,
+and don't "fix" one without reading its comment, since some are intentional
+until a prerequisite exists.
+
+**Auth & authorization (the biggest gap; hardening is priority #1 for any real deployment):**
+- **`X-Tenant-Id` is effectively authentication.** `TenantHeaderGuard` accepts a
+  bare tenant UUID with no other secret and grants full agent-level read/write.
+  RLS still prevents *cross*-tenant access, but the header path is a stand-in for
+  mandatory JWT — see the guard's own comment. Treat the UUID as non-secret.
+- **RBAC is not enforced.** `users.role` is stored, put in the JWT, and attached
+  to the request as `userRole` by the guard — but **no code reads it**. There are
+  no role checks (`ForbiddenException`, `@Roles`, etc.); every authenticated agent
+  can do everything. Portal contacts are the one genuinely enforced authz boundary.
+- **Cloud credentials are stored as plaintext `jsonb`** (`cloud_credentials.config`).
+  The API never returns them (`SAFE_COLUMNS` / write-only), but they are not
+  encrypted at rest. Don't add code paths that echo `config` back.
+- No rate limiting/lockout on login, no 2FA/SSO, no password reset; the agent seed
+  ships a shared dev password. No audit logging of auth/admin/credential events.
+
+**Ticketing:**
+- **The outbound email loop is not closed.** Email *intake* creates tickets, but
+  `TicketsService.addMessage` only inserts the message and tracks first-response —
+  it does **not** dispatch email to the contact. Agent replies are visible only in
+  the portal. The `NotificationsService` dispatcher exists but is currently wired
+  only to the SLA overdue sweep, not to ticket replies or agent notifications.
+- **Business hours are not honored.** `calculate-due-dates.ts` intentionally
+  ignores `sla_policies.business_hours_only` and applies flat 24/7 math, because
+  no business-hours/holiday/timezone schema exists yet. The boolean is stored and
+  shown in the UI but has no effect on the engine — this is a documented seam, not
+  a bug to silently "correct." Implementing it means adding the hours schema first.
+- No ticket tags, custom fields, merge/split, or canned-response placeholders.
+
+**Monitoring:** all checks run from a **single location** (the app server), and
+alerting is **email-only** — escalation policies can only escalate to more email.
+No Slack/webhook/SMS channels exist yet. Cloud coverage is AWS + Azure only.
+
+**Cost:** line items are per credential/service/region/**day**; the raw provider
+payload is kept in a `raw` jsonb column but **tags are not extracted or
+queryable**, so there is no tag-based cost allocation. Rightsizing is CPU-only.
+
+When you close one of these seams, also add/extend the relevant `verify-*.ts`
+script and remove the now-stale caveat here.
+
 ## Conventions checklist for changes
 
 - Tenant data access → always `withTenantContext` + parameterized SQL; never a
