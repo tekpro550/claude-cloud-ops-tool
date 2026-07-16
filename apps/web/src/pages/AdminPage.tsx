@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
+import AuditLogAdmin from "../components/admin/AuditLogAdmin";
 import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
 import BusinessHoursAdmin from "../components/admin/BusinessHoursAdmin";
 import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFoldersAdmin";
@@ -146,6 +147,11 @@ export default function AdminPage() {
           <NotificationTemplatesAdmin tenantId={tenantId} onChange={handleChange} />
         </section>
       )}
+
+      <section className="admin-group">
+        <h3>Security &amp; audit</h3>
+        <AuditLogAdmin tenantId={tenantId} refreshSignal={refreshSignal} />
+      </section>
     </div>
   );
 }

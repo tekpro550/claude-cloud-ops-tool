@@ -181,6 +181,28 @@ export function listTicketTags(tenantId: string): Promise<string[]> {
   return request(tenantId, "GET", "/tickets/tags");
 }
 
+export interface AuditLogEntry {
+  id: string;
+  actor_user_id: string | null;
+  actor_label: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditLogList {
+  items: AuditLogEntry[];
+  total: number;
+}
+
+export function listAuditLog(tenantId: string, limit = 50): Promise<AuditLogList> {
+  const qs = new URLSearchParams({ limit: String(limit) }).toString();
+  return request(tenantId, "GET", `/admin/audit-log?${qs}`);
+}
+
 export function listGroups(tenantId: string): Promise<Group[]> {
   return request(tenantId, "GET", "/groups");
 }

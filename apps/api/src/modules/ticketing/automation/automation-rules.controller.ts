@@ -10,7 +10,9 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AuditLogService } from '../../platform/audit/audit-log.service';
 import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
+import { CurrentUserId } from '../../platform/http/current-user.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
 import {
   CreateAutomationRuleDto,
@@ -21,14 +23,27 @@ import { AutomationRulesService } from './automation-rules.service';
 @UseGuards(TenantHeaderGuard)
 @Controller('automation-rules')
 export class AutomationRulesController {
-  constructor(private readonly automationRules: AutomationRulesService) {}
+  constructor(
+    private readonly automationRules: AutomationRulesService,
+    private readonly audit: AuditLogService,
+  ) {}
 
   @Post()
-  create(
+  async create(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Body() dto: CreateAutomationRuleDto,
   ) {
-    return this.automationRules.create(tenantId, dto);
+    const rule = await this.automationRules.create(tenantId, dto);
+    await this.audit.record(tenantId, {
+      actorUserId: userId,
+      action: 'automation_rule.create',
+      entityType: 'automation_rule',
+      entityId: rule.id,
+      summary: `Created automation rule "${rule.name}"`,
+      details: { trigger: rule.trigger },
+    });
+    return rule;
   }
 
   @Get()
@@ -37,20 +52,37 @@ export class AutomationRulesController {
   }
 
   @Patch(':id')
-  update(
+  async update(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAutomationRuleDto,
   ) {
-    return this.automationRules.update(tenantId, id, dto);
+    const rule = await this.automationRules.update(tenantId, id, dto);
+    await this.audit.record(tenantId, {
+      actorUserId: userId,
+      action: 'automation_rule.update',
+      entityType: 'automation_rule',
+      entityId: id,
+      summary: `Updated automation rule "${rule?.name ?? id}"`,
+    });
+    return rule;
   }
 
   @Delete(':id')
   @HttpCode(204)
-  remove(
+  async remove(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.automationRules.remove(tenantId, id);
+    await this.automationRules.remove(tenantId, id);
+    await this.audit.record(tenantId, {
+      actorUserId: userId,
+      action: 'automation_rule.delete',
+      entityType: 'automation_rule',
+      entityId: id,
+      summary: `Deleted automation rule ${id}`,
+    });
   }
 }

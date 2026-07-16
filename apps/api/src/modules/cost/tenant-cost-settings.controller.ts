@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import { AuditLogService } from '../platform/audit/audit-log.service';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
+import { CurrentUserId } from '../platform/http/current-user.decorator';
 import { Roles } from '../platform/http/roles.decorator';
 import { RolesGuard } from '../platform/http/roles.guard';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
@@ -15,7 +17,10 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
 @UseGuards(TenantHeaderGuard, RolesGuard)
 @Controller('tenant-cost-settings')
 export class TenantCostSettingsController {
-  constructor(private readonly settings: TenantCostSettingsService) {}
+  constructor(
+    private readonly settings: TenantCostSettingsService,
+    private readonly audit: AuditLogService,
+  ) {}
 
   @Get()
   get(@CurrentTenantId() tenantId: string) {
@@ -24,10 +29,19 @@ export class TenantCostSettingsController {
 
   @Roles('admin')
   @Patch()
-  update(
+  async update(
     @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
     @Body() dto: UpdateTenantCostSettingsDto,
   ) {
-    return this.settings.update(tenantId, dto);
+    const result = await this.settings.update(tenantId, dto);
+    await this.audit.record(tenantId, {
+      actorUserId: userId,
+      action: 'tenant_cost_settings.update',
+      entityType: 'tenant_cost_settings',
+      summary: 'Updated tenant cost settings',
+      details: dto as Record<string, unknown>,
+    });
+    return result;
   }
 }

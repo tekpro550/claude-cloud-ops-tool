@@ -44,6 +44,7 @@
     "agent-notifications:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-agent-notifications.ts",
     "ticket-tags:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-tags.ts",
     "cost-allocation:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-allocation.ts",
+    "audit-log:verify": "ts-node -r dotenv/config src/modules/platform/audit/scripts/verify-audit-log.ts",
     "credentials-encryption:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-credentials-encryption.ts",
     "dashboard:verify": "ts-node -r dotenv/config src/modules/ticketing/dashboard/scripts/verify-dashboard.ts",
     "admin:verify": "ts-node -r dotenv/config src/modules/ticketing/admin/scripts/verify-admin.ts",
