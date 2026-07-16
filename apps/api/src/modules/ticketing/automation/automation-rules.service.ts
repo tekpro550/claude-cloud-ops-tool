@@ -27,7 +27,8 @@ export interface AutomationCondition {
     | 'subject'
     | 'ticket_type_id'
     | 'group_id'
-    | 'platform';
+    | 'platform'
+    | 'tags';
   operator: 'equals' | 'contains';
   value: string;
 }
@@ -40,6 +41,15 @@ export function conditionMatches(
   condition: AutomationCondition,
 ): boolean {
   const raw = ticket[condition.field];
+  // tags is a text[] column: "equals" means the ticket carries that exact
+  // tag, "contains" means any tag includes the substring. Everything else is
+  // a scalar compared as a string.
+  if (Array.isArray(raw)) {
+    const tags = raw.map((t) => String(t));
+    if (condition.operator === 'equals') return tags.includes(condition.value);
+    const needle = condition.value.toLowerCase();
+    return tags.some((t) => t.toLowerCase().includes(needle));
+  }
   const actual = raw === null || raw === undefined ? '' : String(raw);
   if (condition.operator === 'equals') return actual === condition.value;
   return actual.toLowerCase().includes(condition.value.toLowerCase());

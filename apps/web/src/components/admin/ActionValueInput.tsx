@@ -8,6 +8,7 @@ export const ACTION_TYPES: AutomationActionType[] = [
   "set_agent",
   "set_platform",
   "add_note",
+  "add_tag",
 ];
 const STATUS_VALUES = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITY_VALUES = ["low", "medium", "high", "urgent"];
@@ -86,5 +87,6 @@ export default function ActionValueInput({
       </select>
     );
   }
-  return <input placeholder="Note text" value={value} onChange={(e) => onChange(e.target.value)} required />;
+  const placeholder = actionType === "add_tag" ? "Tag" : "Note text";
+  return <input placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} required />;
 }

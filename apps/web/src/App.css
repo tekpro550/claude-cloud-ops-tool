@@ -699,6 +699,59 @@ td {
   gap: 0.25rem;
 }
 
+.ticket-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ticket-tags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.ticket-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.ticket-tag-remove {
+  border: none;
+  background: transparent;
+  color: #6366f1;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.ticket-tag-remove:hover {
+  color: #312e81;
+}
+
+.ticket-tags-input {
+  font-size: 0.82rem;
+  padding: 0.25rem 0.4rem;
+  min-width: 10rem;
+}
+
+.ticket-row-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
 .message-thread {
   list-style: none;
   padding: 0;

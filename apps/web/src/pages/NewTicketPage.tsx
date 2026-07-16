@@ -11,6 +11,7 @@ import {
   listTicketTypes,
 } from "../lib/apiClient";
 import { useTenant } from "../lib/tenant";
+import TicketTags from "../components/TicketTags";
 import type { Agent, Contact, Group, TicketPriority, TicketType } from "../types/ticket";
 
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -39,6 +40,7 @@ export default function NewTicketPage() {
   const [priority, setPriority] = useState<TicketPriority>("medium");
   const [groupId, setGroupId] = useState("");
   const [agentId, setAgentId] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
   const [creating, setCreating] = useState(false);
@@ -74,6 +76,7 @@ export default function NewTicketPage() {
       groupId: groupId || undefined,
       agentId: agentId || undefined,
       priority,
+      tags: tags.length > 0 ? tags : undefined,
     })
       .then((ticket) =>
         description.trim()
@@ -152,6 +155,10 @@ export default function NewTicketPage() {
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            Tags
+            <TicketTags tags={tags} onChange={setTags} />
           </label>
           <label>
             Group

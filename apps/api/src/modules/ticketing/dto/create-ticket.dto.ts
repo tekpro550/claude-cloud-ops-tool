@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsIn,
   IsOptional,
   IsString,
@@ -79,4 +80,9 @@ export class CreateTicketDto {
   @IsOptional()
   @IsIn(TICKET_PLATFORMS)
   platform?: (typeof TICKET_PLATFORMS)[number];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }

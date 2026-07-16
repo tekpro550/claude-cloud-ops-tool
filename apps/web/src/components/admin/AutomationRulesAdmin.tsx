@@ -30,6 +30,7 @@ const FIELDS: AutomationConditionField[] = [
   "ticket_type_id",
   "group_id",
   "platform",
+  "tags",
 ];
 const OPERATORS: AutomationConditionOperator[] = ["equals", "contains"];
 
@@ -89,6 +90,7 @@ export default function AutomationRulesAdmin({
     if (a.type === "set_agent") return `set agent to ${agentName(a.value)}`;
     if (a.type === "set_platform") return `set platform to ${platformLabel(a.value as (typeof PLATFORMS)[number])}`;
     if (a.type === "add_note") return `add note "${a.value}"`;
+    if (a.type === "add_tag") return `add tag "${a.value}"`;
     return `${a.type.replace("set_", "set ")} to ${a.value}`;
   };
 

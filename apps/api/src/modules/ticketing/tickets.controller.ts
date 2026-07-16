@@ -51,6 +51,12 @@ export class TicketsController {
     return this.ticketsService.list(tenantId, query);
   }
 
+  // Declared before the ':id' route so "tags" isn't captured as a ticket id.
+  @Get('tags')
+  listTags(@CurrentTenantId() tenantId: string) {
+    return this.ticketsService.distinctTags(tenantId);
+  }
+
   @Get(':id')
   get(
     @CurrentTenantId() tenantId: string,

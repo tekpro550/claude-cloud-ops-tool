@@ -21,6 +21,7 @@ export interface Ticket {
   group_id: string | null;
   agent_id: string | null;
   platform: TicketPlatform | null;
+  tags: string[];
   resource_id: string | null;
   sla_policy_id: string | null;
   first_response_due_at: string | null;
@@ -143,7 +144,8 @@ export type AutomationConditionField =
   | "subject"
   | "ticket_type_id"
   | "group_id"
-  | "platform";
+  | "platform"
+  | "tags";
 export type AutomationConditionOperator = "equals" | "contains";
 export type AutomationActionType =
   | "set_status"
@@ -151,7 +153,8 @@ export type AutomationActionType =
   | "set_group"
   | "set_agent"
   | "set_platform"
-  | "add_note";
+  | "add_note"
+  | "add_tag";
 
 export interface AutomationCondition {
   field: AutomationConditionField;

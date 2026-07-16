@@ -93,6 +93,7 @@ export interface ListTicketsFilters {
   platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
+  tag?: string;
   unassigned?: boolean;
   overdue?: boolean;
   createdFrom?: string;
@@ -110,6 +111,7 @@ export function listTickets(tenantId: string, filters: ListTicketsFilters = {}):
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.agentId) params.set("agentId", filters.agentId);
+  if (filters.tag) params.set("tag", filters.tag);
   if (filters.unassigned) params.set("unassigned", "true");
   if (filters.overdue) params.set("overdue", "true");
   if (filters.createdFrom) params.set("createdFrom", filters.createdFrom);
@@ -136,6 +138,7 @@ export interface CreateTicketInput {
   agentId?: string;
   priority?: TicketPriority;
   platform?: TicketPlatform;
+  tags?: string[];
 }
 
 export function createTicket(tenantId: string, input: CreateTicketInput): Promise<Ticket> {
@@ -167,10 +170,15 @@ export interface UpdateTicketInput {
   groupId?: string;
   agentId?: string;
   ticketTypeId?: string;
+  tags?: string[];
 }
 
 export function updateTicket(tenantId: string, id: string, input: UpdateTicketInput): Promise<Ticket> {
   return request(tenantId, "PATCH", `/tickets/${id}`, input);
+}
+
+export function listTicketTags(tenantId: string): Promise<string[]> {
+  return request(tenantId, "GET", "/tickets/tags");
 }
 
 export function listGroups(tenantId: string): Promise<Group[]> {

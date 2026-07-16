@@ -31,6 +31,7 @@ import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
 import TicketScenarios from "../components/TicketScenarios";
+import TicketTags from "../components/TicketTags";
 import TicketTimeline from "../components/TicketTimeline";
 import TicketTodos from "../components/TicketTodos";
 import TicketTimeLogs from "../components/TicketTimeLogs";
@@ -172,6 +173,19 @@ export default function TicketDetailPage() {
         bumpTimeline();
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update ticket"))
+      .finally(() => setSaving(false));
+  };
+
+  const handleTagsChange = (next: string[]) => {
+    if (!tenantId || !id) return;
+    setSaving(true);
+    setError(null);
+    updateTicket(tenantId, id, { tags: next })
+      .then((updated) => {
+        setTicket(updated);
+        bumpTimeline();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update tags"))
       .finally(() => setSaving(false));
   };
 
@@ -336,6 +350,14 @@ export default function TicketDetailPage() {
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            Tags
+            <TicketTags
+              tags={ticket.tags ?? []}
+              disabled={saving}
+              onChange={handleTagsChange}
+            />
           </label>
           <span className="hint">Source: {ticket.source}</span>
         </div>

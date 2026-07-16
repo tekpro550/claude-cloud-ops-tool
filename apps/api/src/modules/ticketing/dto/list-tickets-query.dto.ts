@@ -5,6 +5,7 @@ import {
   IsInt,
   IsISO8601,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
   Min,
@@ -47,6 +48,10 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsUUID()
   agentId?: string;
+
+  @IsOptional()
+  @IsString()
+  tag?: string;
 
   // "Unassigned" quick view -- agent_id IS NULL can't be expressed via the
   // agentId filter above (an empty agentId means "no filter", not "no agent").

@@ -193,8 +193,8 @@ export class TicketsService {
       );
 
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17)
          RETURNING *`,
         [
           tenantId,
@@ -213,6 +213,7 @@ export class TicketsService {
           resolutionDueAt,
           createdAt,
           dto.platform ?? null,
+          dto.tags ?? [],
         ],
       );
       return this.automationRules.runRules(
@@ -282,6 +283,10 @@ export class TicketsService {
       if (query.unassigned) {
         conditions.push(`agent_id IS NULL`);
       }
+      if (query.tag) {
+        params.push(query.tag);
+        conditions.push(`tags @> ARRAY[$${params.length}]::text[]`);
+      }
       if (query.overdue) {
         conditions.push(`(
           status NOT IN ('resolved', 'closed') AND (
@@ -323,6 +328,20 @@ export class TicketsService {
       );
 
       return { items, total: count };
+    });
+  }
+
+  /**
+   * Distinct tags in use across the tenant's tickets, sorted, for tag
+   * autocomplete and the ticket-list tag filter. unnest() flattens the
+   * text[] columns; the GIN index keeps this cheap even at scale.
+   */
+  async distinctTags(tenantId: string): Promise<string[]> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const rows = await queryRunner.query(
+        `SELECT DISTINCT unnest(tags) AS tag FROM tickets ORDER BY tag ASC`,
+      );
+      return rows.map((r: { tag: string }) => r.tag);
     });
   }
 
@@ -445,6 +464,14 @@ export class TicketsService {
         if (dto.agentId !== undefined) {
           trackChange('agent_id', existing.agent_id, dto.agentId);
           assign('agent_id', dto.agentId);
+        }
+        if (dto.tags !== undefined) {
+          // Normalize: trimmed, de-duplicated, no empties. Tag changes aren't
+          // added to the activity timeline (they'd be noisy and low-signal).
+          const tags = Array.from(
+            new Set(dto.tags.map((t) => t.trim()).filter((t) => t.length > 0)),
+          );
+          assign('tags', tags);
         }
         if (dto.ticketTypeId !== undefined) {
           trackChange(

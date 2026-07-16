@@ -8,7 +8,8 @@ export interface AutomationAction {
     | 'set_group'
     | 'set_agent'
     | 'set_platform'
-    | 'add_note';
+    | 'add_note'
+    | 'add_tag';
   value: string;
 }
 
@@ -95,6 +96,21 @@ export async function applyAction(
       [tenantId, ticket.id, action.value],
     );
     return ticket;
+  }
+
+  if (action.type === 'add_tag') {
+    const tag = action.value.trim();
+    if (!tag) return ticket;
+    const existing: string[] = Array.isArray(ticket.tags) ? ticket.tags : [];
+    if (existing.includes(tag)) return ticket;
+    // array_append + a uniqueness guard above keeps tags a set; no activity
+    // row (tag changes are intentionally kept off the timeline, same as a
+    // manual tag edit in TicketsService.update).
+    const [rows] = await queryRunner.query(
+      `UPDATE tickets SET tags = array_append(tags, $1), updated_at = now() WHERE id = $2 RETURNING *`,
+      [tag, ticket.id],
+    );
+    return rows[0];
   }
 
   return ticket;
