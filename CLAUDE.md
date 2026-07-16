@@ -265,16 +265,10 @@ Linux (`metrics_linux.go`; `metrics_other.go` is the non-Linux stub). See
 
 The first version of this file listed several deliberate stand-ins (unenforced
 RBAC, plaintext credentials, an open reply-email loop, ignored business hours,
-etc.). The **fix work on branch `claude/gallant-pasteur-9yuu2f`** (15 commits on
-top of `main`/`ad542b4`) closes almost all of them. The status below is
-**verified against that branch's code**, not just its commit messages.
+etc.). A subsequent fix pass (~15 commits) closed almost all of them; the status
+below is **verified against the code now in `main`**, not just commit messages.
 
-> ⚠️ **Merge caveat.** As of this writing that branch is **not yet merged into
-> `main`** (main is still `ad542b4`). If you are working directly on `main`, the
-> old behavior still applies. The "Resolved" items below describe the
-> post-merge state — confirm the fix branch is present before relying on them.
-
-**Resolved by the fix branch:**
+**Resolved:**
 - **Outbound reply email loop is closed.** `TicketsService.addMessage` now
   dispatches the reply (sanitized HTML) to the contact and to ticket watchers
   after commit, via `NotificationsService` — plus agent assignment/reply
