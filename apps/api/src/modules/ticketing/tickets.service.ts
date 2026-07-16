@@ -11,6 +11,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { validateCustomFields } from './custom-fields/custom-field-validate';
+import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
@@ -709,10 +710,8 @@ export class TicketsService {
     ticketId: string,
     dto: AddTicketMessageDto,
   ) {
-    const { message, outbound, agentNotify } = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      async (queryRunner) => {
+    const { message, outbound, agentNotify, watcherNotify } =
+      await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
         const [ticket] = await queryRunner.query(
           `SELECT id, ticket_number, subject, contact_id, agent_id, first_response_at FROM tickets WHERE id = $1`,
           [ticketId],
@@ -837,7 +836,34 @@ export class TicketsService {
           };
         }
 
-        return { message, outbound, agentNotify };
+        // Watchers get notified of any reply (agent or contact), except the
+        // agent who authored it. Gathered here inside the transaction so the
+        // dispatch below runs after commit.
+        let watcherNotify: {
+          watchers: { email: string }[];
+          ticketNumber: number;
+          subject: string;
+          body: string;
+        } | null = null;
+        if (dto.type === 'reply') {
+          const excludeAgentId =
+            dto.authorType === 'agent' ? (dto.authorId ?? null) : null;
+          const watchers = await TicketWatchersService.watcherEmails(
+            queryRunner,
+            ticketId,
+            excludeAgentId,
+          );
+          if (watchers.length > 0) {
+            watcherNotify = {
+              watchers,
+              ticketNumber: ticket.ticket_number,
+              subject: ticket.subject,
+              body: htmlToPlainText(safeBody),
+            };
+          }
+        }
+
+        return { message, outbound, agentNotify, watcherNotify };
       },
     );
 
@@ -887,6 +913,29 @@ export class TicketsService {
           .catch((err) =>
             this.logger.error(
               `failed to enqueue contact-reply email for ticket ${ticketId}: ${(err as Error).message}`,
+            ),
+          );
+      }
+    }
+
+    // Notify every watcher (best-effort, one email each).
+    if (watcherNotify) {
+      for (const watcher of watcherNotify.watchers) {
+        await this.notifications
+          .enqueue({
+            tenantId,
+            channel: 'email',
+            recipient: watcher.email,
+            templateName: 'ticket.watcher_update',
+            payload: {
+              ticketNumber: watcherNotify.ticketNumber,
+              subject: watcherNotify.subject,
+              body: watcherNotify.body,
+            },
+          })
+          .catch((err) =>
+            this.logger.error(
+              `failed to enqueue watcher email for ticket ${ticketId}: ${(err as Error).message}`,
             ),
           );
       }

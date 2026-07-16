@@ -47,6 +47,11 @@ const templates: Record<string, TemplateRenderer> = {
     subject: `New reply on ticket #${payload.ticketNumber}: ${payload.subject}`,
     body: `${payload.contactName ?? 'The customer'} replied to ticket #${payload.ticketNumber} "${payload.subject}":\n\n${payload.body}`,
   }),
+  // Sent to watchers/followers when a ticket they watch gets a new reply.
+  'ticket.watcher_update': (payload) => ({
+    subject: `Update on watched ticket #${payload.ticketNumber}: ${payload.subject}`,
+    body: `There's a new reply on ticket #${payload.ticketNumber} "${payload.subject}" you're watching:\n\n${payload.body}`,
+  }),
   // EscalationSweepService (Module 2) does its own notification_templates
   // lookup and $VARIABLE substitution before enqueueing, so this renderer is
   // just a passthrough for the already-rendered subject/body -- the DB-backed

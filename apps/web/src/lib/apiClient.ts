@@ -215,6 +215,24 @@ export function deleteTicketLink(tenantId: string, ticketId: string, linkId: str
   return request(tenantId, "DELETE", `/tickets/${ticketId}/links/${linkId}`);
 }
 
+export interface Watcher {
+  agentId: string;
+  name: string;
+  email: string;
+}
+
+export function listTicketWatchers(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/watchers`);
+}
+
+export function watchTicket(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/watchers`);
+}
+
+export function unwatchTicket(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/watchers`);
+}
+
 export type CustomFieldType = "text" | "number" | "dropdown" | "checkbox" | "date";
 
 export interface CustomFieldDef {

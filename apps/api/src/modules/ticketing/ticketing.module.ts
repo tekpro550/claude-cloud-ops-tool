@@ -48,6 +48,8 @@ import { SolutionsController } from './solutions.controller';
 import { SolutionsService } from './solutions.service';
 import { TicketLinksController } from './ticket-links/ticket-links.controller';
 import { TicketLinksService } from './ticket-links/ticket-links.service';
+import { TicketWatchersController } from './ticket-watchers/ticket-watchers.controller';
+import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
 import { TicketPresenceController } from './ticket-presence.controller';
 import { TicketPresenceService } from './ticket-presence.service';
 import { TicketSatisfactionService } from './ticket-satisfaction.service';
@@ -96,6 +98,7 @@ import { TicketsService } from './tickets.service';
     BusinessHoursSettingsController,
     CustomFieldsController,
     TicketLinksController,
+    TicketWatchersController,
   ],
   providers: [
     TicketsService,
@@ -130,6 +133,7 @@ import { TicketsService } from './tickets.service';
     AttachmentsService,
     LocalDiskStorage,
     TicketLinksService,
+    TicketWatchersService,
   ],
 })
 export class TicketingModule {}

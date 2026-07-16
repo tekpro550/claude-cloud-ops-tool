@@ -35,6 +35,7 @@ import TicketLinks from "../components/TicketLinks";
 import TicketMerge from "../components/TicketMerge";
 import TicketScenarios from "../components/TicketScenarios";
 import TicketTags from "../components/TicketTags";
+import TicketWatch from "../components/TicketWatch";
 import TicketTimeline from "../components/TicketTimeline";
 import TicketTodos from "../components/TicketTodos";
 import TicketTimeLogs from "../components/TicketTimeLogs";
@@ -495,6 +496,7 @@ export default function TicketDetailPage() {
           <h2>{ticket.subject}</h2>
           <span className={`badge status-${ticket.status}`}>{ticket.status}</span>
           <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
+          <TicketWatch tenantId={tenantId} ticketId={ticket.id} />
         </div>
         <div className="ticket-detail-meta">
           {contact && (

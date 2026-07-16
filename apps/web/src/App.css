@@ -1976,6 +1976,15 @@ td {
 .ticket-links-form input {
   width: 5.5rem;
 }
+.ticket-watch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+}
+.ticket-watch-count {
+  white-space: nowrap;
+}
 
 .custom-field-list {
   list-style: none;
