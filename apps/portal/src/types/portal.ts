@@ -39,3 +39,14 @@ export interface Solution {
   title: string;
   body: string;
 }
+
+export type TicketSatisfactionRating = "happy" | "neutral" | "unhappy";
+
+export interface TicketSatisfaction {
+  id: string;
+  ticket_id: string;
+  contact_id: string;
+  rating: TicketSatisfactionRating;
+  comment: string | null;
+  rated_at: string;
+}

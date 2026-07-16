@@ -135,7 +135,7 @@ export interface SlaPolicy {
   business_hours_only: boolean;
 }
 
-export type AutomationTrigger = "ticket_created" | "ticket_updated";
+export type AutomationTrigger = "ticket_created" | "ticket_updated" | "time_based";
 export type AutomationConditionField =
   | "status"
   | "priority"
@@ -170,6 +170,7 @@ export interface AutomationRule {
   trigger: AutomationTrigger;
   position: number;
   is_active: boolean;
+  time_trigger_minutes: number | null;
   conditions: AutomationCondition[];
   actions: AutomationAction[];
 }
@@ -303,4 +304,38 @@ export interface SetupStatus {
   complete: boolean;
   completedCount: number;
   totalCount: number;
+}
+
+export interface TicketPresenceEntry {
+  agent_id: string;
+  agent_name: string;
+  is_typing: boolean;
+  last_seen_at: string;
+}
+
+export interface TicketView {
+  id: string;
+  agent_id: string | null;
+  name: string;
+  filters: Record<string, unknown>;
+  created_at: string;
+}
+
+export type TicketSatisfactionRating = "happy" | "neutral" | "unhappy";
+
+export interface TicketSatisfactionEntry {
+  id: string;
+  ticket_id: string;
+  contact_id: string;
+  rating: TicketSatisfactionRating;
+  comment: string | null;
+  rated_at: string;
+}
+
+export interface CsatSummary {
+  total: number;
+  happy: number;
+  neutral: number;
+  unhappy: number;
+  happyPct: number | null;
 }

@@ -18,6 +18,7 @@ import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { TicketSatisfactionService } from './ticket-satisfaction.service';
 import { TicketsService } from './tickets.service';
 
 @UseGuards(TenantHeaderGuard)
@@ -26,6 +27,7 @@ export class TicketsController {
   constructor(
     private readonly ticketsService: TicketsService,
     private readonly agentsService: AgentsService,
+    private readonly satisfaction: TicketSatisfactionService,
   ) {}
 
   @Post()
@@ -118,5 +120,13 @@ export class TicketsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.ticketsService.getTimeline(tenantId, id);
+  }
+
+  @Get(':id/satisfaction')
+  getSatisfaction(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.satisfaction.getForTicket(tenantId, id);
   }
 }

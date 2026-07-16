@@ -11,6 +11,7 @@ import { AttachmentsService } from './attachments/attachments.service';
 import { LocalDiskStorage } from './attachments/object-storage';
 import { AutomationRulesController } from './automation/automation-rules.controller';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { TimeAutomationSweepService } from './automation/time-automation-sweep.service';
 import { CannedResponseFoldersController } from './canned-response-folders.controller';
 import { CannedResponseFoldersService } from './canned-response-folders.service';
 import { CannedResponsesController } from './canned-responses.controller';
@@ -41,12 +42,17 @@ import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
 import { SolutionsController } from './solutions.controller';
 import { SolutionsService } from './solutions.service';
+import { TicketPresenceController } from './ticket-presence.controller';
+import { TicketPresenceService } from './ticket-presence.service';
+import { TicketSatisfactionService } from './ticket-satisfaction.service';
 import { TicketTimeLogsController } from './ticket-time-logs.controller';
 import { TicketTimeLogsService } from './ticket-time-logs.service';
 import { TicketTodosController } from './ticket-todos.controller';
 import { TicketTodosService } from './ticket-todos.service';
 import { TicketTypesController } from './ticket-types.controller';
 import { TicketTypesService } from './ticket-types.service';
+import { TicketViewsController } from './ticket-views.controller';
+import { TicketViewsService } from './ticket-views.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 
@@ -79,16 +85,22 @@ import { TicketsService } from './tickets.service';
     PortalSolutionsController,
     SolutionsController,
     AttachmentsController,
+    TicketPresenceController,
+    TicketViewsController,
   ],
   providers: [
     TicketsService,
     EmailIntakeService,
     OverdueSweepService,
+    TicketPresenceService,
+    TicketViewsService,
+    TicketSatisfactionService,
     GroupsService,
     AgentsService,
     TicketTypesService,
     SlaPoliciesService,
     AutomationRulesService,
+    TimeAutomationSweepService,
     CannedResponsesService,
     CannedResponseFoldersService,
     ContactsService,

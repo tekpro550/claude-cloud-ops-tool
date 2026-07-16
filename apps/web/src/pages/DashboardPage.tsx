@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import TrendsChart from "../components/TrendsChart";
 import {
+  getCsatSummary,
   getDashboardActivity,
   getDashboardSlaSummary,
   getDashboardSummary,
@@ -14,6 +15,7 @@ import { relativeTime } from "../lib/relativeTime";
 import { useTenant } from "../lib/tenant";
 import type {
   Agent,
+  CsatSummary,
   DashboardActivityItem,
   DashboardSlaSummary,
   DashboardSummary,
@@ -44,6 +46,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [trends, setTrends] = useState<DashboardTrendPoint[]>([]);
   const [slaSummary, setSlaSummary] = useState<DashboardSlaSummary | null>(null);
+  const [csatSummary, setCsatSummary] = useState<CsatSummary | null>(null);
   const [activity, setActivity] = useState<DashboardActivityItem[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -60,6 +63,12 @@ export default function DashboardPage() {
         setSlaSummary(slaRes);
       })
       .finally(() => setLoading(false));
+    getCsatSummary(tenantId, 30)
+      .then(setCsatSummary)
+      .catch(() => {
+        // CSAT is a supplementary tile; a failure here shouldn't block the
+        // rest of the dashboard from loading.
+      });
   }, [tenantId]);
 
   useEffect(() => {
@@ -159,6 +168,19 @@ export default function DashboardPage() {
           tone={slaSummary.resolution.breached > 0 ? "critical" : undefined}
         />
       </div>
+
+      {csatSummary && csatSummary.total > 0 && (
+        <>
+          <h3>Customer satisfaction (last 30 days)</h3>
+          <div className="stat-tiles">
+            <StatTile label="Ratings received" value={csatSummary.total} />
+            <StatTile label="Happy" value={csatSummary.happy} />
+            <StatTile label="Neutral" value={csatSummary.neutral} />
+            <StatTile label="Unhappy" value={csatSummary.unhappy} tone={csatSummary.unhappy > 0 ? "critical" : undefined} />
+            {csatSummary.happyPct !== null && <StatTile label="Happy %" value={csatSummary.happyPct} />}
+          </div>
+        </>
+      )}
 
       <h3>Recent activity</h3>
       {activity.length === 0 && <p className="hint">Nothing's happened yet.</p>}

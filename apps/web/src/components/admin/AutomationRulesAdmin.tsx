@@ -21,7 +21,7 @@ import type {
 } from "../../types/ticket";
 import ActionValueInput, { ACTION_TYPES } from "./ActionValueInput";
 
-const TRIGGERS: AutomationTrigger[] = ["ticket_created", "ticket_updated"];
+const TRIGGERS: AutomationTrigger[] = ["ticket_created", "ticket_updated", "time_based"];
 const FIELDS: AutomationConditionField[] = [
   "status",
   "priority",
@@ -48,6 +48,7 @@ export default function AutomationRulesAdmin({
 
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<AutomationTrigger>("ticket_created");
+  const [timeTriggerMinutes, setTimeTriggerMinutes] = useState("60");
   const [conditionField, setConditionField] = useState<AutomationConditionField>("status");
   const [conditionOperator, setConditionOperator] = useState<AutomationConditionOperator>("equals");
   const [conditionValue, setConditionValue] = useState("");
@@ -60,6 +61,7 @@ export default function AutomationRulesAdmin({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editTrigger, setEditTrigger] = useState<AutomationTrigger>("ticket_created");
+  const [editTimeTriggerMinutes, setEditTimeTriggerMinutes] = useState("60");
   const [editConditionField, setEditConditionField] = useState<AutomationConditionField>("status");
   const [editConditionOperator, setEditConditionOperator] = useState<AutomationConditionOperator>("equals");
   const [editConditionValue, setEditConditionValue] = useState("");
@@ -98,6 +100,7 @@ export default function AutomationRulesAdmin({
     createAutomationRule(tenantId, {
       name,
       trigger,
+      timeTriggerMinutes: trigger === "time_based" ? Number(timeTriggerMinutes) : undefined,
       conditions: [{ field: conditionField, operator: conditionOperator, value: conditionValue }],
       actions: [{ type: actionType, value: actionValue }],
     })
@@ -136,6 +139,7 @@ export default function AutomationRulesAdmin({
     setEditingId(rule.id);
     setEditName(rule.name);
     setEditTrigger(rule.trigger);
+    setEditTimeTriggerMinutes(String(rule.time_trigger_minutes ?? 60));
     const condition = rule.conditions[0];
     setEditConditionField(condition?.field ?? "status");
     setEditConditionOperator(condition?.operator ?? "equals");
@@ -153,6 +157,7 @@ export default function AutomationRulesAdmin({
     updateAutomationRule(tenantId, id, {
       name: editName,
       trigger: editTrigger,
+      timeTriggerMinutes: editTrigger === "time_based" ? Number(editTimeTriggerMinutes) : undefined,
       conditions: [{ field: editConditionField, operator: editConditionOperator, value: editConditionValue }],
       actions: [{ type: editActionType, value: editActionValue }],
     })
@@ -183,6 +188,19 @@ export default function AutomationRulesAdmin({
                       </option>
                     ))}
                   </select>
+                  {editTrigger === "time_based" && (
+                    <label className="hint">
+                      after{" "}
+                      <input
+                        type="number"
+                        min={1}
+                        style={{ width: "5rem" }}
+                        value={editTimeTriggerMinutes}
+                        onChange={(e) => setEditTimeTriggerMinutes(e.target.value)}
+                      />{" "}
+                      minutes unresolved
+                    </label>
+                  )}
                   <div className="admin-form-row">
                     <span className="hint">If</span>
                     <select
@@ -253,7 +271,10 @@ export default function AutomationRulesAdmin({
                   </span>
                   <br />
                   <span className="hint">
-                    on {rule.trigger}: if {rule.conditions.map(describeCondition).join(" and ")} then{" "}
+                    {rule.trigger === "time_based"
+                      ? `after ${rule.time_trigger_minutes} minutes unresolved`
+                      : `on ${rule.trigger}`}
+                    : if {rule.conditions.map(describeCondition).join(" and ")} then{" "}
                     {rule.actions.map(describeAction).join(", ")}
                   </span>
                 </span>
@@ -282,6 +303,19 @@ export default function AutomationRulesAdmin({
             </option>
           ))}
         </select>
+        {trigger === "time_based" && (
+          <label className="hint">
+            after{" "}
+            <input
+              type="number"
+              min={1}
+              style={{ width: "5rem" }}
+              value={timeTriggerMinutes}
+              onChange={(e) => setTimeTriggerMinutes(e.target.value)}
+            />{" "}
+            minutes unresolved
+          </label>
+        )}
         <div className="admin-form-row">
           <span className="hint">If</span>
           <select value={conditionField} onChange={(e) => setConditionField(e.target.value as AutomationConditionField)}>

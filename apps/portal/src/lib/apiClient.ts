@@ -3,6 +3,8 @@ import type {
   PortalTicket,
   PortalTicketDetail,
   Solution,
+  TicketSatisfaction,
+  TicketSatisfactionRating,
 } from "../types/portal";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
@@ -85,6 +87,17 @@ export function listMyTickets(): Promise<PortalTicket[]> {
 
 export function getMyTicket(id: string): Promise<PortalTicketDetail> {
   return authedRequest("GET", `/portal/tickets/${id}`);
+}
+
+export function getMyTicketSatisfaction(id: string): Promise<TicketSatisfaction | null> {
+  return authedRequest("GET", `/portal/tickets/${id}/satisfaction`);
+}
+
+export function rateMyTicket(
+  id: string,
+  input: { rating: TicketSatisfactionRating; comment?: string },
+): Promise<TicketSatisfaction> {
+  return authedRequest("POST", `/portal/tickets/${id}/satisfaction`, input);
 }
 
 export function listSolutions(tenantId: string): Promise<Solution[]> {

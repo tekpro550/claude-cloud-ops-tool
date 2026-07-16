@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-const TRIGGERS = ['ticket_created', 'ticket_updated'] as const;
+const TRIGGERS = ['ticket_created', 'ticket_updated', 'time_based'] as const;
 const CONDITION_FIELDS = [
   'status',
   'priority',
@@ -65,6 +65,15 @@ export class CreateAutomationRuleDto {
   @IsBoolean()
   isActive?: boolean;
 
+  // Required (and only meaningful) when trigger = 'time_based': how many
+  // minutes after creation the rule fires, e.g. 1440 for "unresolved for
+  // 24 hours". Validated against trigger in the service, not here --
+  // class-validator conditional decorators would need the same field twice.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  timeTriggerMinutes?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AutomationConditionDto)
@@ -93,6 +102,11 @@ export class UpdateAutomationRuleDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  timeTriggerMinutes?: number;
 
   @IsOptional()
   @IsArray()

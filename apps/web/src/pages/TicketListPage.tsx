@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, listAgents, listContacts, listGroups, listTickets, updateTicket } from "../lib/apiClient";
+import {
+  ApiError,
+  createTicketView,
+  deleteTicketView,
+  listAgents,
+  listContacts,
+  listGroups,
+  listTicketViews,
+  listTickets,
+  updateTicket,
+} from "../lib/apiClient";
 import { avatarColor, initials } from "../lib/avatar";
 import { platformLabel, PLATFORMS } from "../lib/platform";
 import { relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
-import type { Agent, Contact, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus } from "../types/ticket";
+import type { Agent, Contact, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus, TicketView } from "../types/ticket";
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -45,6 +56,11 @@ export default function TicketListPage() {
   const [bulkAgentId, setBulkAgentId] = useState("");
   const [bulkStatus, setBulkStatus] = useState<TicketStatus | "">("");
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  const [savedViews, setSavedViews] = useState<TicketView[]>([]);
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null);
+  const [savingViewForm, setSavingViewForm] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
 
   const load = () => {
     if (!tenantId) return;
@@ -95,6 +111,76 @@ export default function TicketListPage() {
         // contact/agent columns; a failure here shouldn't block the list.
       });
   }, [tenantId]);
+
+  const loadSavedViews = () => {
+    if (!tenantId) return;
+    listTicketViews(tenantId)
+      .then(setSavedViews)
+      .catch(() => {
+        // Saved views are a convenience layer on top of the filter bar;
+        // a failure here shouldn't block the ticket list itself.
+      });
+  };
+
+  useEffect(loadSavedViews, [tenantId]);
+
+  const currentFilters = () => ({
+    status,
+    priority,
+    platform,
+    groupId,
+    agentId,
+    createdFrom,
+    createdTo,
+    resolvedFrom,
+    resolvedTo,
+  });
+
+  const applySavedView = (savedView: TicketView) => {
+    const f = savedView.filters as Partial<ReturnType<typeof currentFilters>>;
+    setView("all");
+    setActiveSavedViewId(savedView.id);
+    setStatus((f.status as TicketStatus) ?? "");
+    setPriority((f.priority as TicketPriority) ?? "");
+    setPlatform((f.platform as TicketPlatform) ?? "");
+    setGroupId(f.groupId ?? "");
+    setAgentId(f.agentId ?? "");
+    setCreatedFrom(f.createdFrom ?? "");
+    setCreatedTo(f.createdTo ?? "");
+    setResolvedFrom(f.resolvedFrom ?? "");
+    setResolvedTo(f.resolvedTo ?? "");
+  };
+
+  const selectStandardView = (key: ViewKey) => {
+    setActiveSavedViewId(null);
+    setView(key);
+  };
+
+  const handleSaveView = (event: FormEvent) => {
+    event.preventDefault();
+    if (!tenantId || !newViewName.trim()) return;
+    createTicketView(tenantId, { name: newViewName.trim(), filters: currentFilters() })
+      .then((created) => {
+        setNewViewName("");
+        setSavingViewForm(false);
+        loadSavedViews();
+        setActiveSavedViewId(created.id);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to save view"));
+  };
+
+  const handleDeleteSavedView = (savedView: TicketView) => {
+    if (!tenantId) return;
+    deleteTicketView(tenantId, savedView.id)
+      .then(() => {
+        if (activeSavedViewId === savedView.id) {
+          setActiveSavedViewId(null);
+          setView("all");
+        }
+        loadSavedViews();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to delete view"));
+  };
 
   const contactNameById = new Map(contacts.map((c) => [c.id, c.name]));
   const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
@@ -168,12 +254,47 @@ export default function TicketListPage() {
           <button
             key={v.key}
             type="button"
-            className={`view-tab${view === v.key ? " view-tab-active" : ""}`}
-            onClick={() => setView(v.key)}
+            className={`view-tab${!activeSavedViewId && view === v.key ? " view-tab-active" : ""}`}
+            onClick={() => selectStandardView(v.key)}
           >
             {v.label}
           </button>
         ))}
+        {savedViews.map((v) => (
+          <span key={v.id} className={`view-tab view-tab-saved${activeSavedViewId === v.id ? " view-tab-active" : ""}`}>
+            <button type="button" className="view-tab-saved-label" onClick={() => applySavedView(v)}>
+              {v.name}
+            </button>
+            <button
+              type="button"
+              className="view-tab-saved-remove"
+              aria-label={`Delete view ${v.name}`}
+              onClick={() => handleDeleteSavedView(v)}
+            >
+              &times;
+            </button>
+          </span>
+        ))}
+        {savingViewForm ? (
+          <form className="view-tab-save-form" onSubmit={handleSaveView}>
+            <input
+              autoFocus
+              placeholder="View name"
+              value={newViewName}
+              onChange={(e) => setNewViewName(e.target.value)}
+            />
+            <button type="submit" className="link-button">
+              Save
+            </button>
+            <button type="button" className="link-button" onClick={() => setSavingViewForm(false)}>
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <button type="button" className="link-button view-tab-save-trigger" onClick={() => setSavingViewForm(true)}>
+            + Save current filters
+          </button>
+        )}
       </div>
 
       <div className="filters-bar">

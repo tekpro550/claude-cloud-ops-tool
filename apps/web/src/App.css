@@ -368,6 +368,57 @@ button:disabled {
   opacity: 0.75;
 }
 
+.view-tab-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0 0 0.2rem;
+}
+
+.view-tab-saved-label {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.55rem 0.3rem 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.view-tab-saved-remove {
+  background: transparent;
+  border: none;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.view-tab-saved-remove:hover {
+  opacity: 1;
+  color: var(--color-danger);
+}
+
+.view-tab-save-trigger {
+  margin: 0.55rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.view-tab-save-form {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.3rem 0.5rem;
+}
+
+.view-tab-save-form input {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+  width: 10rem;
+}
+
 .filters-bar {
   display: flex;
   flex-wrap: wrap;
@@ -807,6 +858,31 @@ td {
   font-weight: 600;
 }
 
+.presence-banner {
+  margin: 0 0 -0.25rem;
+  font-style: italic;
+}
+
+.satisfaction-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.csat-happy {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.csat-neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral);
+}
+.csat-unhappy {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
 .ticket-detail-header {
   margin-bottom: 1rem;
 }
@@ -1147,6 +1223,63 @@ td {
 
 .trends-table {
   font-size: 0.85rem;
+}
+
+.admin-module-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-module-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 220px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 0.85rem 1.1rem;
+}
+
+.admin-module-tab:hover:not(:disabled) {
+  border-color: var(--color-primary-border);
+  background: var(--color-surface-hover);
+}
+
+.admin-module-tab-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-module-tab-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.admin-module-tab-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-module-tab-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.admin-module-tab-active .admin-module-tab-label {
+  color: var(--color-primary);
+}
+
+.admin-module-tab-description {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
 }
 
 .admin-group {

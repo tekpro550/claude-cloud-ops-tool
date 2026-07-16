@@ -8,6 +8,7 @@ import type {
   CannedResponseFolder,
   Company,
   Contact,
+  CsatSummary,
   DashboardActivityItem,
   DashboardSlaSummary,
   DashboardSummary,
@@ -28,12 +29,15 @@ import type {
   TicketMessageAuthorType,
   TicketMessageType,
   TicketPlatform,
+  TicketPresenceEntry,
   TicketPriority,
+  TicketSatisfactionEntry,
   TicketStatus,
   TicketTimelineItem,
   TicketTimeLogList,
   TicketTodo,
   TicketType,
+  TicketView,
 } from "../types/ticket";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
@@ -410,6 +414,7 @@ export function createAutomationRule(
     trigger: AutomationTrigger;
     position?: number;
     isActive?: boolean;
+    timeTriggerMinutes?: number;
     conditions: AutomationCondition[];
     actions: AutomationAction[];
   },
@@ -425,6 +430,7 @@ export function updateAutomationRule(
     trigger?: AutomationTrigger;
     position?: number;
     isActive?: boolean;
+    timeTriggerMinutes?: number;
     conditions?: AutomationCondition[];
     actions?: AutomationAction[];
   },
@@ -607,4 +613,41 @@ export function updateSolution(
 
 export function deleteSolution(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/admin/solutions/${id}`);
+}
+
+// ---- Ticket presence (collision detection) ----
+
+export function heartbeatPresence(tenantId: string, ticketId: string, isTyping: boolean): Promise<void> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/presence`, { isTyping });
+}
+
+export function getPresence(tenantId: string, ticketId: string): Promise<TicketPresenceEntry[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/presence`);
+}
+
+// ---- Saved/custom ticket views ----
+
+export function listTicketViews(tenantId: string): Promise<TicketView[]> {
+  return request(tenantId, "GET", "/ticket-views");
+}
+
+export function createTicketView(
+  tenantId: string,
+  input: { name: string; filters: Record<string, unknown> },
+): Promise<TicketView> {
+  return request(tenantId, "POST", "/ticket-views", input);
+}
+
+export function deleteTicketView(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/ticket-views/${id}`);
+}
+
+// ---- CSAT ----
+
+export function getTicketSatisfaction(tenantId: string, ticketId: string): Promise<TicketSatisfactionEntry | null> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/satisfaction`);
+}
+
+export function getCsatSummary(tenantId: string, days = 30): Promise<CsatSummary> {
+  return request(tenantId, "GET", `/dashboard/csat-summary?days=${days}`);
 }

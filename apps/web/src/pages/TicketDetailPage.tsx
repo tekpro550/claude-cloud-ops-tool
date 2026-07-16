@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -6,7 +6,10 @@ import {
   ApiError,
   downloadTicketAttachment,
   getContact,
+  getPresence,
   getTicket,
+  getTicketSatisfaction,
+  heartbeatPresence,
   listAgents,
   listCannedResponseFolders,
   listCannedResponses,
@@ -18,6 +21,7 @@ import {
   uploadTicketAttachment,
   type UpdateTicketInput,
 } from "../lib/apiClient";
+import { useAuth } from "../lib/auth";
 import { avatarColor, initials } from "../lib/avatar";
 import { platformLabel, PLATFORMS } from "../lib/platform";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
@@ -39,10 +43,14 @@ import type {
   TicketAttachment,
   TicketMessage,
   TicketMessageType,
+  TicketPresenceEntry,
   TicketPriority,
+  TicketSatisfactionEntry,
   TicketStatus,
   TicketType,
 } from "../types/ticket";
+
+const PRESENCE_POLL_MS = 5000;
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -71,6 +79,11 @@ export default function TicketDetailPage() {
   const [timelineRefreshSignal, setTimelineRefreshSignal] = useState(0);
   const bumpTimeline = () => setTimelineRefreshSignal((s) => s + 1);
 
+  const { user } = useAuth();
+  const [presence, setPresence] = useState<TicketPresenceEntry[]>([]);
+  const [satisfaction, setSatisfaction] = useState<TicketSatisfactionEntry | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const load = () => {
     if (!tenantId || !id) return;
     setLoading(true);
@@ -86,12 +99,45 @@ export default function TicketDetailPage() {
             // The header's "Reported by" line is decorative; a lookup
             // failure shouldn't block the rest of the ticket from loading.
           });
+        getTicketSatisfaction(tenantId, id)
+          .then(setSatisfaction)
+          .catch(() => {
+            // The CSAT panel is supplementary; a lookup failure shouldn't
+            // block the rest of the ticket from loading.
+          });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load ticket"))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [tenantId, id]);
+
+  // Poll for other agents' presence, and heartbeat our own "viewing" state,
+  // since there's no realtime/websocket transport in this app yet.
+  useEffect(() => {
+    if (!tenantId || !id) return;
+    const poll = () => getPresence(tenantId, id).then(setPresence).catch(() => {});
+    poll();
+    const interval = setInterval(poll, PRESENCE_POLL_MS);
+    return () => clearInterval(interval);
+  }, [tenantId, id]);
+
+  useEffect(() => {
+    if (!tenantId || !id || !user) return;
+    const beat = () => heartbeatPresence(tenantId, id, false).catch(() => {});
+    beat();
+    const interval = setInterval(beat, PRESENCE_POLL_MS);
+    return () => clearInterval(interval);
+  }, [tenantId, id, user]);
+
+  const notifyTyping = () => {
+    if (!tenantId || !id || !user) return;
+    heartbeatPresence(tenantId, id, true).catch(() => {});
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      heartbeatPresence(tenantId, id, false).catch(() => {});
+    }, 3000);
+  };
 
   useEffect(() => {
     if (!tenantId) return;
@@ -333,6 +379,21 @@ export default function TicketDetailPage() {
       title: "Time logs",
       content: <TicketTimeLogs tenantId={tenantId} ticketId={ticket.id} onChange={bumpTimeline} />,
     },
+    {
+      id: "satisfaction",
+      title: "Satisfaction",
+      content: satisfaction ? (
+        <div className="satisfaction-panel">
+          <span className={`badge csat-${satisfaction.rating}`}>
+            {satisfaction.rating === "happy" ? "😊 Happy" : satisfaction.rating === "neutral" ? "😐 Neutral" : "😞 Unhappy"}
+          </span>
+          {satisfaction.comment && <p className="hint">"{satisfaction.comment}"</p>}
+          <span className="hint">Rated {relativeTime(satisfaction.rated_at)}</span>
+        </div>
+      ) : (
+        <p className="hint">Not yet rated by the customer.</p>
+      ),
+    },
   ];
 
   return (
@@ -447,10 +508,18 @@ export default function TicketDetailPage() {
                 </select>
               )}
             </div>
+            {presence.length > 0 && (
+              <p className="hint presence-banner">
+                {presence.map((p) => (p.is_typing ? `${p.agent_name} is replying…` : `${p.agent_name} is viewing this ticket`)).join(" · ")}
+              </p>
+            )}
             <textarea
               placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
               value={messageBody}
-              onChange={(e) => setMessageBody(e.target.value)}
+              onChange={(e) => {
+                setMessageBody(e.target.value);
+                notifyTyping();
+              }}
               rows={3}
               required
             />

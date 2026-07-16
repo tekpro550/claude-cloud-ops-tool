@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
@@ -12,9 +16,10 @@ import {
   UpdateAutomationRuleDto,
 } from './automation-rules.dto';
 
-export type AutomationTrigger = 'ticket_created' | 'ticket_updated';
+export type AutomationTrigger =
+  'ticket_created' | 'ticket_updated' | 'time_based';
 
-interface AutomationCondition {
+export interface AutomationCondition {
   field:
     | 'status'
     | 'priority'
@@ -27,7 +32,10 @@ interface AutomationCondition {
   value: string;
 }
 
-function conditionMatches(
+// Exported so TimeAutomationSweepService can evaluate the same conditions
+// DSL against tickets found by elapsed time, instead of duplicating the
+// matching logic for a second trigger path.
+export function conditionMatches(
   ticket: Record<string, any>,
   condition: AutomationCondition,
 ): boolean {
@@ -48,11 +56,16 @@ export class AutomationRulesService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   create(tenantId: string, dto: CreateAutomationRuleDto) {
+    if (dto.trigger === 'time_based' && !dto.timeTriggerMinutes) {
+      throw new BadRequestException(
+        "trigger 'time_based' requires timeTriggerMinutes",
+      );
+    }
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       await assertActionTargetsBelongToTenant(queryRunner, dto.actions);
       const [rule] = await queryRunner.query(
-        `INSERT INTO automation_rules (tenant_id, name, trigger, position, is_active, conditions, actions)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO automation_rules (tenant_id, name, trigger, position, is_active, conditions, actions, time_trigger_minutes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
           tenantId,
@@ -62,6 +75,7 @@ export class AutomationRulesService {
           dto.isActive ?? true,
           JSON.stringify(dto.conditions),
           JSON.stringify(dto.actions),
+          dto.timeTriggerMinutes ?? null,
         ],
       );
       return rule;
@@ -100,6 +114,8 @@ export class AutomationRulesService {
       if (dto.trigger !== undefined) assign('trigger', dto.trigger);
       if (dto.position !== undefined) assign('position', dto.position);
       if (dto.isActive !== undefined) assign('is_active', dto.isActive);
+      if (dto.timeTriggerMinutes !== undefined)
+        assign('time_trigger_minutes', dto.timeTriggerMinutes);
       if (dto.conditions !== undefined)
         assign('conditions', JSON.stringify(dto.conditions));
       if (dto.actions !== undefined)
