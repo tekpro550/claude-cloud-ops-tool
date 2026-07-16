@@ -1948,6 +1948,34 @@ td {
   flex: 1;
   min-width: 0;
 }
+.ticket-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.ticket-links-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.ticket-links-subject {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-links-form {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.ticket-links-form input {
+  width: 5.5rem;
+}
 
 .custom-field-list {
   list-style: none;

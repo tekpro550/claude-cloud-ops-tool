@@ -31,6 +31,7 @@ import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
 import TicketCustomFields from "../components/TicketCustomFields";
+import TicketLinks from "../components/TicketLinks";
 import TicketMerge from "../components/TicketMerge";
 import TicketScenarios from "../components/TicketScenarios";
 import TicketTags from "../components/TicketTags";
@@ -400,6 +401,11 @@ export default function TicketDetailPage() {
           }}
         />
       ),
+    },
+    {
+      id: "links",
+      title: "Linked tickets",
+      content: <TicketLinks tenantId={tenantId} ticketId={ticket.id} />,
     },
     {
       id: "merge",

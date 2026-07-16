@@ -191,6 +191,30 @@ export function mergeTickets(tenantId: string, primaryId: string, sourceTicketId
   return request(tenantId, "POST", `/tickets/${primaryId}/merge`, { sourceTicketIds });
 }
 
+export type TicketLinkRelation = "related" | "parent" | "child";
+export type TicketLinkType = "related" | "parent_of" | "child_of";
+
+export interface LinkedTicket {
+  linkId: string;
+  relation: TicketLinkRelation;
+  ticketId: string;
+  ticketNumber: number;
+  subject: string;
+  status: string;
+}
+
+export function listTicketLinks(tenantId: string, ticketId: string): Promise<LinkedTicket[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/links`);
+}
+
+export function createTicketLink(tenantId: string, ticketId: string, toTicketNumber: number, linkType: TicketLinkType): Promise<unknown> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/links`, { toTicketNumber, linkType });
+}
+
+export function deleteTicketLink(tenantId: string, ticketId: string, linkId: string): Promise<void> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/links/${linkId}`);
+}
+
 export type CustomFieldType = "text" | "number" | "dropdown" | "checkbox" | "date";
 
 export interface CustomFieldDef {

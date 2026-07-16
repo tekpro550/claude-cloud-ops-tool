@@ -46,6 +46,8 @@ import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
 import { SolutionsController } from './solutions.controller';
 import { SolutionsService } from './solutions.service';
+import { TicketLinksController } from './ticket-links/ticket-links.controller';
+import { TicketLinksService } from './ticket-links/ticket-links.service';
 import { TicketPresenceController } from './ticket-presence.controller';
 import { TicketPresenceService } from './ticket-presence.service';
 import { TicketSatisfactionService } from './ticket-satisfaction.service';
@@ -93,6 +95,7 @@ import { TicketsService } from './tickets.service';
     TicketViewsController,
     BusinessHoursSettingsController,
     CustomFieldsController,
+    TicketLinksController,
   ],
   providers: [
     TicketsService,
@@ -126,6 +129,7 @@ import { TicketsService } from './tickets.service';
     SolutionsService,
     AttachmentsService,
     LocalDiskStorage,
+    TicketLinksService,
   ],
 })
 export class TicketingModule {}
