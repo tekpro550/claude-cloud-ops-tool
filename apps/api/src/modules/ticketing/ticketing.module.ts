@@ -12,6 +12,8 @@ import { LocalDiskStorage } from './attachments/object-storage';
 import { AutomationRulesController } from './automation/automation-rules.controller';
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { TimeAutomationSweepService } from './automation/time-automation-sweep.service';
+import { BusinessHoursSettingsController } from './business-hours-settings.controller';
+import { BusinessHoursSettingsService } from './business-hours-settings.service';
 import { CannedResponseFoldersController } from './canned-response-folders.controller';
 import { CannedResponseFoldersService } from './canned-response-folders.service';
 import { CannedResponsesController } from './canned-responses.controller';
@@ -87,6 +89,7 @@ import { TicketsService } from './tickets.service';
     AttachmentsController,
     TicketPresenceController,
     TicketViewsController,
+    BusinessHoursSettingsController,
   ],
   providers: [
     TicketsService,
@@ -94,6 +97,7 @@ import { TicketsService } from './tickets.service';
     OverdueSweepService,
     TicketPresenceService,
     TicketViewsService,
+    BusinessHoursSettingsService,
     TicketSatisfactionService,
     GroupsService,
     AgentsService,

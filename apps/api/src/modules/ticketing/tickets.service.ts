@@ -14,6 +14,7 @@ import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { BusinessHours } from './sla/business-hours';
 import { calculateDueDates, SlaTargets } from './sla/calculate-due-dates';
 
 /**
@@ -80,6 +81,25 @@ async function fetchSlaPolicy(
     [slaPolicyId],
   );
   return policy ?? null;
+}
+
+/** The tenant's configured working window, used for business_hours_only SLA math. */
+async function fetchBusinessHours(
+  queryRunner: QueryRunner,
+  tenantId: string,
+): Promise<BusinessHours | null> {
+  const [row] = await queryRunner.query(
+    `SELECT business_hours_start_minute, business_hours_end_minute, business_hours_days, business_hours_timezone
+     FROM tenants WHERE id = $1`,
+    [tenantId],
+  );
+  if (!row) return null;
+  return {
+    startMinute: row.business_hours_start_minute,
+    endMinute: row.business_hours_end_minute,
+    days: row.business_hours_days,
+    timezone: row.business_hours_timezone,
+  };
 }
 
 @Injectable()
@@ -157,6 +177,9 @@ export class TicketsService {
       }
 
       const slaPolicy = await fetchSlaPolicy(queryRunner, slaPolicyId);
+      const businessHours = slaPolicy?.business_hours_only
+        ? await fetchBusinessHours(queryRunner, tenantId)
+        : null;
       const ticketNumber = await nextTicketNumber(queryRunner, tenantId);
       // Computed from the same Date instance used for the created_at column
       // below, so the due dates are never a few milliseconds off from what
@@ -165,6 +188,7 @@ export class TicketsService {
       const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
         createdAt,
         slaPolicy,
+        businessHours,
       );
 
       const [ticket] = await queryRunner.query(
@@ -431,9 +455,13 @@ export class TicketsService {
 
         if (newSlaPolicyId !== existing.sla_policy_id) {
           const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
+          const businessHours = slaPolicy?.business_hours_only
+            ? await fetchBusinessHours(queryRunner, tenantId)
+            : null;
           const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
             existing.created_at,
             slaPolicy,
+            businessHours,
           );
           assign('sla_policy_id', newSlaPolicyId);
           assign('first_response_due_at', firstResponseDueAt);

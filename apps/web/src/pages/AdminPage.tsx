@@ -3,6 +3,7 @@ import AgentsAdmin from "../components/admin/AgentsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
 import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
+import BusinessHoursAdmin from "../components/admin/BusinessHoursAdmin";
 import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFoldersAdmin";
 import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import CloudCredentialsAdmin from "../components/admin/CloudCredentialsAdmin";
@@ -107,6 +108,7 @@ export default function AdminPage() {
             <h3>Support Operations</h3>
             <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
             <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
+            <BusinessHoursAdmin tenantId={tenantId} onChange={handleChange} />
           </section>
 
           <section className="admin-group">

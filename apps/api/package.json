@@ -29,6 +29,7 @@
     "tickets-api:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-tickets-api.ts",
     "email-intake:verify": "ts-node -r dotenv/config src/modules/ticketing/email-intake/scripts/verify-email-intake.ts",
     "sla-calc:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-sla-calculation.ts",
+    "business-hours:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-business-hours.ts",
     "overdue-sweep:verify": "ts-node -r dotenv/config src/modules/ticketing/sla/scripts/verify-overdue-sweep.ts",
     "automation-rules:verify": "ts-node -r dotenv/config src/modules/ticketing/automation/scripts/verify-automation-rules.ts",
     "time-automation:verify": "ts-node -r dotenv/config src/modules/ticketing/automation/scripts/verify-time-automation.ts",

@@ -651,3 +651,20 @@ export function getTicketSatisfaction(tenantId: string, ticketId: string): Promi
 export function getCsatSummary(tenantId: string, days = 30): Promise<CsatSummary> {
   return request(tenantId, "GET", `/dashboard/csat-summary?days=${days}`);
 }
+
+// ---- Business hours (SLA working window) ----
+
+export interface BusinessHours {
+  startMinute: number;
+  endMinute: number;
+  days: number[];
+  timezone: string;
+}
+
+export function getBusinessHours(tenantId: string): Promise<BusinessHours> {
+  return request(tenantId, "GET", "/business-hours");
+}
+
+export function updateBusinessHours(tenantId: string, input: Partial<BusinessHours>): Promise<BusinessHours> {
+  return request(tenantId, "PATCH", "/business-hours", input);
+}

@@ -1740,3 +1740,25 @@ td {
 .line-items-table-wrap tbody tr:hover {
   background: var(--color-surface-2);
 }
+
+/* Business-hours day toggles (admin) */
+.business-hours-days {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+.business-hours-day {
+  min-width: 2.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+.business-hours-day-active {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
