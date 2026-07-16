@@ -22,6 +22,8 @@ import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
+import { CustomFieldsController } from './custom-fields/custom-fields.controller';
+import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { EmailIntakeService } from './email-intake/email-intake.service';
@@ -90,6 +92,7 @@ import { TicketsService } from './tickets.service';
     TicketPresenceController,
     TicketViewsController,
     BusinessHoursSettingsController,
+    CustomFieldsController,
   ],
   providers: [
     TicketsService,
@@ -98,6 +101,7 @@ import { TicketsService } from './tickets.service';
     TicketPresenceService,
     TicketViewsService,
     BusinessHoursSettingsService,
+    CustomFieldsService,
     TicketSatisfactionService,
     GroupsService,
     AgentsService,

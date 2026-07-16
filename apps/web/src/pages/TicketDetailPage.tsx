@@ -30,6 +30,7 @@ import { useTenant } from "../lib/tenant";
 import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
+import TicketCustomFields from "../components/TicketCustomFields";
 import TicketScenarios from "../components/TicketScenarios";
 import TicketTags from "../components/TicketTags";
 import TicketTimeline from "../components/TicketTimeline";
@@ -173,6 +174,22 @@ export default function TicketDetailPage() {
         bumpTimeline();
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update ticket"))
+      .finally(() => setSaving(false));
+  };
+
+  const handleCustomFieldChange = (key: string, value: unknown) => {
+    if (!tenantId || !id) return;
+    // Only PATCH when the value actually changed from what's stored -- the
+    // text inputs fire on both change and blur, so this avoids redundant saves.
+    if ((ticket?.custom_fields?.[key] ?? "") === (value ?? "")) return;
+    setSaving(true);
+    setError(null);
+    updateTicket(tenantId, id, { customFields: { [key]: value } })
+      .then((updated) => {
+        setTicket(updated);
+        bumpTimeline();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update field"))
       .finally(() => setSaving(false));
   };
 
@@ -359,6 +376,12 @@ export default function TicketDetailPage() {
               onChange={handleTagsChange}
             />
           </label>
+          <TicketCustomFields
+            tenantId={tenantId}
+            values={ticket.custom_fields ?? {}}
+            disabled={saving}
+            onChange={handleCustomFieldChange}
+          />
           <span className="hint">Source: {ticket.source}</span>
         </div>
       ),

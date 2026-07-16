@@ -22,6 +22,7 @@ export interface Ticket {
   agent_id: string | null;
   platform: TicketPlatform | null;
   tags: string[];
+  custom_fields: Record<string, unknown>;
   resource_id: string | null;
   sla_policy_id: string | null;
   first_response_due_at: string | null;

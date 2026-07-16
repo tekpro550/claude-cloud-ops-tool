@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -85,4 +86,10 @@ export class CreateTicketDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  // Validated against the tenant's active custom-field definitions in the
+  // service, so an open jsonb map is fine at the DTO boundary.
+  @IsOptional()
+  @IsObject()
+  customFields?: Record<string, unknown>;
 }

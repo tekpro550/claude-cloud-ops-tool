@@ -9,6 +9,8 @@ import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { CustomFieldsService } from './custom-fields/custom-fields.service';
+import { validateCustomFields } from './custom-fields/custom-field-validate';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
@@ -192,9 +194,17 @@ export class TicketsService {
         businessHours,
       );
 
+      const customFieldDefs = await CustomFieldsService.loadDefs(queryRunner);
+      let customFields: Record<string, unknown>;
+      try {
+        customFields = validateCustomFields(customFieldDefs, dto.customFields);
+      } catch (err) {
+        throw new BadRequestException((err as Error).message);
+      }
+
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags, custom_fields)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17, $18)
          RETURNING *`,
         [
           tenantId,
@@ -214,6 +224,7 @@ export class TicketsService {
           createdAt,
           dto.platform ?? null,
           dto.tags ?? [],
+          JSON.stringify(customFields),
         ],
       );
       return this.automationRules.runRules(
@@ -472,6 +483,23 @@ export class TicketsService {
             new Set(dto.tags.map((t) => t.trim()).filter((t) => t.length > 0)),
           );
           assign('tags', tags);
+        }
+        if (dto.customFields !== undefined) {
+          // Partial merge: the submitted keys overlay whatever's stored, then
+          // the whole map is re-validated so required fields already set stay
+          // satisfied and each value still matches its (possibly changed) def.
+          const defs = await CustomFieldsService.loadDefs(queryRunner);
+          const merged = {
+            ...((existing.custom_fields as Record<string, unknown>) ?? {}),
+            ...dto.customFields,
+          };
+          let validated: Record<string, unknown>;
+          try {
+            validated = validateCustomFields(defs, merged);
+          } catch (err) {
+            throw new BadRequestException((err as Error).message);
+          }
+          assign('custom_fields', JSON.stringify(validated));
         }
         if (dto.ticketTypeId !== undefined) {
           trackChange(

@@ -139,6 +139,7 @@ export interface CreateTicketInput {
   priority?: TicketPriority;
   platform?: TicketPlatform;
   tags?: string[];
+  customFields?: Record<string, unknown>;
 }
 
 export function createTicket(tenantId: string, input: CreateTicketInput): Promise<Ticket> {
@@ -171,6 +172,7 @@ export interface UpdateTicketInput {
   agentId?: string;
   ticketTypeId?: string;
   tags?: string[];
+  customFields?: Record<string, unknown>;
 }
 
 export function updateTicket(tenantId: string, id: string, input: UpdateTicketInput): Promise<Ticket> {
@@ -179,6 +181,52 @@ export function updateTicket(tenantId: string, id: string, input: UpdateTicketIn
 
 export function listTicketTags(tenantId: string): Promise<string[]> {
   return request(tenantId, "GET", "/tickets/tags");
+}
+
+export type CustomFieldType = "text" | "number" | "dropdown" | "checkbox" | "date";
+
+export interface CustomFieldDef {
+  id: string;
+  key: string;
+  label: string;
+  field_type: CustomFieldType;
+  options: string[];
+  is_required: boolean;
+  is_active: boolean;
+  position: number;
+}
+
+export interface CreateCustomFieldInput {
+  key: string;
+  label: string;
+  fieldType: CustomFieldType;
+  options?: string[];
+  isRequired?: boolean;
+  position?: number;
+}
+
+export interface UpdateCustomFieldInput {
+  label?: string;
+  options?: string[];
+  isRequired?: boolean;
+  isActive?: boolean;
+  position?: number;
+}
+
+export function listCustomFields(tenantId: string): Promise<CustomFieldDef[]> {
+  return request(tenantId, "GET", "/ticket-custom-fields");
+}
+
+export function createCustomField(tenantId: string, input: CreateCustomFieldInput): Promise<CustomFieldDef> {
+  return request(tenantId, "POST", "/ticket-custom-fields", input);
+}
+
+export function updateCustomField(tenantId: string, id: string, input: UpdateCustomFieldInput): Promise<CustomFieldDef> {
+  return request(tenantId, "PATCH", `/ticket-custom-fields/${id}`, input);
+}
+
+export function deleteCustomField(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/ticket-custom-fields/${id}`);
 }
 
 export interface AuditLogEntry {

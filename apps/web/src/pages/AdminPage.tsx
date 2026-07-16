@@ -9,6 +9,7 @@ import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFolder
 import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import CloudCredentialsAdmin from "../components/admin/CloudCredentialsAdmin";
 import CostBudgetsAdmin from "../components/admin/CostBudgetsAdmin";
+import CustomFieldsAdmin from "../components/admin/CustomFieldsAdmin";
 import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
@@ -110,6 +111,7 @@ export default function AdminPage() {
             <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
             <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
             <BusinessHoursAdmin tenantId={tenantId} onChange={handleChange} />
+            <CustomFieldsAdmin tenantId={tenantId} onChange={handleChange} />
           </section>
 
           <section className="admin-group">

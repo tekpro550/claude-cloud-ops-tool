@@ -1939,6 +1939,53 @@ td {
   text-align: right;
 }
 
+.custom-field-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.custom-field-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.custom-field-label {
+  font-weight: 600;
+}
+.custom-field-key {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+}
+.custom-field-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.custom-field-form input[type="text"],
+.custom-field-form input:not([type]),
+.custom-field-form select {
+  font-size: 0.85rem;
+}
+.custom-field-required {
+  color: #dc2626;
+}
+.custom-field-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .audit-log-list {
   list-style: none;
   padding: 0;
