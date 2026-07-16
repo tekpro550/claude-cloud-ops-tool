@@ -1986,6 +1986,39 @@ td {
   white-space: nowrap;
 }
 
+.ai-assist {
+  margin: 0.5rem 0;
+}
+.ai-assist-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.ai-assist-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6366f1;
+}
+.ai-assist-summary {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.ai-assist-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+.ai-assist-summary p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .reports-header {
   display: flex;
   align-items: center;

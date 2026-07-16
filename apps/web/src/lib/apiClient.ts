@@ -183,6 +183,23 @@ export function listTicketTags(tenantId: string): Promise<string[]> {
   return request(tenantId, "GET", "/tickets/tags");
 }
 
+export interface AiAssistResult {
+  enabled: boolean;
+  result?: string;
+}
+
+export function getTicketAiStatus(tenantId: string): Promise<{ enabled: boolean }> {
+  return request(tenantId, "GET", "/ticket-ai/status");
+}
+
+export function summarizeTicket(tenantId: string, ticketId: string): Promise<AiAssistResult> {
+  return request(tenantId, "POST", `/ticket-ai/${ticketId}/summarize`);
+}
+
+export function suggestTicketReply(tenantId: string, ticketId: string): Promise<AiAssistResult> {
+  return request(tenantId, "POST", `/ticket-ai/${ticketId}/suggest-reply`);
+}
+
 export interface ReportsSummary {
   window: { from: string; to: string };
   volume: { day: string; created: number; resolved: number }[];

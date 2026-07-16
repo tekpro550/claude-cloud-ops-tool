@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventBusModule } from '../../event-bus/event-bus.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { PlatformModule } from '../platform/platform.module';
+import {
+  AI_COMPLETION_CLIENT,
+  createCompletionClient,
+} from './ai/ai-completion.client';
+import { TicketAiController } from './ai/ticket-ai.controller';
+import { TicketAiService } from './ai/ticket-ai.service';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AgentsController } from './agents.controller';
@@ -102,6 +109,7 @@ import { TicketsService } from './tickets.service';
     TicketLinksController,
     TicketWatchersController,
     ReportsController,
+    TicketAiController,
   ],
   providers: [
     TicketsService,
@@ -138,6 +146,12 @@ import { TicketsService } from './tickets.service';
     TicketLinksService,
     TicketWatchersService,
     ReportsService,
+    TicketAiService,
+    {
+      provide: AI_COMPLETION_CLIENT,
+      inject: [ConfigService],
+      useFactory: createCompletionClient,
+    },
   ],
 })
 export class TicketingModule {}

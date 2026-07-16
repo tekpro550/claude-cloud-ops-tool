@@ -30,6 +30,7 @@ import { useTenant } from "../lib/tenant";
 import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
+import TicketAiAssist from "../components/TicketAiAssist";
 import TicketCustomFields from "../components/TicketCustomFields";
 import TicketLinks from "../components/TicketLinks";
 import TicketMerge from "../components/TicketMerge";
@@ -554,6 +555,21 @@ export default function TicketDetailPage() {
               );
             })}
           </ul>
+
+          <TicketAiAssist
+            tenantId={tenantId}
+            ticketId={ticket.id}
+            onSuggestReply={(text) => {
+              // Drop the drafted reply into the composer as simple HTML
+              // paragraphs and switch to Reply mode for the agent to review/edit.
+              const html = text
+                .split(/\n{2,}/)
+                .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+                .join("");
+              setMessageType("reply");
+              setMessageBody(html);
+            }}
+          />
 
           <form
             className={`message-composer${messageType === "note" ? " message-composer-note" : ""}`}
