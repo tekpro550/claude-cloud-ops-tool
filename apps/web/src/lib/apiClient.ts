@@ -183,6 +183,14 @@ export function listTicketTags(tenantId: string): Promise<string[]> {
   return request(tenantId, "GET", "/tickets/tags");
 }
 
+export function getTicketByNumber(tenantId: string, ticketNumber: number): Promise<Ticket> {
+  return request(tenantId, "GET", `/tickets/by-number/${ticketNumber}`);
+}
+
+export function mergeTickets(tenantId: string, primaryId: string, sourceTicketIds: string[]): Promise<Ticket> {
+  return request(tenantId, "POST", `/tickets/${primaryId}/merge`, { sourceTicketIds });
+}
+
 export type CustomFieldType = "text" | "number" | "dropdown" | "checkbox" | "date";
 
 export interface CustomFieldDef {

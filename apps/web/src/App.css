@@ -1939,6 +1939,16 @@ td {
   text-align: right;
 }
 
+.ticket-merge-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.ticket-merge-row input {
+  flex: 1;
+  min-width: 0;
+}
+
 .custom-field-list {
   list-style: none;
   padding: 0;

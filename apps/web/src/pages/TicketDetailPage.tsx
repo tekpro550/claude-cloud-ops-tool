@@ -31,6 +31,7 @@ import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
 import TicketCustomFields from "../components/TicketCustomFields";
+import TicketMerge from "../components/TicketMerge";
 import TicketScenarios from "../components/TicketScenarios";
 import TicketTags from "../components/TicketTags";
 import TicketTimeline from "../components/TicketTimeline";
@@ -396,6 +397,23 @@ export default function TicketDetailPage() {
           onApplied={(updated) => {
             setTicket(updated);
             bumpTimeline();
+          }}
+        />
+      ),
+    },
+    {
+      id: "merge",
+      title: "Merge duplicates",
+      content: (
+        <TicketMerge
+          tenantId={tenantId}
+          ticket={ticket}
+          onMerged={(updated) => {
+            setTicket(updated);
+            bumpTimeline();
+            // The primary just absorbed the duplicates' conversation -- reload
+            // the thread so those messages show up immediately.
+            if (id) listTicketMessages(tenantId, id).then(setMessages).catch(() => {});
           }}
         />
       ),

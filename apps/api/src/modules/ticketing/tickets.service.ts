@@ -369,6 +369,89 @@ export class TicketsService {
     });
   }
 
+  /**
+   * Merges one or more duplicate source tickets into a primary: each source's
+   * conversation (messages + attachments) is carried over to the primary, the
+   * source is closed and stamped with merged_into_id, and both sides get a
+   * system note so the history is legible. Idempotent-ish: a source already
+   * merged (or that is the primary) is skipped rather than double-processed.
+   */
+  async merge(
+    tenantId: string,
+    primaryId: string,
+    sourceTicketIds: string[],
+  ): Promise<Record<string, unknown>> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [primary] = await queryRunner.query(
+        `SELECT * FROM tickets WHERE id = $1`,
+        [primaryId],
+      );
+      if (!primary) {
+        throw new NotFoundException(`Ticket ${primaryId} not found`);
+      }
+
+      const mergedNumbers: number[] = [];
+      for (const sourceId of sourceTicketIds) {
+        if (sourceId === primaryId) continue;
+        const [source] = await queryRunner.query(
+          `SELECT id, ticket_number, merged_into_id FROM tickets WHERE id = $1`,
+          [sourceId],
+        );
+        if (!source) {
+          throw new NotFoundException(`Ticket ${sourceId} not found`);
+        }
+        if (source.merged_into_id) continue; // already merged elsewhere
+
+        // Carry the conversation over to the primary.
+        await queryRunner.query(
+          `UPDATE ticket_messages SET ticket_id = $1 WHERE ticket_id = $2`,
+          [primaryId, sourceId],
+        );
+        await queryRunner.query(
+          `UPDATE ticket_attachments SET ticket_id = $1 WHERE ticket_id = $2`,
+          [primaryId, sourceId],
+        );
+
+        // Close the source and point it at the primary.
+        await queryRunner.query(
+          `UPDATE tickets SET status = 'closed', resolved_at = COALESCE(resolved_at, now()),
+             merged_into_id = $1, updated_at = now() WHERE id = $2`,
+          [primaryId, sourceId],
+        );
+        await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body)
+           VALUES ($1, $2, 'note', 'system', $3)`,
+          [
+            tenantId,
+            sourceId,
+            `This ticket was merged into #${primary.ticket_number}.`,
+          ],
+        );
+        mergedNumbers.push(source.ticket_number);
+      }
+
+      if (mergedNumbers.length > 0) {
+        await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body)
+           VALUES ($1, $2, 'note', 'system', $3)`,
+          [
+            tenantId,
+            primaryId,
+            `Merged in ticket(s): ${mergedNumbers
+              .map((n) => `#${n}`)
+              .join(', ')}.`,
+          ],
+        );
+      }
+
+      const [updated] = await queryRunner.query(
+        `SELECT * FROM tickets WHERE id = $1`,
+        [primaryId],
+      );
+      return updated;
+    });
+  }
+
   /** Used by email intake to correlate a reply's "[Ticket #N]" subject tag back to the ticket. */
   async findByTicketNumber(tenantId: string, ticketNumber: number) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
