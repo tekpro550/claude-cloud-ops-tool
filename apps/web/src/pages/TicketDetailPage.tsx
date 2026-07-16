@@ -27,6 +27,7 @@ import { platformLabel, PLATFORMS } from "../lib/platform";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
+import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
 import TicketScenarios from "../components/TicketScenarios";
@@ -176,7 +177,10 @@ export default function TicketDetailPage() {
 
   const handleAddMessage = (event: FormEvent) => {
     event.preventDefault();
-    if (!tenantId || !id || !messageBody.trim()) return;
+    // messageBody is now HTML; treat an editor holding only tags/whitespace
+    // (e.g. "<br>") as empty.
+    const hasContent = messageBody.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
+    if (!tenantId || !id || !hasContent) return;
     setPosting(true);
     setError(null);
     // authorType is a fallback for the (now rare) unauthenticated case --
@@ -446,7 +450,9 @@ export default function TicketDetailPage() {
                       <strong>{displayName}</strong>
                       <span>{new Date(message.created_at).toLocaleString()}</span>
                     </div>
-                    <div className="message-body">{message.body}</div>
+                    {/* Bodies are sanitized server-side on write (see
+                        sanitizeTicketBody), so the stored HTML is safe to render. */}
+                    <div className="message-body" dangerouslySetInnerHTML={{ __html: message.body }} />
                     {messageAttachments.length > 0 && (
                       <ul className="message-attachments">
                         {messageAttachments.map((a) => (
@@ -513,15 +519,11 @@ export default function TicketDetailPage() {
                 {presence.map((p) => (p.is_typing ? `${p.agent_name} is replying…` : `${p.agent_name} is viewing this ticket`)).join(" · ")}
               </p>
             )}
-            <textarea
-              placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
+            <RichTextEditor
               value={messageBody}
-              onChange={(e) => {
-                setMessageBody(e.target.value);
-                notifyTyping();
-              }}
-              rows={3}
-              required
+              onChange={setMessageBody}
+              onInput={notifyTyping}
+              placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
             />
             <input
               type="file"

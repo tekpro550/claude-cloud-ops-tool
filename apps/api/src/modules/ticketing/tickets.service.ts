@@ -14,6 +14,7 @@ import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { sanitizeTicketBody, htmlToPlainText } from './sanitize-html';
 import { BusinessHours } from './sla/business-hours';
 import { calculateDueDates, SlaTargets } from './sla/calculate-due-dates';
 
@@ -541,6 +542,11 @@ export class TicketsService {
           );
         }
 
+        // The composer now emits rich-text HTML, so every body is a stored
+        // XSS surface -- sanitize to a formatting allowlist before it's
+        // persisted and later rendered in the thread, the portal, and email.
+        const safeBody = sanitizeTicketBody(dto.body);
+
         const [message] = await queryRunner.query(
           `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, author_id, body, cc)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -551,7 +557,7 @@ export class TicketsService {
             dto.type,
             dto.authorType,
             dto.authorId ?? null,
-            dto.body,
+            safeBody,
             dto.cc ?? [],
           ],
         );
@@ -601,7 +607,9 @@ export class TicketsService {
               agentName,
               ticketNumber: ticket.ticket_number,
               subject: ticket.subject,
-              body: dto.body,
+              // The sanitized HTML rides the email's html part; a plain-text
+              // rendering rides the text part for clients that prefer it.
+              body: safeBody,
               cc: dto.cc ?? [],
             };
           }
@@ -624,7 +632,8 @@ export class TicketsService {
           payload: {
             ticketNumber: outbound.ticketNumber,
             subject: outbound.subject,
-            body: outbound.body,
+            body: htmlToPlainText(outbound.body),
+            bodyHtml: outbound.body,
             agentName: outbound.agentName,
             cc: outbound.cc,
           },

@@ -26,9 +26,15 @@ const templates: Record<string, TemplateRenderer> = {
   // the same ticket instead of opening a new one.
   'ticket.reply': (payload) => {
     const agentName = payload.agentName ? String(payload.agentName) : 'Support';
+    const bodyHtml = payload.bodyHtml ? String(payload.bodyHtml) : undefined;
     return {
       subject: `[Ticket #${payload.ticketNumber}] ${payload.subject}`,
       body: `${payload.body}\n\n— ${agentName}`,
+      // bodyHtml is the agent's already-sanitized rich-text reply; wrap it
+      // with the same signature line the plain-text part carries.
+      html: bodyHtml
+        ? `${bodyHtml}<p>— ${escapeHtml(agentName)}</p>`
+        : undefined,
     };
   },
   // EscalationSweepService (Module 2) does its own notification_templates
@@ -47,6 +53,14 @@ const templates: Record<string, TemplateRenderer> = {
     body: String(payload.body ?? ''),
   }),
 };
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 export function renderTemplate(
   templateName: string,

@@ -61,12 +61,17 @@ export default function TicketTimeline({
               <em>{resolveValue(item.field, item.old_value)}</em> to <em>{resolveValue(item.field, item.new_value)}</em>
             </>
           )}
-          {item.kind === "message" && (
-            <>
-              <strong className="hint">{item.type}</strong> by {item.author_type}: {item.body.slice(0, 120)}
-              {item.body.length > 120 ? "…" : ""}
-            </>
-          )}
+          {item.kind === "message" &&
+            (() => {
+              // Bodies are HTML now; show a plain-text preview in the timeline.
+              const text = item.body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+              return (
+                <>
+                  <strong className="hint">{item.type}</strong> by {item.author_type}: {text.slice(0, 120)}
+                  {text.length > 120 ? "…" : ""}
+                </>
+              );
+            })()}
           {item.kind === "time_log" && (
             <>
               logged <strong>{item.minutes} min</strong>
