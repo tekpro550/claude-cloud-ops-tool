@@ -72,7 +72,8 @@
     "rightsizing:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-rightsizing.ts",
     "cost-savings:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-savings.ts",
     "needs-attention-cost:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-needs-attention.ts",
-    "cost-dashboard:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-dashboard.ts"
+    "cost-dashboard:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-dashboard.ts",
+    "cost-anomaly:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-anomaly.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.1086.0",

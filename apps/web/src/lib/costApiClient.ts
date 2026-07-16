@@ -155,3 +155,26 @@ export function getCostDashboardSummary(tenantId: string): Promise<CostDashboard
 export function getCostDashboardTrend(tenantId: string): Promise<CostTrendPoint[]> {
   return request(tenantId, "GET", "/cost/dashboard/trend");
 }
+
+// ---- Cost anomalies ----
+
+export interface CostAnomaly {
+  id: string;
+  service: string;
+  region: string | null;
+  usage_date: string;
+  baseline_amount: string;
+  actual_amount: string;
+  deviation_pct: string;
+  reason_text: string;
+  status: string;
+  created_at: string;
+}
+
+export function listCostAnomalies(tenantId: string): Promise<CostAnomaly[]> {
+  return request(tenantId, "GET", "/cost/anomalies");
+}
+
+export function dismissCostAnomaly(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "PATCH", `/cost/anomalies/${id}/dismiss`);
+}

@@ -1824,3 +1824,30 @@ td {
 .message-body a {
   color: var(--color-primary);
 }
+
+/* Cost anomaly list */
+.anomaly-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.anomaly-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.anomaly-reason {
+  flex: 1;
+  font-size: 0.9rem;
+}
+.status-breached {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}

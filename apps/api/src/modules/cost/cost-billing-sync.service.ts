@@ -14,6 +14,7 @@ import {
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
 import { credentialsEncryptionKey } from '../monitoring/credentials-crypto';
+import { CostAnomalyCheckService } from './cost-anomaly-check.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
 
 interface CloudCredentialRow {
@@ -55,6 +56,7 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
     private readonly clientFactory: CloudProviderClientFactory,
     private readonly config: ConfigService,
     private readonly paceCheck: CostPaceCheckService,
+    private readonly anomalyCheck: CostAnomalyCheckService,
   ) {}
 
   onModuleInit(): void {
@@ -121,6 +123,14 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error(
         `pace check for tenant ${tenantId} failed: ${(err as Error).message}`,
+      );
+    }
+
+    try {
+      await this.anomalyCheck.checkTenant(tenantId);
+    } catch (err) {
+      this.logger.error(
+        `anomaly check for tenant ${tenantId} failed: ${(err as Error).message}`,
       );
     }
 

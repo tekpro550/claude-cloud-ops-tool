@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import BudgetPaceGauge from "../components/BudgetPaceGauge";
 import CostSparkline from "../components/CostSparkline";
-import { getCostDashboardSummary, getCostDashboardTrend } from "../lib/costApiClient";
+import {
+  dismissCostAnomaly,
+  getCostDashboardSummary,
+  getCostDashboardTrend,
+  listCostAnomalies,
+  type CostAnomaly,
+} from "../lib/costApiClient";
 import { useTenant } from "../lib/tenant";
 import type { CostDashboardSummary, CostTrendPoint } from "../types/cost";
 
@@ -20,7 +26,13 @@ export default function CostDashboardPage() {
   const { tenantId } = useTenant();
   const [summary, setSummary] = useState<CostDashboardSummary | null>(null);
   const [trend, setTrend] = useState<CostTrendPoint[]>([]);
+  const [anomalies, setAnomalies] = useState<CostAnomaly[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const loadAnomalies = () => {
+    if (!tenantId) return;
+    listCostAnomalies(tenantId).then(setAnomalies).catch(() => {});
+  };
 
   useEffect(() => {
     if (!tenantId) return;
@@ -31,7 +43,13 @@ export default function CostDashboardPage() {
         setTrend(trendRes);
       })
       .finally(() => setLoading(false));
+    loadAnomalies();
   }, [tenantId]);
+
+  const handleDismiss = (id: string) => {
+    if (!tenantId) return;
+    dismissCostAnomaly(tenantId, id).then(loadAnomalies).catch(() => {});
+  };
 
   if (!tenantId) {
     return <p className="hint">Set a tenant id above to load the cost dashboard.</p>;
@@ -93,6 +111,24 @@ export default function CostDashboardPage() {
         previousMonthTotal={summary.previousMonthTotal}
         forecastPctChange={summary.forecastPctChange}
       />
+
+      {anomalies.length > 0 && (
+        <>
+          <h3>Spend anomalies</h3>
+          <ul className="anomaly-list">
+            {anomalies.map((a) => (
+              <li key={a.id} className="anomaly-item">
+                <span className="badge status-breached">+{Number(a.deviation_pct)}%</span>
+                <span className="anomaly-reason">{a.reason_text}</span>
+                <span className="hint">{a.usage_date.slice(0, 10)}</span>
+                <button type="button" className="btn-ghost btn-sm" onClick={() => handleDismiss(a.id)}>
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h3>Spend trend (all accounts)</h3>
       <CostSparkline data={trend} />

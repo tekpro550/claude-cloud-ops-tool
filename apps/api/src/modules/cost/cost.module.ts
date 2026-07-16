@@ -4,6 +4,9 @@ import { MonitoringModule } from '../monitoring/monitoring.module';
 import { PlatformModule } from '../platform/platform.module';
 import { CostAccountsController } from './cost-accounts.controller';
 import { CostAccountsService } from './cost-accounts.service';
+import { CostAnomaliesController } from './cost-anomalies.controller';
+import { CostAnomaliesService } from './cost-anomalies.service';
+import { CostAnomalyCheckService } from './cost-anomaly-check.service';
 import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
 import { CostBudgetsService } from './cost-budgets.service';
@@ -37,11 +40,14 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     SavingsLogController,
     TenantCostSettingsController,
     CostDashboardController,
+    CostAnomaliesController,
   ],
   providers: [
     CostBudgetsService,
     CostBillingSyncService,
     CostPaceCheckService,
+    CostAnomalyCheckService,
+    CostAnomaliesService,
     CostAccountsService,
     RightsizingSweepService,
     RecommendationsService,
