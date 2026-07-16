@@ -20,6 +20,17 @@ const templates: Record<string, TemplateRenderer> = {
       body: `${label} SLA breached for ticket #${payload.ticketNumber}: "${payload.subject}". It was due at ${payload.dueAt}.`,
     };
   },
+  // An agent's public reply, delivered to the requesting contact. The
+  // "[Ticket #N]" tag in the subject is load-bearing: process-inbound-email
+  // matches exactly that pattern to thread the contact's response back onto
+  // the same ticket instead of opening a new one.
+  'ticket.reply': (payload) => {
+    const agentName = payload.agentName ? String(payload.agentName) : 'Support';
+    return {
+      subject: `[Ticket #${payload.ticketNumber}] ${payload.subject}`,
+      body: `${payload.body}\n\n— ${agentName}`,
+    };
+  },
   // EscalationSweepService (Module 2) does its own notification_templates
   // lookup and $VARIABLE substitution before enqueueing, so this renderer is
   // just a passthrough for the already-rendered subject/body -- the DB-backed

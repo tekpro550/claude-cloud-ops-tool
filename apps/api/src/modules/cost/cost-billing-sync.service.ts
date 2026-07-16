@@ -13,6 +13,7 @@ import {
   CLOUD_PROVIDER_CLIENT_FACTORY,
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
+import { credentialsEncryptionKey } from '../monitoring/credentials-crypto';
 import { CostPaceCheckService } from './cost-pace-check.service';
 
 interface CloudCredentialRow {
@@ -92,12 +93,15 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async syncTenant(tenantId: string): Promise<number> {
+    const key = credentialsEncryptionKey(this.config);
     const credentials: CloudCredentialRow[] = await withTenantContext(
       this.dataSource,
       tenantId,
       (queryRunner) =>
         queryRunner.query(
-          `SELECT id, provider, config FROM cloud_credentials WHERE is_enabled = true`,
+          `SELECT id, provider, pgp_sym_decrypt(config_encrypted, $1)::jsonb AS config
+           FROM cloud_credentials WHERE is_enabled = true`,
+          [key],
         ),
     );
 

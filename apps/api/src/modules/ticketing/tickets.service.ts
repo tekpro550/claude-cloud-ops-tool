@@ -3,9 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
@@ -82,9 +84,12 @@ async function fetchSlaPolicy(
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly automationRules: AutomationRulesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(tenantId: string, dto: CreateTicketDto) {
@@ -479,63 +484,131 @@ export class TicketsService {
     ticketId: string,
     dto: AddTicketMessageDto,
   ) {
-    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [ticket] = await queryRunner.query(
-        `SELECT id, first_response_at FROM tickets WHERE id = $1`,
-        [ticketId],
-      );
-      if (!ticket) {
-        throw new NotFoundException(`Ticket ${ticketId} not found`);
-      }
-
-      if (dto.authorId && dto.authorType === 'agent') {
-        await assertBelongsToTenant(
-          queryRunner,
-          'agents',
-          dto.authorId,
-          'agent',
-        );
-      }
-      if (dto.authorId && dto.authorType === 'contact') {
-        await assertBelongsToTenant(
-          queryRunner,
-          'contacts',
-          dto.authorId,
-          'contact',
-        );
-      }
-
-      const [message] = await queryRunner.query(
-        `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, author_id, body, cc)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING *`,
-        [
-          tenantId,
-          ticketId,
-          dto.type,
-          dto.authorType,
-          dto.authorId ?? null,
-          dto.body,
-          dto.cc ?? [],
-        ],
-      );
-
-      // First-response tracking for SLA purposes: the first agent reply
-      // specifically, not the first message of any kind -- a system note or
-      // the contact's own initial message (from email intake) shouldn't count.
-      if (
-        dto.type === 'reply' &&
-        dto.authorType === 'agent' &&
-        !ticket.first_response_at
-      ) {
-        await queryRunner.query(
-          `UPDATE tickets SET first_response_at = now() WHERE id = $1`,
+    const { message, outbound } = await withTenantContext(
+      this.dataSource,
+      tenantId,
+      async (queryRunner) => {
+        const [ticket] = await queryRunner.query(
+          `SELECT id, ticket_number, subject, contact_id, first_response_at FROM tickets WHERE id = $1`,
           [ticketId],
         );
-      }
+        if (!ticket) {
+          throw new NotFoundException(`Ticket ${ticketId} not found`);
+        }
 
-      return message;
-    });
+        if (dto.authorId && dto.authorType === 'agent') {
+          await assertBelongsToTenant(
+            queryRunner,
+            'agents',
+            dto.authorId,
+            'agent',
+          );
+        }
+        if (dto.authorId && dto.authorType === 'contact') {
+          await assertBelongsToTenant(
+            queryRunner,
+            'contacts',
+            dto.authorId,
+            'contact',
+          );
+        }
+
+        const [message] = await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, author_id, body, cc)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+          [
+            tenantId,
+            ticketId,
+            dto.type,
+            dto.authorType,
+            dto.authorId ?? null,
+            dto.body,
+            dto.cc ?? [],
+          ],
+        );
+
+        // First-response tracking for SLA purposes: the first agent reply
+        // specifically, not the first message of any kind -- a system note or
+        // the contact's own initial message (from email intake) shouldn't count.
+        if (
+          dto.type === 'reply' &&
+          dto.authorType === 'agent' &&
+          !ticket.first_response_at
+        ) {
+          await queryRunner.query(
+            `UPDATE tickets SET first_response_at = now() WHERE id = $1`,
+            [ticketId],
+          );
+        }
+
+        // A public agent reply is the only message type that leaves the
+        // helpdesk: notes are private, forwards go through the compose flow.
+        // Gather the recipient + agent name now, inside the tenant-scoped
+        // transaction, so the actual dispatch can happen after commit.
+        let outbound: {
+          recipient: string;
+          agentName: string;
+          ticketNumber: number;
+          subject: string;
+          body: string;
+          cc: string[];
+        } | null = null;
+        if (dto.type === 'reply' && dto.authorType === 'agent') {
+          const [contact] = await queryRunner.query(
+            `SELECT email FROM contacts WHERE id = $1`,
+            [ticket.contact_id],
+          );
+          let agentName = 'Support';
+          if (dto.authorId) {
+            const [agent] = await queryRunner.query(
+              `SELECT u.name FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+              [dto.authorId],
+            );
+            if (agent?.name) agentName = agent.name;
+          }
+          if (contact?.email) {
+            outbound = {
+              recipient: contact.email,
+              agentName,
+              ticketNumber: ticket.ticket_number,
+              subject: ticket.subject,
+              body: dto.body,
+              cc: dto.cc ?? [],
+            };
+          }
+        }
+
+        return { message, outbound };
+      },
+    );
+
+    // Fire-and-forget: a mail-provider failure must never fail the reply
+    // itself (the message is already committed). The dispatcher records the
+    // notification row's own status, so a failure here is logged, not lost.
+    if (outbound) {
+      await this.notifications
+        .enqueue({
+          tenantId,
+          channel: 'email',
+          recipient: outbound.recipient,
+          templateName: 'ticket.reply',
+          payload: {
+            ticketNumber: outbound.ticketNumber,
+            subject: outbound.subject,
+            body: outbound.body,
+            agentName: outbound.agentName,
+            cc: outbound.cc,
+          },
+        })
+        .catch((err) =>
+          this.logger.error(
+            `failed to enqueue outbound reply email for ticket ${ticketId}: ${(err as Error).message}`,
+          ),
+        );
+    }
+
+    return message;
   }
 
   async listMessages(tenantId: string, ticketId: string) {

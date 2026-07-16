@@ -11,6 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
+import { Roles } from '../platform/http/roles.decorator';
+import { RolesGuard } from '../platform/http/roles.guard';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
 import {
   CreateCloudCredentialDto,
@@ -18,7 +20,9 @@ import {
 } from './cloud-credentials.dto';
 import { CloudCredentialsService } from './cloud-credentials.service';
 
-@UseGuards(TenantHeaderGuard)
+// Cloud credentials hold the tenant's AWS/Azure secrets -- admin-only.
+@UseGuards(TenantHeaderGuard, RolesGuard)
+@Roles('admin')
 @Controller('cloud-credentials')
 export class CloudCredentialsController {
   constructor(private readonly cloudCredentials: CloudCredentialsService) {}

@@ -11,11 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
+import { Roles } from '../platform/http/roles.decorator';
+import { RolesGuard } from '../platform/http/roles.guard';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
 import { CreateAgentTokenDto, UpdateAgentTokenDto } from './agent-tokens.dto';
 import { AgentTokensService } from './agent-tokens.service';
 
-@UseGuards(TenantHeaderGuard)
+// Device tokens authenticate server agents into ingestion -- admin-only.
+@UseGuards(TenantHeaderGuard, RolesGuard)
+@Roles('admin')
 @Controller('agent-tokens')
 export class AgentTokensController {
   constructor(private readonly agentTokens: AgentTokensService) {}
