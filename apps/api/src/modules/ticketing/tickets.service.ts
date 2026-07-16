@@ -3,15 +3,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { CustomFieldsService } from './custom-fields/custom-fields.service';
+import { validateCustomFields } from './custom-fields/custom-field-validate';
+import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { sanitizeTicketBody, htmlToPlainText } from './sanitize-html';
+import { BusinessHours } from './sla/business-hours';
 import { calculateDueDates, SlaTargets } from './sla/calculate-due-dates';
 
 /**
@@ -80,11 +87,33 @@ async function fetchSlaPolicy(
   return policy ?? null;
 }
 
+/** The tenant's configured working window, used for business_hours_only SLA math. */
+async function fetchBusinessHours(
+  queryRunner: QueryRunner,
+  tenantId: string,
+): Promise<BusinessHours | null> {
+  const [row] = await queryRunner.query(
+    `SELECT business_hours_start_minute, business_hours_end_minute, business_hours_days, business_hours_timezone
+     FROM tenants WHERE id = $1`,
+    [tenantId],
+  );
+  if (!row) return null;
+  return {
+    startMinute: row.business_hours_start_minute,
+    endMinute: row.business_hours_end_minute,
+    days: row.business_hours_days,
+    timezone: row.business_hours_timezone,
+  };
+}
+
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly automationRules: AutomationRulesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(tenantId: string, dto: CreateTicketDto) {
@@ -152,6 +181,9 @@ export class TicketsService {
       }
 
       const slaPolicy = await fetchSlaPolicy(queryRunner, slaPolicyId);
+      const businessHours = slaPolicy?.business_hours_only
+        ? await fetchBusinessHours(queryRunner, tenantId)
+        : null;
       const ticketNumber = await nextTicketNumber(queryRunner, tenantId);
       // Computed from the same Date instance used for the created_at column
       // below, so the due dates are never a few milliseconds off from what
@@ -160,11 +192,20 @@ export class TicketsService {
       const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
         createdAt,
         slaPolicy,
+        businessHours,
       );
 
+      const customFieldDefs = await CustomFieldsService.loadDefs(queryRunner);
+      let customFields: Record<string, unknown>;
+      try {
+        customFields = validateCustomFields(customFieldDefs, dto.customFields);
+      } catch (err) {
+        throw new BadRequestException((err as Error).message);
+      }
+
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags, custom_fields)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17, $18)
          RETURNING *`,
         [
           tenantId,
@@ -183,6 +224,8 @@ export class TicketsService {
           resolutionDueAt,
           createdAt,
           dto.platform ?? null,
+          dto.tags ?? [],
+          JSON.stringify(customFields),
         ],
       );
       return this.automationRules.runRules(
@@ -252,6 +295,10 @@ export class TicketsService {
       if (query.unassigned) {
         conditions.push(`agent_id IS NULL`);
       }
+      if (query.tag) {
+        params.push(query.tag);
+        conditions.push(`tags @> ARRAY[$${params.length}]::text[]`);
+      }
       if (query.overdue) {
         conditions.push(`(
           status NOT IN ('resolved', 'closed') AND (
@@ -296,6 +343,20 @@ export class TicketsService {
     });
   }
 
+  /**
+   * Distinct tags in use across the tenant's tickets, sorted, for tag
+   * autocomplete and the ticket-list tag filter. unnest() flattens the
+   * text[] columns; the GIN index keeps this cheap even at scale.
+   */
+  async distinctTags(tenantId: string): Promise<string[]> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const rows = await queryRunner.query(
+        `SELECT DISTINCT unnest(tags) AS tag FROM tickets ORDER BY tag ASC`,
+      );
+      return rows.map((r: { tag: string }) => r.tag);
+    });
+  }
+
   async get(tenantId: string, id: string) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [ticket] = await queryRunner.query(
@@ -306,6 +367,89 @@ export class TicketsService {
         throw new NotFoundException(`Ticket ${id} not found`);
       }
       return ticket;
+    });
+  }
+
+  /**
+   * Merges one or more duplicate source tickets into a primary: each source's
+   * conversation (messages + attachments) is carried over to the primary, the
+   * source is closed and stamped with merged_into_id, and both sides get a
+   * system note so the history is legible. Idempotent-ish: a source already
+   * merged (or that is the primary) is skipped rather than double-processed.
+   */
+  async merge(
+    tenantId: string,
+    primaryId: string,
+    sourceTicketIds: string[],
+  ): Promise<Record<string, unknown>> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [primary] = await queryRunner.query(
+        `SELECT * FROM tickets WHERE id = $1`,
+        [primaryId],
+      );
+      if (!primary) {
+        throw new NotFoundException(`Ticket ${primaryId} not found`);
+      }
+
+      const mergedNumbers: number[] = [];
+      for (const sourceId of sourceTicketIds) {
+        if (sourceId === primaryId) continue;
+        const [source] = await queryRunner.query(
+          `SELECT id, ticket_number, merged_into_id FROM tickets WHERE id = $1`,
+          [sourceId],
+        );
+        if (!source) {
+          throw new NotFoundException(`Ticket ${sourceId} not found`);
+        }
+        if (source.merged_into_id) continue; // already merged elsewhere
+
+        // Carry the conversation over to the primary.
+        await queryRunner.query(
+          `UPDATE ticket_messages SET ticket_id = $1 WHERE ticket_id = $2`,
+          [primaryId, sourceId],
+        );
+        await queryRunner.query(
+          `UPDATE ticket_attachments SET ticket_id = $1 WHERE ticket_id = $2`,
+          [primaryId, sourceId],
+        );
+
+        // Close the source and point it at the primary.
+        await queryRunner.query(
+          `UPDATE tickets SET status = 'closed', resolved_at = COALESCE(resolved_at, now()),
+             merged_into_id = $1, updated_at = now() WHERE id = $2`,
+          [primaryId, sourceId],
+        );
+        await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body)
+           VALUES ($1, $2, 'note', 'system', $3)`,
+          [
+            tenantId,
+            sourceId,
+            `This ticket was merged into #${primary.ticket_number}.`,
+          ],
+        );
+        mergedNumbers.push(source.ticket_number);
+      }
+
+      if (mergedNumbers.length > 0) {
+        await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, body)
+           VALUES ($1, $2, 'note', 'system', $3)`,
+          [
+            tenantId,
+            primaryId,
+            `Merged in ticket(s): ${mergedNumbers
+              .map((n) => `#${n}`)
+              .join(', ')}.`,
+          ],
+        );
+      }
+
+      const [updated] = await queryRunner.query(
+        `SELECT * FROM tickets WHERE id = $1`,
+        [primaryId],
+      );
+      return updated;
     });
   }
 
@@ -326,151 +470,238 @@ export class TicketsService {
     dto: UpdateTicketDto,
     actorAgentId?: string,
   ) {
-    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [existing] = await queryRunner.query(
-        `SELECT * FROM tickets WHERE id = $1`,
-        [id],
-      );
-      if (!existing) {
-        throw new NotFoundException(`Ticket ${id} not found`);
-      }
-
-      if (dto.groupId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'groups',
-          dto.groupId,
-          'group',
+    const { result, assignedAgentId } = await withTenantContext(
+      this.dataSource,
+      tenantId,
+      async (queryRunner) => {
+        const [existing] = await queryRunner.query(
+          `SELECT * FROM tickets WHERE id = $1`,
+          [id],
         );
-      if (dto.agentId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'agents',
-          dto.agentId,
-          'agent',
-        );
-      if (dto.ticketTypeId)
-        await assertBelongsToTenant(
-          queryRunner,
-          'ticket_types',
-          dto.ticketTypeId,
-          'ticket type',
-        );
-
-      const sets: string[] = [];
-      const params: unknown[] = [];
-      const assign = (column: string, value: unknown) => {
-        params.push(value);
-        sets.push(`${column} = $${params.length}`);
-      };
-
-      // Tracked separately from `sets` -- one row per changed field, written
-      // to ticket_activities after the UPDATE succeeds, so the ticket detail
-      // UI can show a timeline of property changes (who/what/when), not just
-      // the message thread.
-      const activityChanges: {
-        field: string;
-        oldValue: unknown;
-        newValue: unknown;
-      }[] = [];
-      const trackChange = (
-        field: string,
-        oldValue: unknown,
-        newValue: unknown,
-      ) => {
-        if (oldValue !== newValue) {
-          activityChanges.push({ field, oldValue, newValue });
+        if (!existing) {
+          throw new NotFoundException(`Ticket ${id} not found`);
         }
-      };
+        // Capture a genuine (re)assignment to a real agent so the assigned
+        // agent can be emailed after the transaction commits.
+        const assignedAgentId =
+          dto.agentId !== undefined &&
+          dto.agentId &&
+          dto.agentId !== existing.agent_id
+            ? dto.agentId
+            : null;
 
-      if (dto.status !== undefined) {
-        trackChange('status', existing.status, dto.status);
-        assign('status', dto.status);
-        const closing = dto.status === 'resolved' || dto.status === 'closed';
-        assign('resolved_at', closing ? new Date() : null);
-      }
-      if (dto.priority !== undefined) {
-        trackChange('priority', existing.priority, dto.priority);
-        assign('priority', dto.priority);
-      }
-      if (dto.platform !== undefined) {
-        trackChange('platform', existing.platform, dto.platform);
-        assign('platform', dto.platform);
-      }
-      if (dto.groupId !== undefined) {
-        trackChange('group_id', existing.group_id, dto.groupId);
-        assign('group_id', dto.groupId);
-      }
-      if (dto.agentId !== undefined) {
-        trackChange('agent_id', existing.agent_id, dto.agentId);
-        assign('agent_id', dto.agentId);
-      }
-      if (dto.ticketTypeId !== undefined) {
-        trackChange(
-          'ticket_type_id',
-          existing.ticket_type_id,
-          dto.ticketTypeId,
-        );
-        assign('ticket_type_id', dto.ticketTypeId);
-
-        // Changing ticket type can change which SLA policy applies (section
-        // 5: "recalculates ... whenever a ticket's SLA policy ... changes").
-        // Due dates stay anchored to the ticket's original created_at, not
-        // the moment of this update.
-        const [ticketType] = await queryRunner.query(
-          `SELECT default_sla_policy_id FROM ticket_types WHERE id = $1`,
-          [dto.ticketTypeId],
-        );
-        const newSlaPolicyId: string | null =
-          ticketType?.default_sla_policy_id ?? null;
-
-        if (newSlaPolicyId !== existing.sla_policy_id) {
-          const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
-          const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
-            existing.created_at,
-            slaPolicy,
+        if (dto.groupId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'groups',
+            dto.groupId,
+            'group',
           );
-          assign('sla_policy_id', newSlaPolicyId);
-          assign('first_response_due_at', firstResponseDueAt);
-          assign('resolution_due_at', resolutionDueAt);
+        if (dto.agentId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'agents',
+            dto.agentId,
+            'agent',
+          );
+        if (dto.ticketTypeId)
+          await assertBelongsToTenant(
+            queryRunner,
+            'ticket_types',
+            dto.ticketTypeId,
+            'ticket type',
+          );
+
+        const sets: string[] = [];
+        const params: unknown[] = [];
+        const assign = (column: string, value: unknown) => {
+          params.push(value);
+          sets.push(`${column} = $${params.length}`);
+        };
+
+        // Tracked separately from `sets` -- one row per changed field, written
+        // to ticket_activities after the UPDATE succeeds, so the ticket detail
+        // UI can show a timeline of property changes (who/what/when), not just
+        // the message thread.
+        const activityChanges: {
+          field: string;
+          oldValue: unknown;
+          newValue: unknown;
+        }[] = [];
+        const trackChange = (
+          field: string,
+          oldValue: unknown,
+          newValue: unknown,
+        ) => {
+          if (oldValue !== newValue) {
+            activityChanges.push({ field, oldValue, newValue });
+          }
+        };
+
+        if (dto.status !== undefined) {
+          trackChange('status', existing.status, dto.status);
+          assign('status', dto.status);
+          const closing = dto.status === 'resolved' || dto.status === 'closed';
+          assign('resolved_at', closing ? new Date() : null);
         }
-      }
+        if (dto.priority !== undefined) {
+          trackChange('priority', existing.priority, dto.priority);
+          assign('priority', dto.priority);
+        }
+        if (dto.platform !== undefined) {
+          trackChange('platform', existing.platform, dto.platform);
+          assign('platform', dto.platform);
+        }
+        if (dto.groupId !== undefined) {
+          trackChange('group_id', existing.group_id, dto.groupId);
+          assign('group_id', dto.groupId);
+        }
+        if (dto.agentId !== undefined) {
+          trackChange('agent_id', existing.agent_id, dto.agentId);
+          assign('agent_id', dto.agentId);
+        }
+        if (dto.tags !== undefined) {
+          // Normalize: trimmed, de-duplicated, no empties. Tag changes aren't
+          // added to the activity timeline (they'd be noisy and low-signal).
+          const tags = Array.from(
+            new Set(dto.tags.map((t) => t.trim()).filter((t) => t.length > 0)),
+          );
+          assign('tags', tags);
+        }
+        if (dto.customFields !== undefined) {
+          // Partial merge: the submitted keys overlay whatever's stored, then
+          // the whole map is re-validated so required fields already set stay
+          // satisfied and each value still matches its (possibly changed) def.
+          const defs = await CustomFieldsService.loadDefs(queryRunner);
+          const merged = {
+            ...((existing.custom_fields as Record<string, unknown>) ?? {}),
+            ...dto.customFields,
+          };
+          let validated: Record<string, unknown>;
+          try {
+            validated = validateCustomFields(defs, merged);
+          } catch (err) {
+            throw new BadRequestException((err as Error).message);
+          }
+          assign('custom_fields', JSON.stringify(validated));
+        }
+        if (dto.ticketTypeId !== undefined) {
+          trackChange(
+            'ticket_type_id',
+            existing.ticket_type_id,
+            dto.ticketTypeId,
+          );
+          assign('ticket_type_id', dto.ticketTypeId);
 
-      if (sets.length === 0) {
-        return existing;
-      }
+          // Changing ticket type can change which SLA policy applies (section
+          // 5: "recalculates ... whenever a ticket's SLA policy ... changes").
+          // Due dates stay anchored to the ticket's original created_at, not
+          // the moment of this update.
+          const [ticketType] = await queryRunner.query(
+            `SELECT default_sla_policy_id FROM ticket_types WHERE id = $1`,
+            [dto.ticketTypeId],
+          );
+          const newSlaPolicyId: string | null =
+            ticketType?.default_sla_policy_id ?? null;
 
-      sets.push('updated_at = now()');
-      params.push(id);
+          if (newSlaPolicyId !== existing.sla_policy_id) {
+            const slaPolicy = await fetchSlaPolicy(queryRunner, newSlaPolicyId);
+            const businessHours = slaPolicy?.business_hours_only
+              ? await fetchBusinessHours(queryRunner, tenantId)
+              : null;
+            const { firstResponseDueAt, resolutionDueAt } = calculateDueDates(
+              existing.created_at,
+              slaPolicy,
+              businessHours,
+            );
+            assign('sla_policy_id', newSlaPolicyId);
+            assign('first_response_due_at', firstResponseDueAt);
+            assign('resolution_due_at', resolutionDueAt);
+          }
+        }
 
-      // TypeORM's postgres driver returns UPDATE/DELETE results as
-      // [rows, rowCount] (unlike SELECT/INSERT, which just return rows) —
-      // destructure accordingly, not [ticket] = ... like the INSERT calls
-      // elsewhere in this file.
-      const [rows] = await queryRunner.query(
-        `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
-        params,
-      );
+        if (sets.length === 0) {
+          return { result: existing, assignedAgentId: null };
+        }
 
-      for (const change of activityChanges) {
-        await queryRunner.query(
-          `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value, actor_agent_id) VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            tenantId,
-            id,
-            change.field,
-            change.oldValue ?? null,
-            change.newValue ?? null,
-            actorAgentId ?? null,
-          ],
+        sets.push('updated_at = now()');
+        params.push(id);
+
+        // TypeORM's postgres driver returns UPDATE/DELETE results as
+        // [rows, rowCount] (unlike SELECT/INSERT, which just return rows) —
+        // destructure accordingly, not [ticket] = ... like the INSERT calls
+        // elsewhere in this file.
+        const [rows] = await queryRunner.query(
+          `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+          params,
         );
-      }
-      return this.automationRules.runRules(
-        tenantId,
-        'ticket_updated',
-        rows[0],
-        queryRunner,
+
+        for (const change of activityChanges) {
+          await queryRunner.query(
+            `INSERT INTO ticket_activities (tenant_id, ticket_id, field, old_value, new_value, actor_agent_id) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              tenantId,
+              id,
+              change.field,
+              change.oldValue ?? null,
+              change.newValue ?? null,
+              actorAgentId ?? null,
+            ],
+          );
+        }
+        const result = await this.automationRules.runRules(
+          tenantId,
+          'ticket_updated',
+          rows[0],
+          queryRunner,
+        );
+        return { result, assignedAgentId };
+      },
+    );
+
+    // Notify the newly-assigned agent, after commit (fire-and-forget).
+    if (assignedAgentId) {
+      await this.notifyAgentAssignment(tenantId, assignedAgentId, result).catch(
+        (err) =>
+          this.logger.error(
+            `failed to enqueue assignment email for ticket ${id}: ${(err as Error).message}`,
+          ),
       );
+    }
+
+    return result;
+  }
+
+  /** Emails the agent a ticket was just assigned to. */
+  private async notifyAgentAssignment(
+    tenantId: string,
+    agentId: string,
+    ticket: Record<string, unknown>,
+  ): Promise<void> {
+    const email = await this.resolveAgentEmail(tenantId, agentId);
+    if (!email) return;
+    await this.notifications.enqueue({
+      tenantId,
+      channel: 'email',
+      recipient: email,
+      templateName: 'ticket.assigned',
+      payload: {
+        ticketNumber: ticket.ticket_number,
+        subject: ticket.subject,
+      },
+    });
+  }
+
+  private resolveAgentEmail(
+    tenantId: string,
+    agentId: string,
+  ): Promise<string | null> {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const [row] = await queryRunner.query(
+        `SELECT u.email FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+        [agentId],
+      );
+      return row?.email ?? null;
     });
   }
 
@@ -479,63 +710,238 @@ export class TicketsService {
     ticketId: string,
     dto: AddTicketMessageDto,
   ) {
-    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [ticket] = await queryRunner.query(
-        `SELECT id, first_response_at FROM tickets WHERE id = $1`,
-        [ticketId],
-      );
-      if (!ticket) {
-        throw new NotFoundException(`Ticket ${ticketId} not found`);
-      }
-
-      if (dto.authorId && dto.authorType === 'agent') {
-        await assertBelongsToTenant(
-          queryRunner,
-          'agents',
-          dto.authorId,
-          'agent',
-        );
-      }
-      if (dto.authorId && dto.authorType === 'contact') {
-        await assertBelongsToTenant(
-          queryRunner,
-          'contacts',
-          dto.authorId,
-          'contact',
-        );
-      }
-
-      const [message] = await queryRunner.query(
-        `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, author_id, body, cc)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING *`,
-        [
-          tenantId,
-          ticketId,
-          dto.type,
-          dto.authorType,
-          dto.authorId ?? null,
-          dto.body,
-          dto.cc ?? [],
-        ],
-      );
-
-      // First-response tracking for SLA purposes: the first agent reply
-      // specifically, not the first message of any kind -- a system note or
-      // the contact's own initial message (from email intake) shouldn't count.
-      if (
-        dto.type === 'reply' &&
-        dto.authorType === 'agent' &&
-        !ticket.first_response_at
-      ) {
-        await queryRunner.query(
-          `UPDATE tickets SET first_response_at = now() WHERE id = $1`,
+    const { message, outbound, agentNotify, watcherNotify } =
+      await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+        const [ticket] = await queryRunner.query(
+          `SELECT id, ticket_number, subject, contact_id, agent_id, first_response_at FROM tickets WHERE id = $1`,
           [ticketId],
         );
-      }
+        if (!ticket) {
+          throw new NotFoundException(`Ticket ${ticketId} not found`);
+        }
 
-      return message;
-    });
+        if (dto.authorId && dto.authorType === 'agent') {
+          await assertBelongsToTenant(
+            queryRunner,
+            'agents',
+            dto.authorId,
+            'agent',
+          );
+        }
+        if (dto.authorId && dto.authorType === 'contact') {
+          await assertBelongsToTenant(
+            queryRunner,
+            'contacts',
+            dto.authorId,
+            'contact',
+          );
+        }
+
+        // The composer now emits rich-text HTML, so every body is a stored
+        // XSS surface -- sanitize to a formatting allowlist before it's
+        // persisted and later rendered in the thread, the portal, and email.
+        const safeBody = sanitizeTicketBody(dto.body);
+
+        const [message] = await queryRunner.query(
+          `INSERT INTO ticket_messages (tenant_id, ticket_id, type, author_type, author_id, body, cc)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+          [
+            tenantId,
+            ticketId,
+            dto.type,
+            dto.authorType,
+            dto.authorId ?? null,
+            safeBody,
+            dto.cc ?? [],
+          ],
+        );
+
+        // First-response tracking for SLA purposes: the first agent reply
+        // specifically, not the first message of any kind -- a system note or
+        // the contact's own initial message (from email intake) shouldn't count.
+        if (
+          dto.type === 'reply' &&
+          dto.authorType === 'agent' &&
+          !ticket.first_response_at
+        ) {
+          await queryRunner.query(
+            `UPDATE tickets SET first_response_at = now() WHERE id = $1`,
+            [ticketId],
+          );
+        }
+
+        // A public agent reply is the only message type that leaves the
+        // helpdesk: notes are private, forwards go through the compose flow.
+        // Gather the recipient + agent name now, inside the tenant-scoped
+        // transaction, so the actual dispatch can happen after commit.
+        let outbound: {
+          recipient: string;
+          agentName: string;
+          ticketNumber: number;
+          subject: string;
+          body: string;
+          cc: string[];
+        } | null = null;
+        if (dto.type === 'reply' && dto.authorType === 'agent') {
+          const [contact] = await queryRunner.query(
+            `SELECT email FROM contacts WHERE id = $1`,
+            [ticket.contact_id],
+          );
+          let agentName = 'Support';
+          if (dto.authorId) {
+            const [agent] = await queryRunner.query(
+              `SELECT u.name FROM agents a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+              [dto.authorId],
+            );
+            if (agent?.name) agentName = agent.name;
+          }
+          if (contact?.email) {
+            outbound = {
+              recipient: contact.email,
+              agentName,
+              ticketNumber: ticket.ticket_number,
+              subject: ticket.subject,
+              // The sanitized HTML rides the email's html part; a plain-text
+              // rendering rides the text part for clients that prefer it.
+              body: safeBody,
+              cc: dto.cc ?? [],
+            };
+          }
+        }
+
+        // A contact reply on an assigned ticket notifies the assigned agent.
+        let agentNotify: {
+          agentId: string;
+          ticketNumber: number;
+          subject: string;
+          contactName: string;
+          body: string;
+        } | null = null;
+        if (
+          dto.type === 'reply' &&
+          dto.authorType === 'contact' &&
+          ticket.agent_id
+        ) {
+          const [c] = await queryRunner.query(
+            `SELECT name FROM contacts WHERE id = $1`,
+            [ticket.contact_id],
+          );
+          agentNotify = {
+            agentId: ticket.agent_id,
+            ticketNumber: ticket.ticket_number,
+            subject: ticket.subject,
+            contactName: c?.name ?? 'The customer',
+            body: htmlToPlainText(safeBody),
+          };
+        }
+
+        // Watchers get notified of any reply (agent or contact), except the
+        // agent who authored it. Gathered here inside the transaction so the
+        // dispatch below runs after commit.
+        let watcherNotify: {
+          watchers: { email: string }[];
+          ticketNumber: number;
+          subject: string;
+          body: string;
+        } | null = null;
+        if (dto.type === 'reply') {
+          const excludeAgentId =
+            dto.authorType === 'agent' ? (dto.authorId ?? null) : null;
+          const watchers = await TicketWatchersService.watcherEmails(
+            queryRunner,
+            ticketId,
+            excludeAgentId,
+          );
+          if (watchers.length > 0) {
+            watcherNotify = {
+              watchers,
+              ticketNumber: ticket.ticket_number,
+              subject: ticket.subject,
+              body: htmlToPlainText(safeBody),
+            };
+          }
+        }
+
+        return { message, outbound, agentNotify, watcherNotify };
+      },
+    );
+
+    // Fire-and-forget: a mail-provider failure must never fail the reply
+    // itself (the message is already committed). The dispatcher records the
+    // notification row's own status, so a failure here is logged, not lost.
+    if (outbound) {
+      await this.notifications
+        .enqueue({
+          tenantId,
+          channel: 'email',
+          recipient: outbound.recipient,
+          templateName: 'ticket.reply',
+          payload: {
+            ticketNumber: outbound.ticketNumber,
+            subject: outbound.subject,
+            body: htmlToPlainText(outbound.body),
+            bodyHtml: outbound.body,
+            agentName: outbound.agentName,
+            cc: outbound.cc,
+          },
+        })
+        .catch((err) =>
+          this.logger.error(
+            `failed to enqueue outbound reply email for ticket ${ticketId}: ${(err as Error).message}`,
+          ),
+        );
+    }
+
+    // Notify the assigned agent that the customer replied.
+    if (agentNotify) {
+      const email = await this.resolveAgentEmail(tenantId, agentNotify.agentId);
+      if (email) {
+        await this.notifications
+          .enqueue({
+            tenantId,
+            channel: 'email',
+            recipient: email,
+            templateName: 'ticket.contact_reply',
+            payload: {
+              ticketNumber: agentNotify.ticketNumber,
+              subject: agentNotify.subject,
+              contactName: agentNotify.contactName,
+              body: agentNotify.body,
+            },
+          })
+          .catch((err) =>
+            this.logger.error(
+              `failed to enqueue contact-reply email for ticket ${ticketId}: ${(err as Error).message}`,
+            ),
+          );
+      }
+    }
+
+    // Notify every watcher (best-effort, one email each).
+    if (watcherNotify) {
+      for (const watcher of watcherNotify.watchers) {
+        await this.notifications
+          .enqueue({
+            tenantId,
+            channel: 'email',
+            recipient: watcher.email,
+            templateName: 'ticket.watcher_update',
+            payload: {
+              ticketNumber: watcherNotify.ticketNumber,
+              subject: watcherNotify.subject,
+              body: watcherNotify.body,
+            },
+          })
+          .catch((err) =>
+            this.logger.error(
+              `failed to enqueue watcher email for ticket ${ticketId}: ${(err as Error).message}`,
+            ),
+          );
+      }
+    }
+
+    return message;
   }
 
   async listMessages(tenantId: string, ticketId: string) {

@@ -10,7 +10,14 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const NOTIFY_CHANNELS = ['email', 'whatsapp', 'voice', 'in_app'] as const;
+const NOTIFY_CHANNELS = [
+  'email',
+  'slack',
+  'webhook',
+  'whatsapp',
+  'voice',
+  'in_app',
+] as const;
 
 export class EscalationNotifyTargetDto {
   @IsIn(NOTIFY_CHANNELS)

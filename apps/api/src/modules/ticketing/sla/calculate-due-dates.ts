@@ -1,3 +1,5 @@
+import { addBusinessMinutes, BusinessHours } from './business-hours';
+
 export interface SlaTargets {
   first_response_target_minutes: number;
   resolution_target_minutes: number;
@@ -14,27 +16,30 @@ export interface SlaDueDates {
  * ticket creation regardless of when a policy happens to get attached or
  * changed, matching how helpdesk SLAs are normally understood.
  *
- * business_hours_only is intentionally not honored: there's no
- * business-hours-window configuration anywhere in the schema (section 3 of
- * the Module 1 doc only has the boolean flag on sla_policies, no actual
- * hours/days/timezone table), so a business-hours-aware calculation would
- * be guessing at hours nobody confirmed. Every policy gets flat 24/7 math
- * for now; this is the seam to extend once business hours are configurable.
+ * When a policy is business_hours_only and the tenant has business hours
+ * configured, the clock only advances during the working window (see
+ * addBusinessMinutes); otherwise it's flat 24/7 elapsed time. Passing no
+ * businessHours falls back to 24/7 even for a business-hours policy, so an
+ * unconfigured tenant degrades safely rather than throwing.
  */
 export function calculateDueDates(
   createdAt: Date,
   slaPolicy: SlaTargets | null,
+  businessHours?: BusinessHours | null,
 ): SlaDueDates {
   if (!slaPolicy) {
     return { firstResponseDueAt: null, resolutionDueAt: null };
   }
 
+  const useBusinessHours = slaPolicy.business_hours_only && !!businessHours;
+
+  const due = (targetMinutes: number): Date =>
+    useBusinessHours
+      ? addBusinessMinutes(createdAt, targetMinutes, businessHours!)
+      : new Date(createdAt.getTime() + targetMinutes * 60_000);
+
   return {
-    firstResponseDueAt: new Date(
-      createdAt.getTime() + slaPolicy.first_response_target_minutes * 60_000,
-    ),
-    resolutionDueAt: new Date(
-      createdAt.getTime() + slaPolicy.resolution_target_minutes * 60_000,
-    ),
+    firstResponseDueAt: due(slaPolicy.first_response_target_minutes),
+    resolutionDueAt: due(slaPolicy.resolution_target_minutes),
   };
 }

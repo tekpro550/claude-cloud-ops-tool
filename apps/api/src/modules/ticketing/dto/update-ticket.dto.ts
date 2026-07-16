@@ -1,4 +1,11 @@
-import { IsIn, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 const TICKET_STATUSES = [
   'new',
@@ -41,4 +48,13 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsIn(TICKET_PLATFORMS)
   platform?: (typeof TICKET_PLATFORMS)[number];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional()
+  @IsObject()
+  customFields?: Record<string, unknown>;
 }

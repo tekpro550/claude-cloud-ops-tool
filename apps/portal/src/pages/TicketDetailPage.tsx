@@ -63,7 +63,8 @@ export default function TicketDetailPage() {
             <div className="message-meta">
               {m.author_type === "contact" ? "You" : "Support"} · {new Date(m.created_at).toLocaleString()}
             </div>
-            <div className="message-body">{m.body}</div>
+            {/* Bodies are sanitized server-side on write, so the stored HTML is safe to render. */}
+            <div className="message-body" dangerouslySetInnerHTML={{ __html: m.body }} />
           </li>
         ))}
       </ul>

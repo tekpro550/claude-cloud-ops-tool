@@ -45,6 +45,9 @@ export class EmailChannel implements NotificationChannel {
       to: input.recipient,
       subject: input.message.subject,
       text: input.message.body,
+      // When the template produced a rich-text rendering, send it as the
+      // html part so the customer sees formatting, not raw tags.
+      ...(input.message.html ? { html: input.message.html } : {}),
     });
     this.logger.debug(
       `email dispatched to ${input.recipient}: ${JSON.stringify(info)}`,

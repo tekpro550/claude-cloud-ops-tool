@@ -155,3 +155,51 @@ export function getCostDashboardSummary(tenantId: string): Promise<CostDashboard
 export function getCostDashboardTrend(tenantId: string): Promise<CostTrendPoint[]> {
   return request(tenantId, "GET", "/cost/dashboard/trend");
 }
+
+// ---- Cost anomalies ----
+
+export interface CostAnomaly {
+  id: string;
+  service: string;
+  region: string | null;
+  usage_date: string;
+  baseline_amount: string;
+  actual_amount: string;
+  deviation_pct: string;
+  reason_text: string;
+  status: string;
+  created_at: string;
+}
+
+export function listCostAnomalies(tenantId: string): Promise<CostAnomaly[]> {
+  return request(tenantId, "GET", "/cost/anomalies");
+}
+
+export function dismissCostAnomaly(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "PATCH", `/cost/anomalies/${id}/dismiss`);
+}
+
+// ---- Tag-based cost allocation ----
+
+export interface AllocationRow {
+  tagValue: string;
+  amount: number;
+}
+
+export interface CostAllocation {
+  tagKey: string;
+  total: number;
+  rows: AllocationRow[];
+}
+
+export function listCostTagKeys(tenantId: string): Promise<string[]> {
+  return request(tenantId, "GET", "/cost/allocation/tag-keys");
+}
+
+export function getCostAllocation(
+  tenantId: string,
+  tagKey: string,
+): Promise<CostAllocation> {
+  const qs = new URLSearchParams({ tagKey }).toString();
+  return request(tenantId, "GET", `/cost/allocation?${qs}`);
+}

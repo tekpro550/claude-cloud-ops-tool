@@ -93,6 +93,7 @@ export interface ListTicketsFilters {
   platform?: TicketPlatform;
   groupId?: string;
   agentId?: string;
+  tag?: string;
   unassigned?: boolean;
   overdue?: boolean;
   createdFrom?: string;
@@ -110,6 +111,7 @@ export function listTickets(tenantId: string, filters: ListTicketsFilters = {}):
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.agentId) params.set("agentId", filters.agentId);
+  if (filters.tag) params.set("tag", filters.tag);
   if (filters.unassigned) params.set("unassigned", "true");
   if (filters.overdue) params.set("overdue", "true");
   if (filters.createdFrom) params.set("createdFrom", filters.createdFrom);
@@ -136,6 +138,8 @@ export interface CreateTicketInput {
   agentId?: string;
   priority?: TicketPriority;
   platform?: TicketPlatform;
+  tags?: string[];
+  customFields?: Record<string, unknown>;
 }
 
 export function createTicket(tenantId: string, input: CreateTicketInput): Promise<Ticket> {
@@ -167,10 +171,187 @@ export interface UpdateTicketInput {
   groupId?: string;
   agentId?: string;
   ticketTypeId?: string;
+  tags?: string[];
+  customFields?: Record<string, unknown>;
 }
 
 export function updateTicket(tenantId: string, id: string, input: UpdateTicketInput): Promise<Ticket> {
   return request(tenantId, "PATCH", `/tickets/${id}`, input);
+}
+
+export function listTicketTags(tenantId: string): Promise<string[]> {
+  return request(tenantId, "GET", "/tickets/tags");
+}
+
+export interface AiAssistResult {
+  enabled: boolean;
+  result?: string;
+}
+
+export function getTicketAiStatus(tenantId: string): Promise<{ enabled: boolean }> {
+  return request(tenantId, "GET", "/ticket-ai/status");
+}
+
+export function summarizeTicket(tenantId: string, ticketId: string): Promise<AiAssistResult> {
+  return request(tenantId, "POST", `/ticket-ai/${ticketId}/summarize`);
+}
+
+export function suggestTicketReply(tenantId: string, ticketId: string): Promise<AiAssistResult> {
+  return request(tenantId, "POST", `/ticket-ai/${ticketId}/suggest-reply`);
+}
+
+export interface ReportsSummary {
+  window: { from: string; to: string };
+  volume: { day: string; created: number; resolved: number }[];
+  byStatus: { key: string; count: number }[];
+  byPriority: { key: string; count: number }[];
+  sla: {
+    firstResponse: { met: number; total: number; pct: number | null };
+    resolution: { met: number; total: number; pct: number | null };
+  };
+  times: {
+    firstResponseMinutes: { avg: number | null; median: number | null };
+    resolutionMinutes: { avg: number | null; median: number | null };
+  };
+  csat: {
+    total: number;
+    score: number | null;
+    positivePct: number | null;
+    distribution: { rating: string; count: number }[];
+  };
+  agents: {
+    agent_id: string;
+    agent_name: string;
+    resolved: number;
+    avg_resolution_minutes: number | null;
+    csat_score: number | null;
+  }[];
+}
+
+export function getReportsSummary(tenantId: string, from?: string, to?: string): Promise<ReportsSummary> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const qs = params.toString();
+  return request(tenantId, "GET", `/reports/summary${qs ? `?${qs}` : ""}`);
+}
+
+export function getTicketByNumber(tenantId: string, ticketNumber: number): Promise<Ticket> {
+  return request(tenantId, "GET", `/tickets/by-number/${ticketNumber}`);
+}
+
+export function mergeTickets(tenantId: string, primaryId: string, sourceTicketIds: string[]): Promise<Ticket> {
+  return request(tenantId, "POST", `/tickets/${primaryId}/merge`, { sourceTicketIds });
+}
+
+export type TicketLinkRelation = "related" | "parent" | "child";
+export type TicketLinkType = "related" | "parent_of" | "child_of";
+
+export interface LinkedTicket {
+  linkId: string;
+  relation: TicketLinkRelation;
+  ticketId: string;
+  ticketNumber: number;
+  subject: string;
+  status: string;
+}
+
+export function listTicketLinks(tenantId: string, ticketId: string): Promise<LinkedTicket[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/links`);
+}
+
+export function createTicketLink(tenantId: string, ticketId: string, toTicketNumber: number, linkType: TicketLinkType): Promise<unknown> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/links`, { toTicketNumber, linkType });
+}
+
+export function deleteTicketLink(tenantId: string, ticketId: string, linkId: string): Promise<void> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/links/${linkId}`);
+}
+
+export interface Watcher {
+  agentId: string;
+  name: string;
+  email: string;
+}
+
+export function listTicketWatchers(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "GET", `/tickets/${ticketId}/watchers`);
+}
+
+export function watchTicket(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "POST", `/tickets/${ticketId}/watchers`);
+}
+
+export function unwatchTicket(tenantId: string, ticketId: string): Promise<Watcher[]> {
+  return request(tenantId, "DELETE", `/tickets/${ticketId}/watchers`);
+}
+
+export type CustomFieldType = "text" | "number" | "dropdown" | "checkbox" | "date";
+
+export interface CustomFieldDef {
+  id: string;
+  key: string;
+  label: string;
+  field_type: CustomFieldType;
+  options: string[];
+  is_required: boolean;
+  is_active: boolean;
+  position: number;
+}
+
+export interface CreateCustomFieldInput {
+  key: string;
+  label: string;
+  fieldType: CustomFieldType;
+  options?: string[];
+  isRequired?: boolean;
+  position?: number;
+}
+
+export interface UpdateCustomFieldInput {
+  label?: string;
+  options?: string[];
+  isRequired?: boolean;
+  isActive?: boolean;
+  position?: number;
+}
+
+export function listCustomFields(tenantId: string): Promise<CustomFieldDef[]> {
+  return request(tenantId, "GET", "/ticket-custom-fields");
+}
+
+export function createCustomField(tenantId: string, input: CreateCustomFieldInput): Promise<CustomFieldDef> {
+  return request(tenantId, "POST", "/ticket-custom-fields", input);
+}
+
+export function updateCustomField(tenantId: string, id: string, input: UpdateCustomFieldInput): Promise<CustomFieldDef> {
+  return request(tenantId, "PATCH", `/ticket-custom-fields/${id}`, input);
+}
+
+export function deleteCustomField(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/ticket-custom-fields/${id}`);
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actor_user_id: string | null;
+  actor_label: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditLogList {
+  items: AuditLogEntry[];
+  total: number;
+}
+
+export function listAuditLog(tenantId: string, limit = 50): Promise<AuditLogList> {
+  const qs = new URLSearchParams({ limit: String(limit) }).toString();
+  return request(tenantId, "GET", `/admin/audit-log?${qs}`);
 }
 
 export function listGroups(tenantId: string): Promise<Group[]> {
@@ -650,4 +831,21 @@ export function getTicketSatisfaction(tenantId: string, ticketId: string): Promi
 
 export function getCsatSummary(tenantId: string, days = 30): Promise<CsatSummary> {
   return request(tenantId, "GET", `/dashboard/csat-summary?days=${days}`);
+}
+
+// ---- Business hours (SLA working window) ----
+
+export interface BusinessHours {
+  startMinute: number;
+  endMinute: number;
+  days: number[];
+  timezone: string;
+}
+
+export function getBusinessHours(tenantId: string): Promise<BusinessHours> {
+  return request(tenantId, "GET", "/business-hours");
+}
+
+export function updateBusinessHours(tenantId: string, input: Partial<BusinessHours>): Promise<BusinessHours> {
+  return request(tenantId, "PATCH", "/business-hours", input);
 }

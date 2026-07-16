@@ -1,6 +1,8 @@
 export interface RenderedMessage {
   subject: string;
   body: string;
+  /** Optional HTML rendering; the email channel sends it as the text/html part. */
+  html?: string;
 }
 
 export interface SendInput {

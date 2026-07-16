@@ -20,6 +20,38 @@ const templates: Record<string, TemplateRenderer> = {
       body: `${label} SLA breached for ticket #${payload.ticketNumber}: "${payload.subject}". It was due at ${payload.dueAt}.`,
     };
   },
+  // An agent's public reply, delivered to the requesting contact. The
+  // "[Ticket #N]" tag in the subject is load-bearing: process-inbound-email
+  // matches exactly that pattern to thread the contact's response back onto
+  // the same ticket instead of opening a new one.
+  'ticket.reply': (payload) => {
+    const agentName = payload.agentName ? String(payload.agentName) : 'Support';
+    const bodyHtml = payload.bodyHtml ? String(payload.bodyHtml) : undefined;
+    return {
+      subject: `[Ticket #${payload.ticketNumber}] ${payload.subject}`,
+      body: `${payload.body}\n\n— ${agentName}`,
+      // bodyHtml is the agent's already-sanitized rich-text reply; wrap it
+      // with the same signature line the plain-text part carries.
+      html: bodyHtml
+        ? `${bodyHtml}<p>— ${escapeHtml(agentName)}</p>`
+        : undefined,
+    };
+  },
+  // Sent to an agent when a ticket is assigned to them.
+  'ticket.assigned': (payload) => ({
+    subject: `Ticket #${payload.ticketNumber} assigned to you: ${payload.subject}`,
+    body: `Ticket #${payload.ticketNumber} "${payload.subject}" has been assigned to you.`,
+  }),
+  // Sent to the assigned agent when the customer replies.
+  'ticket.contact_reply': (payload) => ({
+    subject: `New reply on ticket #${payload.ticketNumber}: ${payload.subject}`,
+    body: `${payload.contactName ?? 'The customer'} replied to ticket #${payload.ticketNumber} "${payload.subject}":\n\n${payload.body}`,
+  }),
+  // Sent to watchers/followers when a ticket they watch gets a new reply.
+  'ticket.watcher_update': (payload) => ({
+    subject: `Update on watched ticket #${payload.ticketNumber}: ${payload.subject}`,
+    body: `There's a new reply on ticket #${payload.ticketNumber} "${payload.subject}" you're watching:\n\n${payload.body}`,
+  }),
   // EscalationSweepService (Module 2) does its own notification_templates
   // lookup and $VARIABLE substitution before enqueueing, so this renderer is
   // just a passthrough for the already-rendered subject/body -- the DB-backed
@@ -36,6 +68,14 @@ const templates: Record<string, TemplateRenderer> = {
     body: String(payload.body ?? ''),
   }),
 };
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 export function renderTemplate(
   templateName: string,

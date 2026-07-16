@@ -19,6 +19,7 @@ const CONDITION_FIELDS = [
   'ticket_type_id',
   'group_id',
   'platform',
+  'tags',
 ] as const;
 const CONDITION_OPERATORS = ['equals', 'contains'] as const;
 const ACTION_TYPES = [
@@ -28,6 +29,7 @@ const ACTION_TYPES = [
   'set_agent',
   'set_platform',
   'add_note',
+  'add_tag',
 ] as const;
 
 export class AutomationConditionDto {

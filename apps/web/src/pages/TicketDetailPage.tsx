@@ -27,9 +27,16 @@ import { platformLabel, PLATFORMS } from "../lib/platform";
 import { dueLabel, relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
+import RichTextEditor from "../components/RichTextEditor";
 import SidePanel from "../components/SidePanel";
 import TicketContactInfo from "../components/TicketContactInfo";
+import TicketAiAssist from "../components/TicketAiAssist";
+import TicketCustomFields from "../components/TicketCustomFields";
+import TicketLinks from "../components/TicketLinks";
+import TicketMerge from "../components/TicketMerge";
 import TicketScenarios from "../components/TicketScenarios";
+import TicketTags from "../components/TicketTags";
+import TicketWatch from "../components/TicketWatch";
 import TicketTimeline from "../components/TicketTimeline";
 import TicketTodos from "../components/TicketTodos";
 import TicketTimeLogs from "../components/TicketTimeLogs";
@@ -174,9 +181,41 @@ export default function TicketDetailPage() {
       .finally(() => setSaving(false));
   };
 
+  const handleCustomFieldChange = (key: string, value: unknown) => {
+    if (!tenantId || !id) return;
+    // Only PATCH when the value actually changed from what's stored -- the
+    // text inputs fire on both change and blur, so this avoids redundant saves.
+    if ((ticket?.custom_fields?.[key] ?? "") === (value ?? "")) return;
+    setSaving(true);
+    setError(null);
+    updateTicket(tenantId, id, { customFields: { [key]: value } })
+      .then((updated) => {
+        setTicket(updated);
+        bumpTimeline();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update field"))
+      .finally(() => setSaving(false));
+  };
+
+  const handleTagsChange = (next: string[]) => {
+    if (!tenantId || !id) return;
+    setSaving(true);
+    setError(null);
+    updateTicket(tenantId, id, { tags: next })
+      .then((updated) => {
+        setTicket(updated);
+        bumpTimeline();
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to update tags"))
+      .finally(() => setSaving(false));
+  };
+
   const handleAddMessage = (event: FormEvent) => {
     event.preventDefault();
-    if (!tenantId || !id || !messageBody.trim()) return;
+    // messageBody is now HTML; treat an editor holding only tags/whitespace
+    // (e.g. "<br>") as empty.
+    const hasContent = messageBody.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
+    if (!tenantId || !id || !hasContent) return;
     setPosting(true);
     setError(null);
     // authorType is a fallback for the (now rare) unauthenticated case --
@@ -209,7 +248,21 @@ export default function TicketDetailPage() {
 
   const handlePickCannedResponse = (id: string) => {
     const response = cannedResponses.find((r) => r.id === id);
-    if (response) setMessageBody(response.body);
+    if (!response) return;
+    // Freshdesk-style placeholder substitution on insert, using the live
+    // ticket/contact/agent context. Unknown placeholders are left as-is.
+    const agentName = ticket?.agent_id ? agents.find((a) => a.id === ticket.agent_id)?.name ?? "" : user?.name ?? "";
+    const values: Record<string, string> = {
+      "ticket.number": ticket ? formatTicketNumber(ticket) : "",
+      "ticket.subject": ticket?.subject ?? "",
+      "contact.name": contact?.name ?? "",
+      "contact.email": contact?.email ?? "",
+      "agent.name": agentName,
+    };
+    const filled = response.body.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key) =>
+      key in values ? values[key] : match,
+    );
+    setMessageBody(filled);
   };
 
   if (!tenantId) {
@@ -319,6 +372,20 @@ export default function TicketDetailPage() {
               ))}
             </select>
           </label>
+          <label>
+            Tags
+            <TicketTags
+              tags={ticket.tags ?? []}
+              disabled={saving}
+              onChange={handleTagsChange}
+            />
+          </label>
+          <TicketCustomFields
+            tenantId={tenantId}
+            values={ticket.custom_fields ?? {}}
+            disabled={saving}
+            onChange={handleCustomFieldChange}
+          />
           <span className="hint">Source: {ticket.source}</span>
         </div>
       ),
@@ -333,6 +400,28 @@ export default function TicketDetailPage() {
           onApplied={(updated) => {
             setTicket(updated);
             bumpTimeline();
+          }}
+        />
+      ),
+    },
+    {
+      id: "links",
+      title: "Linked tickets",
+      content: <TicketLinks tenantId={tenantId} ticketId={ticket.id} />,
+    },
+    {
+      id: "merge",
+      title: "Merge duplicates",
+      content: (
+        <TicketMerge
+          tenantId={tenantId}
+          ticket={ticket}
+          onMerged={(updated) => {
+            setTicket(updated);
+            bumpTimeline();
+            // The primary just absorbed the duplicates' conversation -- reload
+            // the thread so those messages show up immediately.
+            if (id) listTicketMessages(tenantId, id).then(setMessages).catch(() => {});
           }}
         />
       ),
@@ -408,6 +497,7 @@ export default function TicketDetailPage() {
           <h2>{ticket.subject}</h2>
           <span className={`badge status-${ticket.status}`}>{ticket.status}</span>
           <span className={`badge priority-${ticket.priority}`}>{ticket.priority}</span>
+          <TicketWatch tenantId={tenantId} ticketId={ticket.id} />
         </div>
         <div className="ticket-detail-meta">
           {contact && (
@@ -446,7 +536,9 @@ export default function TicketDetailPage() {
                       <strong>{displayName}</strong>
                       <span>{new Date(message.created_at).toLocaleString()}</span>
                     </div>
-                    <div className="message-body">{message.body}</div>
+                    {/* Bodies are sanitized server-side on write (see
+                        sanitizeTicketBody), so the stored HTML is safe to render. */}
+                    <div className="message-body" dangerouslySetInnerHTML={{ __html: message.body }} />
                     {messageAttachments.length > 0 && (
                       <ul className="message-attachments">
                         {messageAttachments.map((a) => (
@@ -463,6 +555,21 @@ export default function TicketDetailPage() {
               );
             })}
           </ul>
+
+          <TicketAiAssist
+            tenantId={tenantId}
+            ticketId={ticket.id}
+            onSuggestReply={(text) => {
+              // Drop the drafted reply into the composer as simple HTML
+              // paragraphs and switch to Reply mode for the agent to review/edit.
+              const html = text
+                .split(/\n{2,}/)
+                .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+                .join("");
+              setMessageType("reply");
+              setMessageBody(html);
+            }}
+          />
 
           <form
             className={`message-composer${messageType === "note" ? " message-composer-note" : ""}`}
@@ -513,15 +620,11 @@ export default function TicketDetailPage() {
                 {presence.map((p) => (p.is_typing ? `${p.agent_name} is replying…` : `${p.agent_name} is viewing this ticket`)).join(" · ")}
               </p>
             )}
-            <textarea
-              placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
+            <RichTextEditor
               value={messageBody}
-              onChange={(e) => {
-                setMessageBody(e.target.value);
-                notifyTyping();
-              }}
-              rows={3}
-              required
+              onChange={setMessageBody}
+              onInput={notifyTyping}
+              placeholder={messageType === "note" ? "Write a private note (not sent to the customer)…" : "Write a reply…"}
             />
             <input
               type="file"

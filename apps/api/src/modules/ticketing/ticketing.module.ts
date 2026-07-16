@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventBusModule } from '../../event-bus/event-bus.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { PlatformModule } from '../platform/platform.module';
+import {
+  AI_COMPLETION_CLIENT,
+  createCompletionClient,
+} from './ai/ai-completion.client';
+import { TicketAiController } from './ai/ticket-ai.controller';
+import { TicketAiService } from './ai/ticket-ai.service';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AgentsController } from './agents.controller';
@@ -12,6 +19,8 @@ import { LocalDiskStorage } from './attachments/object-storage';
 import { AutomationRulesController } from './automation/automation-rules.controller';
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { TimeAutomationSweepService } from './automation/time-automation-sweep.service';
+import { BusinessHoursSettingsController } from './business-hours-settings.controller';
+import { BusinessHoursSettingsService } from './business-hours-settings.service';
 import { CannedResponseFoldersController } from './canned-response-folders.controller';
 import { CannedResponseFoldersService } from './canned-response-folders.service';
 import { CannedResponsesController } from './canned-responses.controller';
@@ -20,6 +29,8 @@ import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
+import { CustomFieldsController } from './custom-fields/custom-fields.controller';
+import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { EmailIntakeService } from './email-intake/email-intake.service';
@@ -37,11 +48,17 @@ import { ScenariosController } from './scenarios.controller';
 import { ScenariosService } from './scenarios.service';
 import { SearchController } from './search/search.controller';
 import { SearchService } from './search/search.service';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
 import { SolutionsController } from './solutions.controller';
 import { SolutionsService } from './solutions.service';
+import { TicketLinksController } from './ticket-links/ticket-links.controller';
+import { TicketLinksService } from './ticket-links/ticket-links.service';
+import { TicketWatchersController } from './ticket-watchers/ticket-watchers.controller';
+import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
 import { TicketPresenceController } from './ticket-presence.controller';
 import { TicketPresenceService } from './ticket-presence.service';
 import { TicketSatisfactionService } from './ticket-satisfaction.service';
@@ -87,6 +104,12 @@ import { TicketsService } from './tickets.service';
     AttachmentsController,
     TicketPresenceController,
     TicketViewsController,
+    BusinessHoursSettingsController,
+    CustomFieldsController,
+    TicketLinksController,
+    TicketWatchersController,
+    ReportsController,
+    TicketAiController,
   ],
   providers: [
     TicketsService,
@@ -94,6 +117,8 @@ import { TicketsService } from './tickets.service';
     OverdueSweepService,
     TicketPresenceService,
     TicketViewsService,
+    BusinessHoursSettingsService,
+    CustomFieldsService,
     TicketSatisfactionService,
     GroupsService,
     AgentsService,
@@ -118,6 +143,15 @@ import { TicketsService } from './tickets.service';
     SolutionsService,
     AttachmentsService,
     LocalDiskStorage,
+    TicketLinksService,
+    TicketWatchersService,
+    ReportsService,
+    TicketAiService,
+    {
+      provide: AI_COMPLETION_CLIENT,
+      inject: [ConfigService],
+      useFactory: createCompletionClient,
+    },
   ],
 })
 export class TicketingModule {}

@@ -8,6 +8,7 @@ import {
   listAgents,
   listContacts,
   listGroups,
+  listTicketTags,
   listTicketViews,
   listTickets,
   updateTicket,
@@ -42,6 +43,8 @@ export default function TicketListPage() {
   const [platform, setPlatform] = useState<TicketPlatform | "">("");
   const [groupId, setGroupId] = useState("");
   const [agentId, setAgentId] = useState("");
+  const [tag, setTag] = useState("");
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [resolvedFrom, setResolvedFrom] = useState("");
@@ -72,6 +75,7 @@ export default function TicketListPage() {
       platform: platform || undefined,
       groupId: groupId || undefined,
       agentId: agentId || undefined,
+      tag: tag || undefined,
       unassigned: view === "unassigned" || undefined,
       overdue: view === "overdue" || undefined,
       createdFrom: createdFrom ? new Date(createdFrom).toISOString() : undefined,
@@ -89,22 +93,23 @@ export default function TicketListPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [tenantId, view, status, priority, platform, groupId, agentId, createdFrom, createdTo, resolvedFrom, resolvedTo, offset]);
+  useEffect(load, [tenantId, view, status, priority, platform, groupId, agentId, tag, createdFrom, createdTo, resolvedFrom, resolvedTo, offset]);
 
   // Any filter change should snap back to page 1, not keep whatever offset
   // was scrolled to under the previous filter set.
   useEffect(() => {
     setOffset(0);
     setSelected(new Set());
-  }, [view, status, priority, platform, groupId, agentId, createdFrom, createdTo, resolvedFrom, resolvedTo]);
+  }, [view, status, priority, platform, groupId, agentId, tag, createdFrom, createdTo, resolvedFrom, resolvedTo]);
 
   useEffect(() => {
     if (!tenantId) return;
-    Promise.all([listGroups(tenantId), listAgents(tenantId), listContacts(tenantId)])
-      .then(([groupsRes, agentsRes, contactsRes]) => {
+    Promise.all([listGroups(tenantId), listAgents(tenantId), listContacts(tenantId), listTicketTags(tenantId)])
+      .then(([groupsRes, agentsRes, contactsRes, tagsRes]) => {
         setGroups(groupsRes);
         setAgents(agentsRes);
         setContacts(contactsRes);
+        setTagOptions(tagsRes);
       })
       .catch(() => {
         // Reference data only powers the filter dropdowns and the
@@ -130,6 +135,7 @@ export default function TicketListPage() {
     platform,
     groupId,
     agentId,
+    tag,
     createdFrom,
     createdTo,
     resolvedFrom,
@@ -145,6 +151,7 @@ export default function TicketListPage() {
     setPlatform((f.platform as TicketPlatform) ?? "");
     setGroupId(f.groupId ?? "");
     setAgentId(f.agentId ?? "");
+    setTag(f.tag ?? "");
     setCreatedFrom(f.createdFrom ?? "");
     setCreatedTo(f.createdTo ?? "");
     setResolvedFrom(f.resolvedFrom ?? "");
@@ -342,6 +349,16 @@ export default function TicketListPage() {
             ))}
           </select>
         )}
+        {tagOptions.length > 0 && (
+          <select value={tag} onChange={(e) => setTag(e.target.value)}>
+            <option value="">All tags</option>
+            {tagOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        )}
         <details>
           <summary className="link-button" style={{ display: "inline" }}>
             More filters
@@ -441,6 +458,15 @@ export default function TicketListPage() {
                     </Link>
                     <div className="ticket-row-meta">
                       {contactName && <span>{contactName}</span>}
+                      {ticket.tags?.length > 0 && (
+                        <span className="ticket-row-tags">
+                          {ticket.tags.map((t) => (
+                            <span key={t} className="ticket-tag-chip">
+                              {t}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="ticket-row-badges">

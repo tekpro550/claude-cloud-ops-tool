@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
+import AuditLogAdmin from "../components/admin/AuditLogAdmin";
 import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
+import BusinessHoursAdmin from "../components/admin/BusinessHoursAdmin";
 import CannedResponseFoldersAdmin from "../components/admin/CannedResponseFoldersAdmin";
 import CannedResponsesAdmin from "../components/admin/CannedResponsesAdmin";
 import CloudCredentialsAdmin from "../components/admin/CloudCredentialsAdmin";
 import CostBudgetsAdmin from "../components/admin/CostBudgetsAdmin";
+import CustomFieldsAdmin from "../components/admin/CustomFieldsAdmin";
 import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
@@ -107,6 +110,8 @@ export default function AdminPage() {
             <h3>Support Operations</h3>
             <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
             <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
+            <BusinessHoursAdmin tenantId={tenantId} onChange={handleChange} />
+            <CustomFieldsAdmin tenantId={tenantId} onChange={handleChange} />
           </section>
 
           <section className="admin-group">
@@ -144,6 +149,11 @@ export default function AdminPage() {
           <NotificationTemplatesAdmin tenantId={tenantId} onChange={handleChange} />
         </section>
       )}
+
+      <section className="admin-group">
+        <h3>Security &amp; audit</h3>
+        <AuditLogAdmin tenantId={tenantId} refreshSignal={refreshSignal} />
+      </section>
     </div>
   );
 }

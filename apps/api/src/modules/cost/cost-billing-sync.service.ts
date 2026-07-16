@@ -13,6 +13,9 @@ import {
   CLOUD_PROVIDER_CLIENT_FACTORY,
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
+import { credentialsEncryptionKey } from '../monitoring/credentials-crypto';
+import { normalizeAllocationTags } from './cost-allocation';
+import { CostAnomalyCheckService } from './cost-anomaly-check.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
 
 interface CloudCredentialRow {
@@ -54,6 +57,7 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
     private readonly clientFactory: CloudProviderClientFactory,
     private readonly config: ConfigService,
     private readonly paceCheck: CostPaceCheckService,
+    private readonly anomalyCheck: CostAnomalyCheckService,
   ) {}
 
   onModuleInit(): void {
@@ -92,12 +96,15 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async syncTenant(tenantId: string): Promise<number> {
+    const key = credentialsEncryptionKey(this.config);
     const credentials: CloudCredentialRow[] = await withTenantContext(
       this.dataSource,
       tenantId,
       (queryRunner) =>
         queryRunner.query(
-          `SELECT id, provider, config FROM cloud_credentials WHERE is_enabled = true`,
+          `SELECT id, provider, pgp_sym_decrypt(config_encrypted, $1)::jsonb AS config
+           FROM cloud_credentials WHERE is_enabled = true`,
+          [key],
         ),
     );
 
@@ -120,6 +127,14 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
+    try {
+      await this.anomalyCheck.checkTenant(tenantId);
+    } catch (err) {
+      this.logger.error(
+        `anomaly check for tenant ${tenantId} failed: ${(err as Error).message}`,
+      );
+    }
+
     return syncedCount;
   }
 
@@ -133,11 +148,12 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
 
     await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       for (const item of lineItems) {
+        const tags = normalizeAllocationTags(item.tags);
         await queryRunner.query(
-          `INSERT INTO cost_line_items (tenant_id, cloud_credential_id, service, region, usage_date, amount, currency, raw, synced_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+          `INSERT INTO cost_line_items (tenant_id, cloud_credential_id, service, region, usage_date, amount, currency, tags, raw, synced_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
            ON CONFLICT (cloud_credential_id, service, COALESCE(region, ''), usage_date)
-           DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency, raw = EXCLUDED.raw, synced_at = now()`,
+           DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency, tags = EXCLUDED.tags, raw = EXCLUDED.raw, synced_at = now()`,
           [
             tenantId,
             credential.id,
@@ -146,6 +162,7 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
             item.usageDate,
             item.amount,
             item.currency,
+            JSON.stringify(tags),
             JSON.stringify(item.raw),
           ],
         );

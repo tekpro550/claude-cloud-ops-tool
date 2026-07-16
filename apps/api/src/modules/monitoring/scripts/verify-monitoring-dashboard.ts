@@ -156,9 +156,13 @@ async function main() {
     const {
       rows: [credential],
     } = await migrator.query(
-      `INSERT INTO cloud_credentials (tenant_id, provider, label, config, is_enabled)
-       VALUES ($1, 'aws', 'unrelated cost credential', '{}', true) RETURNING id`,
-      [tenant.id],
+      `INSERT INTO cloud_credentials (tenant_id, provider, label, config_encrypted, is_enabled)
+       VALUES ($1, 'aws', 'unrelated cost credential', pgp_sym_encrypt('{}', $2), true) RETURNING id`,
+      [
+        tenant.id,
+        process.env.CREDENTIALS_ENCRYPTION_KEY ??
+          'dev-only-credentials-key-change-me-in-prod',
+      ],
     );
     const {
       rows: [budget],

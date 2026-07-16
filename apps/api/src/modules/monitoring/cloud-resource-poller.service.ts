@@ -11,6 +11,7 @@ import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { AlertEvaluationService } from './alert-evaluation.service';
 import { evaluateCloudMetrics } from './checks/cloud-metric-check';
+import { credentialsEncryptionKey } from './credentials-crypto';
 import {
   CLOUD_PROVIDER_CLIENT_FACTORY,
   CloudProviderClientFactory,
@@ -97,12 +98,15 @@ export class CloudResourcePollerService
   }
 
   private async pollTenant(tenantId: string): Promise<number> {
+    const key = credentialsEncryptionKey(this.config);
     const credentials: CloudCredentialRow[] = await withTenantContext(
       this.dataSource,
       tenantId,
       (queryRunner) =>
         queryRunner.query(
-          `SELECT id, provider, config FROM cloud_credentials WHERE is_enabled = true`,
+          `SELECT id, provider, pgp_sym_decrypt(config_encrypted, $1)::jsonb AS config
+           FROM cloud_credentials WHERE is_enabled = true`,
+          [key],
         ),
     );
 

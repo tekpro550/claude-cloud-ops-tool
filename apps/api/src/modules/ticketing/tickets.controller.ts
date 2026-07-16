@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -17,6 +18,7 @@ import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { MergeTicketsDto } from './dto/merge-tickets.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketSatisfactionService } from './ticket-satisfaction.service';
 import { TicketsService } from './tickets.service';
@@ -51,6 +53,29 @@ export class TicketsController {
     return this.ticketsService.list(tenantId, query);
   }
 
+  // Declared before the ':id' route so "tags" isn't captured as a ticket id.
+  @Get('tags')
+  listTags(@CurrentTenantId() tenantId: string) {
+    return this.ticketsService.distinctTags(tenantId);
+  }
+
+  // Resolve a human-facing ticket number to the ticket (used by merge, which
+  // needs the id behind a number the agent typed). Also before ':id'.
+  @Get('by-number/:number')
+  async byNumber(
+    @CurrentTenantId() tenantId: string,
+    @Param('number') number: string,
+  ) {
+    const ticket = await this.ticketsService.findByTicketNumber(
+      tenantId,
+      Number(number),
+    );
+    if (!ticket) {
+      throw new NotFoundException(`Ticket #${number} not found`);
+    }
+    return ticket;
+  }
+
   @Get(':id')
   get(
     @CurrentTenantId() tenantId: string,
@@ -75,6 +100,15 @@ export class TicketsController {
       if (agent) actorAgentId = agent.id;
     }
     return this.ticketsService.update(tenantId, id, dto, actorAgentId);
+  }
+
+  @Post(':id/merge')
+  merge(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: MergeTicketsDto,
+  ) {
+    return this.ticketsService.merge(tenantId, id, dto.sourceTicketIds);
   }
 
   @Post(':id/messages')

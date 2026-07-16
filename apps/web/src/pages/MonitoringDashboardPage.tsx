@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import TrendsChart from "../components/TrendsChart";
-import { getMonitoringDashboardSummary, getMonitoringDashboardTrends } from "../lib/monitoringApiClient";
+import {
+  dismissDiskForecast,
+  getMonitoringDashboardSummary,
+  getMonitoringDashboardTrends,
+  listDiskForecasts,
+  type DiskForecast,
+} from "../lib/monitoringApiClient";
 import { useTenant } from "../lib/tenant";
 import type { MonitoringDashboardSummary } from "../types/monitoring";
 import type { DashboardTrendPoint } from "../types/ticket";
@@ -15,7 +21,13 @@ export default function MonitoringDashboardPage() {
   const { tenantId } = useTenant();
   const [summary, setSummary] = useState<MonitoringDashboardSummary | null>(null);
   const [trends, setTrends] = useState<DashboardTrendPoint[]>([]);
+  const [diskForecasts, setDiskForecasts] = useState<DiskForecast[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const loadForecasts = () => {
+    if (!tenantId) return;
+    listDiskForecasts(tenantId).then(setDiskForecasts).catch(() => {});
+  };
 
   useEffect(() => {
     if (!tenantId) return;
@@ -26,7 +38,13 @@ export default function MonitoringDashboardPage() {
         setTrends(trendsRes);
       })
       .finally(() => setLoading(false));
+    loadForecasts();
   }, [tenantId]);
+
+  const handleDismissForecast = (id: string) => {
+    if (!tenantId) return;
+    dismissDiskForecast(tenantId, id).then(loadForecasts).catch(() => {});
+  };
 
   if (!tenantId) {
     return <p className="hint">Set a tenant id above to load the monitoring dashboard.</p>;
@@ -61,6 +79,23 @@ export default function MonitoringDashboardPage() {
         <StatTile label="Total" value={summary.monitors.total} />
         <StatTile label="Enabled" value={summary.monitors.enabled} />
       </div>
+
+      {diskForecasts.length > 0 && (
+        <>
+          <h3>Disk-full forecasts</h3>
+          <ul className="anomaly-list">
+            {diskForecasts.map((f) => (
+              <li key={f.id} className="anomaly-item">
+                <span className="badge status-breached">~{Number(f.days_to_full)}d</span>
+                <span className="anomaly-reason">{f.reason_text}</span>
+                <button type="button" className="btn-ghost btn-sm" onClick={() => handleDismissForecast(f.id)}>
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h3>Open alerts</h3>
       <div className="stat-tiles">

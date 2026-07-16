@@ -18,7 +18,7 @@ const DEFAULT_BODY =
 interface EscalationStep {
   delayMinutes: number;
   notify: {
-    channel: 'email' | 'whatsapp' | 'voice' | 'in_app';
+    channel: 'email' | 'slack' | 'webhook' | 'whatsapp' | 'voice' | 'in_app';
     recipient: string;
   }[];
 }
