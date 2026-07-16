@@ -183,6 +183,42 @@ export function listTicketTags(tenantId: string): Promise<string[]> {
   return request(tenantId, "GET", "/tickets/tags");
 }
 
+export interface ReportsSummary {
+  window: { from: string; to: string };
+  volume: { day: string; created: number; resolved: number }[];
+  byStatus: { key: string; count: number }[];
+  byPriority: { key: string; count: number }[];
+  sla: {
+    firstResponse: { met: number; total: number; pct: number | null };
+    resolution: { met: number; total: number; pct: number | null };
+  };
+  times: {
+    firstResponseMinutes: { avg: number | null; median: number | null };
+    resolutionMinutes: { avg: number | null; median: number | null };
+  };
+  csat: {
+    total: number;
+    score: number | null;
+    positivePct: number | null;
+    distribution: { rating: string; count: number }[];
+  };
+  agents: {
+    agent_id: string;
+    agent_name: string;
+    resolved: number;
+    avg_resolution_minutes: number | null;
+    csat_score: number | null;
+  }[];
+}
+
+export function getReportsSummary(tenantId: string, from?: string, to?: string): Promise<ReportsSummary> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const qs = params.toString();
+  return request(tenantId, "GET", `/reports/summary${qs ? `?${qs}` : ""}`);
+}
+
 export function getTicketByNumber(tenantId: string, ticketNumber: number): Promise<Ticket> {
   return request(tenantId, "GET", `/tickets/by-number/${ticketNumber}`);
 }

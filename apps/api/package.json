@@ -48,6 +48,7 @@
     "ticket-merge:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-merge.ts",
     "ticket-links:verify": "ts-node -r dotenv/config src/modules/ticketing/ticket-links/scripts/verify-ticket-links.ts",
     "ticket-watchers:verify": "ts-node -r dotenv/config src/modules/ticketing/ticket-watchers/scripts/verify-ticket-watchers.ts",
+    "reports:verify": "ts-node -r dotenv/config src/modules/ticketing/reports/scripts/verify-reports.ts",
     "audit-log:verify": "ts-node -r dotenv/config src/modules/platform/audit/scripts/verify-audit-log.ts",
     "credentials-encryption:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-credentials-encryption.ts",
     "dashboard:verify": "ts-node -r dotenv/config src/modules/ticketing/dashboard/scripts/verify-dashboard.ts",

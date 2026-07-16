@@ -41,6 +41,8 @@ import { ScenariosController } from './scenarios.controller';
 import { ScenariosService } from './scenarios.service';
 import { SearchController } from './search/search.controller';
 import { SearchService } from './search/search.service';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
@@ -99,6 +101,7 @@ import { TicketsService } from './tickets.service';
     CustomFieldsController,
     TicketLinksController,
     TicketWatchersController,
+    ReportsController,
   ],
   providers: [
     TicketsService,
@@ -134,6 +137,7 @@ import { TicketsService } from './tickets.service';
     LocalDiskStorage,
     TicketLinksService,
     TicketWatchersService,
+    ReportsService,
   ],
 })
 export class TicketingModule {}

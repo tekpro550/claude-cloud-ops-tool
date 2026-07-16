@@ -1986,6 +1986,70 @@ td {
   white-space: nowrap;
 }
 
+.reports-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.reports-volume {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.reports-volume-day {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  height: 100%;
+  min-width: 0;
+}
+.reports-volume-bar {
+  width: 45%;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+}
+.reports-volume-created {
+  background: #6366f1;
+}
+.reports-volume-resolved {
+  background: #10b981;
+}
+.reports-volume-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.reports-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  margin: 0 0.2rem 0 0.6rem;
+}
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.reports-table th,
+.reports-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.reports-table td:not(:first-child),
+.reports-table th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .custom-field-list {
   list-style: none;
   padding: 0;
