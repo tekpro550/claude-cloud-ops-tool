@@ -10,6 +10,9 @@ import {
 export const AI_PROVIDERS = [
   'anthropic',
   'openai',
+  'gemini',
+  'grok',
+  'llama',
   'openai_compatible',
 ] as const;
 

@@ -125,7 +125,17 @@ export class OpenAiCompatibleCompletionClient implements AiCompletionClient {
   }
 }
 
-export type AiProvider = 'anthropic' | 'openai' | 'openai_compatible';
+export type AiProvider =
+  'anthropic' | 'openai' | 'gemini' | 'grok' | 'llama' | 'openai_compatible';
+
+// Closed hosted providers that speak the OpenAI /chat/completions wire format,
+// with their default endpoints. All require an API key.
+const HOSTED_OPENAI_COMPATIBLE_BASE_URLS: Record<string, string> = {
+  openai: 'https://api.openai.com/v1',
+  gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
+  grok: 'https://api.x.ai/v1',
+  llama: 'https://api.llama.com/compat/v1',
+};
 
 export interface CompletionClientConfig {
   provider: AiProvider;
@@ -148,17 +158,23 @@ export function buildCompletionClient(
     if (!config.apiKey) return new DisabledCompletionClient();
     return new AnthropicCompletionClient(config.apiKey, config.model);
   }
-  // 'openai' is a closed provider that still speaks the OpenAI wire format and
-  // requires a key; 'openai_compatible' is the open/self-hosted case where the
-  // caller supplies the base URL and a key may not be needed.
-  const baseUrl =
-    config.provider === 'openai'
-      ? config.baseUrl || 'https://api.openai.com/v1'
-      : config.baseUrl;
-  if (!baseUrl) return new DisabledCompletionClient();
-  if (config.provider === 'openai' && !config.apiKey) {
-    return new DisabledCompletionClient();
+
+  // 'openai_compatible' is the open/self-hosted case: the caller supplies the
+  // base URL and a key may not be needed (e.g. a local Ollama).
+  if (config.provider === 'openai_compatible') {
+    if (!config.baseUrl) return new DisabledCompletionClient();
+    return new OpenAiCompatibleCompletionClient(
+      config.baseUrl,
+      config.model,
+      config.apiKey,
+    );
   }
+
+  // Closed hosted providers (openai, gemini, grok, llama): known default
+  // endpoint (overridable), and a key is required.
+  const baseUrl =
+    config.baseUrl || HOSTED_OPENAI_COMPATIBLE_BASE_URLS[config.provider];
+  if (!baseUrl || !config.apiKey) return new DisabledCompletionClient();
   return new OpenAiCompatibleCompletionClient(
     baseUrl,
     config.model,

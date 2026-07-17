@@ -835,7 +835,7 @@ export function getCsatSummary(tenantId: string, days = 30): Promise<CsatSummary
 
 // ---- AI assist provider settings ----
 
-export type AiProvider = "anthropic" | "openai" | "openai_compatible";
+export type AiProvider = "anthropic" | "openai" | "gemini" | "grok" | "llama" | "openai_compatible";
 
 export interface AiSettings {
   id: string;

@@ -9,6 +9,9 @@ type ModelKind = "closed" | "open";
 const CLOSED_PROVIDERS: { value: AiProvider; label: string; modelPlaceholder: string }[] = [
   { value: "anthropic", label: "Anthropic (Claude)", modelPlaceholder: "claude-sonnet-4-5" },
   { value: "openai", label: "OpenAI (GPT)", modelPlaceholder: "gpt-4o" },
+  { value: "gemini", label: "Google (Gemini)", modelPlaceholder: "gemini-2.0-flash" },
+  { value: "grok", label: "xAI (Grok)", modelPlaceholder: "grok-2-latest" },
+  { value: "llama", label: "Meta (Llama)", modelPlaceholder: "llama-3.3-70b" },
 ];
 
 export default function AiSettingsAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
@@ -93,7 +96,7 @@ export default function AiSettingsAdmin({ tenantId, onChange }: { tenantId: stri
             onClick={() => chooseKind("closed")}
           >
             <strong>Closed (hosted)</strong>
-            <span className="hint">Anthropic or OpenAI — you supply an API key</span>
+            <span className="hint">Anthropic, OpenAI, Gemini, Grok or Llama — you supply an API key</span>
           </button>
           <button
             type="button"
