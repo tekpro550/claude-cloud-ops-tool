@@ -12,6 +12,8 @@ import { CurrentUserId } from '../http/current-user.decorator';
 import { TenantHeaderGuard } from '../http/tenant-header.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
+import { MfaCodeDto } from './mfa.dto';
+import { MfaService } from './mfa.service';
 import {
   RequestPasswordResetDto,
   ResetPasswordDto,
@@ -20,11 +22,57 @@ import {
 @UseGuards(TenantHeaderGuard)
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly mfa: MfaService,
+  ) {}
 
   @Post('login')
   login(@CurrentTenantId() tenantId: string, @Body() dto: LoginDto) {
-    return this.auth.login(tenantId, dto.email, dto.password);
+    return this.auth.login(tenantId, dto.email, dto.password, dto.totpCode);
+  }
+
+  // ---- Two-factor (TOTP) enrollment ----
+
+  @Get('2fa')
+  mfaStatus(
+    @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
+  ) {
+    if (!userId) throw new UnauthorizedException('Requires a Bearer token');
+    return this.mfa.status(tenantId, userId);
+  }
+
+  // Returns the secret + otpauth URI once, for the user to scan into an app.
+  @Post('2fa/setup')
+  mfaSetup(
+    @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
+  ) {
+    if (!userId) throw new UnauthorizedException('Requires a Bearer token');
+    return this.mfa.beginSetup(tenantId, userId);
+  }
+
+  @Post('2fa/enable')
+  @HttpCode(204)
+  async mfaEnable(
+    @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
+    @Body() dto: MfaCodeDto,
+  ) {
+    if (!userId) throw new UnauthorizedException('Requires a Bearer token');
+    await this.mfa.enable(tenantId, userId, dto.code);
+  }
+
+  @Post('2fa/disable')
+  @HttpCode(204)
+  async mfaDisable(
+    @CurrentTenantId() tenantId: string,
+    @CurrentUserId() userId: string | undefined,
+    @Body() dto: MfaCodeDto,
+  ) {
+    if (!userId) throw new UnauthorizedException('Requires a Bearer token');
+    await this.mfa.disable(tenantId, userId, dto.code);
   }
 
   @Get('me')

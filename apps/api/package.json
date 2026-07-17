@@ -68,6 +68,7 @@
     "auth:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth.ts",
     "auth-hygiene:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth-hygiene.ts",
     "rbac:verify": "ts-node -r dotenv/config src/modules/platform/http/scripts/verify-rbac.ts",
+    "auth-mfa-sso:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth-mfa-sso.ts",
     "portal:verify": "ts-node -r dotenv/config src/modules/ticketing/portal/scripts/verify-portal.ts",
     "solutions:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-solutions.ts",
     "chat:verify": "ts-node -r dotenv/config src/modules/ticketing/chat/scripts/verify-chat.ts",

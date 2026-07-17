@@ -7,7 +7,10 @@ const USER_KEY = "cloud-ops-tool.authUser";
 
 interface AuthContextValue {
   user: AuthUser | null;
-  login: (tenantId: string, email: string, password: string) => Promise<void>;
+  // Resolves to `{ mfaRequired: true }` when the account needs a 2FA code;
+  // the caller then re-invokes with `totpCode`.
+  login: (tenantId: string, email: string, password: string, totpCode?: string) => Promise<{ mfaRequired: boolean }>;
+  loginWithToken: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
 
@@ -41,12 +44,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  const login = async (tenantId: string, email: string, password: string) => {
-    const result = await loginRequest(tenantId, email, password);
-    localStorage.setItem(TOKEN_KEY, result.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(result.user));
-    setAuthToken(result.token);
-    setUser(result.user);
+  const storeSession = (token: string, sessionUser: AuthUser) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
+    setAuthToken(token);
+    setUser(sessionUser);
+  };
+
+  const login = async (tenantId: string, email: string, password: string, totpCode?: string) => {
+    const result = await loginRequest(tenantId, email, password, totpCode);
+    if ("mfaRequired" in result) {
+      return { mfaRequired: true };
+    }
+    storeSession(result.token, result.user);
+    return { mfaRequired: false };
+  };
+
+  const loginWithToken = (token: string, sessionUser: AuthUser) => {
+    storeSession(token, sessionUser);
   };
 
   const logout = () => {
@@ -56,7 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, login, loginWithToken, logout }}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

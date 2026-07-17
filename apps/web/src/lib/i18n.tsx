@@ -37,6 +37,9 @@ const en: Dictionary = {
   "auth.loggingIn": "Logging in…",
   "auth.cancel": "Cancel",
   "auth.forgot": "Forgot?",
+  "auth.twoFactorCode": "6-digit code",
+  "auth.verify": "Verify",
+  "auth.sso": "SSO",
   "common.search": "Search…",
 };
 
@@ -62,6 +65,9 @@ const es: Dictionary = {
   "auth.loggingIn": "Iniciando sesión…",
   "auth.cancel": "Cancelar",
   "auth.forgot": "¿Olvidó?",
+  "auth.twoFactorCode": "Código de 6 dígitos",
+  "auth.verify": "Verificar",
+  "auth.sso": "SSO",
   "common.search": "Buscar…",
 };
 

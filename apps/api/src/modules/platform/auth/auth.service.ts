@@ -11,12 +11,14 @@ import * as bcrypt from 'bcryptjs';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
 import { NotificationsService } from '../../../notifications/notifications.service';
+import { credentialsEncryptionKey } from '../../monitoring/credentials-crypto';
 import {
   clearLoginAttempts,
   registerLoginAttempt,
   revokeUserSessions,
 } from './auth-security';
 import { signJwt } from './jwt';
+import { verifyTotp } from './totp';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -30,7 +32,12 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async login(tenantId: string, email: string, password: string) {
+  async login(
+    tenantId: string,
+    email: string,
+    password: string,
+    totpCode?: string,
+  ) {
     // Rate-limit before touching the DB so a brute-force run is cheap to shed.
     const throttleKey = `${tenantId}:${email.toLowerCase()}`;
     const throttle = await registerLoginAttempt(throttleKey);
@@ -48,6 +55,24 @@ export class AuthService {
       );
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
         throw new UnauthorizedException('Invalid email or password');
+      }
+
+      // Second factor: only after the password checks out (so the mfaRequired
+      // signal can't be used to enumerate accounts). A missing code prompts the
+      // client for one rather than failing the login outright.
+      if (user.totp_enabled) {
+        if (!totpCode) {
+          return { mfaRequired: true } as const;
+        }
+        const key = credentialsEncryptionKey(this.config);
+        const [secretRow] = await queryRunner.query(
+          `SELECT pgp_sym_decrypt(totp_secret_encrypted, $2) AS secret
+             FROM users WHERE id = $1`,
+          [user.id, key],
+        );
+        if (!secretRow || !verifyTotp(secretRow.secret, totpCode)) {
+          throw new UnauthorizedException('Invalid authentication code');
+        }
       }
 
       await clearLoginAttempts(throttleKey);

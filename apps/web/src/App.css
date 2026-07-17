@@ -2618,3 +2618,10 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+/* 2FA setup: the otpauth URI is long — let it wrap instead of overflowing. */
+.mfa-otpauth {
+  word-break: break-all;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+}

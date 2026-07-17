@@ -21,6 +21,8 @@ import ResourcesAdmin from "../components/admin/ResourcesAdmin";
 import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
 import SolutionsAdmin from "../components/admin/SolutionsAdmin";
+import SsoConfigAdmin from "../components/admin/SsoConfigAdmin";
+import TwoFactorAdmin from "../components/admin/TwoFactorAdmin";
 import TenantCostSettingsAdmin from "../components/admin/TenantCostSettingsAdmin";
 import TicketTypesAdmin from "../components/admin/TicketTypesAdmin";
 import { getSetupStatus } from "../lib/apiClient";
@@ -127,6 +129,8 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
 const SECURITY_GROUP: SettingGroup = {
   heading: "Security & audit",
   items: [
+    { key: "two-factor", label: "Two-factor auth", description: "Add a TOTP code to your own sign-in", icon: "🔐", render: (p) => <TwoFactorAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+    { key: "sso", label: "Single sign-on", description: "Connect an OIDC identity provider", icon: "🪪", render: (p) => <SsoConfigAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
     { key: "audit-log", label: "Audit log", description: "History of admin configuration changes", icon: "📜", render: (p) => <AuditLogAdmin tenantId={p.tenantId} refreshSignal={p.refreshSignal} /> },
   ],
 };

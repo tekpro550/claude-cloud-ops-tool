@@ -765,8 +765,83 @@ export interface LoginResult {
   user: AuthUser;
 }
 
-export function login(tenantId: string, email: string, password: string): Promise<LoginResult> {
-  return request(tenantId, "POST", "/auth/login", { email, password });
+// When the account has 2FA on, a password-only login returns this instead of a
+// token, and the client re-submits with the authenticator code.
+export type LoginResponse = LoginResult | { mfaRequired: true };
+
+export function login(
+  tenantId: string,
+  email: string,
+  password: string,
+  totpCode?: string,
+): Promise<LoginResponse> {
+  return request(tenantId, "POST", "/auth/login", { email, password, totpCode });
+}
+
+// ---- Two-factor (TOTP) ----
+
+export interface MfaStatus {
+  enabled: boolean;
+}
+
+export interface MfaSetup {
+  secret: string;
+  otpauthUri: string;
+}
+
+export function getMfaStatus(tenantId: string): Promise<MfaStatus> {
+  return request(tenantId, "GET", "/auth/2fa");
+}
+
+export function setupMfa(tenantId: string): Promise<MfaSetup> {
+  return request(tenantId, "POST", "/auth/2fa/setup");
+}
+
+export function enableMfa(tenantId: string, code: string): Promise<void> {
+  return request(tenantId, "POST", "/auth/2fa/enable", { code });
+}
+
+export function disableMfa(tenantId: string, code: string): Promise<void> {
+  return request(tenantId, "POST", "/auth/2fa/disable", { code });
+}
+
+// ---- OIDC single sign-on ----
+
+export interface SsoConfig {
+  tenant_id: string;
+  provider: string;
+  issuer: string;
+  client_id: string;
+  authorization_endpoint: string;
+  token_endpoint: string;
+  userinfo_endpoint: string;
+  default_role: "admin" | "agent";
+  is_enabled: boolean;
+  has_client_secret: boolean;
+}
+
+export interface UpsertSsoConfigInput {
+  issuer: string;
+  clientId: string;
+  clientSecret?: string;
+  authorizationEndpoint: string;
+  tokenEndpoint: string;
+  userinfoEndpoint: string;
+  defaultRole?: "admin" | "agent";
+  isEnabled?: boolean;
+}
+
+export function getSsoConfig(tenantId: string): Promise<SsoConfig | null> {
+  return request(tenantId, "GET", "/auth/sso/config");
+}
+
+export function upsertSsoConfig(tenantId: string, input: UpsertSsoConfigInput): Promise<SsoConfig> {
+  return request(tenantId, "PUT", "/auth/sso/config", input);
+}
+
+// The IdP redirect URL is fetched, then the browser navigates to it.
+export function beginSsoLogin(tenantId: string): Promise<{ redirectUrl: string }> {
+  return request(tenantId, "GET", `/auth/sso/${tenantId}/begin`);
 }
 
 export function getCurrentUser(tenantId: string): Promise<AuthUser> {

@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
-import { ApiError } from "./lib/apiClient";
+import { ApiError, beginSsoLogin } from "./lib/apiClient";
 import { useAuth } from "./lib/auth";
 import { LOCALES, useTranslation } from "./lib/i18n";
 import { useTenant } from "./lib/tenant";
@@ -19,6 +19,7 @@ import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SsoCallbackPage from "./pages/SsoCallbackPage";
 import ReportsPage from "./pages/ReportsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
@@ -73,8 +74,20 @@ function HeaderAuth() {
   const [expanded, setExpanded] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const startSso = async () => {
+    setError(null);
+    try {
+      const { redirectUrl } = await beginSsoLogin(tenantId);
+      window.location.href = redirectUrl;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "SSO is not configured for this tenant");
+    }
+  };
 
   if (user) {
     return (
@@ -104,10 +117,16 @@ function HeaderAuth() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(tenantId, email, password);
+      const { mfaRequired: needsCode } = await login(tenantId, email, password, mfaRequired ? totpCode : undefined);
+      if (needsCode) {
+        setMfaRequired(true);
+        return;
+      }
       setExpanded(false);
       setEmail("");
       setPassword("");
+      setTotpCode("");
+      setMfaRequired(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed");
     } finally {
@@ -117,19 +136,34 @@ function HeaderAuth() {
 
   return (
     <form className="header-auth header-auth-form" onSubmit={handleSubmit}>
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={mfaRequired} />
       <input
         placeholder="Password"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        disabled={mfaRequired}
       />
+      {mfaRequired && (
+        <input
+          placeholder={t("auth.twoFactorCode")}
+          inputMode="numeric"
+          autoFocus
+          value={totpCode}
+          onChange={(e) => setTotpCode(e.target.value)}
+        />
+      )}
       <button type="submit" disabled={submitting}>
-        {submitting ? t("auth.loggingIn") : t("auth.login")}
+        {submitting ? t("auth.loggingIn") : mfaRequired ? t("auth.verify") : t("auth.login")}
       </button>
       <button type="button" onClick={() => setExpanded(false)}>
         {t("auth.cancel")}
       </button>
+      {!mfaRequired && (
+        <button type="button" className="header-auth-sso" onClick={startSso}>
+          {t("auth.sso")}
+        </button>
+      )}
       <Link className="header-auth-forgot" to="/reset-password" onClick={() => setExpanded(false)}>
         {t("auth.forgot")}
       </Link>
@@ -280,6 +314,7 @@ function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/sso-callback" element={<SsoCallbackPage />} />
         </Routes>
       </main>
     </div>
