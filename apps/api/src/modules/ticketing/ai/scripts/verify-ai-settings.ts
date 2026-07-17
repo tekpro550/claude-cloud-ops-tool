@@ -76,7 +76,7 @@ async function main() {
     const {
       rows: [raw],
     } = await migrator.query(
-      `SELECT convert_from(api_key_encrypted, 'UTF8') LIKE '%super-secret-key%' AS leaks
+      `SELECT encode(api_key_encrypted, 'escape') LIKE '%super-secret-key%' AS leaks
        FROM tenant_ai_settings WHERE tenant_id = $1`,
       [tenant.id],
     );
