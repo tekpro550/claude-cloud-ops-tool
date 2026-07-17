@@ -12,6 +12,8 @@ export interface AppJwtClaims {
   email: string;
   kind: 'agent' | 'contact';
   role?: string;
+  /** Issued-at (seconds), set by jsonwebtoken on sign; used for session revocation. */
+  iat?: number;
 }
 
 function secret(): string {

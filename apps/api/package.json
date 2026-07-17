@@ -65,6 +65,7 @@
     "compose-outbound:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-compose-outbound.ts",
     "search:verify": "ts-node -r dotenv/config src/modules/ticketing/search/scripts/verify-search.ts",
     "auth:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth.ts",
+    "auth-hygiene:verify": "ts-node -r dotenv/config src/modules/platform/auth/scripts/verify-auth-hygiene.ts",
     "rbac:verify": "ts-node -r dotenv/config src/modules/platform/http/scripts/verify-rbac.ts",
     "portal:verify": "ts-node -r dotenv/config src/modules/ticketing/portal/scripts/verify-portal.ts",
     "solutions:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-solutions.ts",

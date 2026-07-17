@@ -773,6 +773,19 @@ export function getCurrentUser(tenantId: string): Promise<AuthUser> {
   return request(tenantId, "GET", "/auth/me");
 }
 
+export function requestPasswordReset(tenantId: string, email: string): Promise<void> {
+  return request(tenantId, "POST", "/auth/request-password-reset", { email });
+}
+
+export function resetPassword(tenantId: string, token: string, password: string): Promise<void> {
+  return request(tenantId, "POST", "/auth/reset-password", { token, password });
+}
+
+// "Log out everywhere" — revokes every token this user holds.
+export function logoutEverywhere(tenantId: string): Promise<void> {
+  return request(tenantId, "POST", "/auth/logout");
+}
+
 export function listSolutions(tenantId: string, search?: string): Promise<Solution[]> {
   const query = search && search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
   return request(tenantId, "GET", `/admin/solutions${query}`);

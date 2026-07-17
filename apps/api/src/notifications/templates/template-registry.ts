@@ -60,6 +60,11 @@ const templates: Record<string, TemplateRenderer> = {
     subject: String(payload.subject ?? 'Alert escalation'),
     body: String(payload.body ?? ''),
   }),
+  // Password reset link, sent to an agent who requested one.
+  'platform.password_reset': (payload) => ({
+    subject: 'Reset your Cloud Ops Tool password',
+    body: `Hi ${payload.name ?? 'there'},\n\nUse this link to reset your password (valid for 1 hour):\n${payload.resetUrl}\n\nIf you didn't request this, you can ignore this email.`,
+  }),
   // CostPaceCheckService (Module 3) does its own notification_templates
   // lookup and $VARIABLE substitution before enqueueing, same passthrough
   // pattern as 'monitoring.escalation' above.

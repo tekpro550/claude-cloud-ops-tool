@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { ApiError } from "./lib/apiClient";
@@ -16,6 +16,7 @@ import CostDashboardPage from "./pages/CostDashboardPage";
 import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ReportsPage from "./pages/ReportsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
@@ -107,6 +108,9 @@ function HeaderAuth() {
       <button type="button" onClick={() => setExpanded(false)}>
         Cancel
       </button>
+      <Link className="header-auth-forgot" to="/reset-password" onClick={() => setExpanded(false)}>
+        Forgot?
+      </Link>
       {error && <span className="header-auth-error">{error}</span>}
     </form>
   );
@@ -248,6 +252,7 @@ function App() {
           <Route path="/compose" element={<ComposeOutboundPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Routes>
       </main>
     </div>

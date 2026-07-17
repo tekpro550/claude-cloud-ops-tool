@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { isSessionRevoked } from '../auth/auth-security';
 import { verifyJwt } from '../auth/jwt';
 
 const UUID_RE =
@@ -34,19 +35,25 @@ export interface TenantScopedRequest extends Request {
  */
 @Injectable()
 export class TenantHeaderGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<TenantScopedRequest>();
 
     const authHeader = request.header('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       const claims = verifyJwt(authHeader.slice('Bearer '.length));
-      if (claims?.kind === 'agent') {
+      // A valid agent token whose session was revoked (password reset /
+      // "log out everywhere") falls through to X-Tenant-Id like any other
+      // invalid token rather than being honored.
+      if (
+        claims?.kind === 'agent' &&
+        !(await isSessionRevoked(claims.sub, claims.iat))
+      ) {
         request.tenantId = claims.tenantId;
         request.userId = claims.sub;
         request.userRole = claims.role;
         return true;
       }
-      // Invalid/expired/wrong-kind token: fall through to X-Tenant-Id
+      // Invalid/expired/wrong-kind/revoked token: fall through to X-Tenant-Id
       // instead of rejecting outright.
     }
 
