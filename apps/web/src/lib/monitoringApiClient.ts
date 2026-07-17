@@ -55,6 +55,7 @@ export interface CreateMonitorInput {
   config?: Record<string, unknown>;
   intervalSeconds?: number;
   consecutiveFailuresToAlert?: number;
+  minFailingLocations?: number;
   isEnabled?: boolean;
 }
 

@@ -48,8 +48,8 @@ export class MonitorsService {
       }
 
       const [monitor] = await queryRunner.query(
-        `INSERT INTO monitors (tenant_id, resource_id, name, monitor_type, config, interval_seconds, consecutive_failures_to_alert, is_enabled)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO monitors (tenant_id, resource_id, name, monitor_type, config, interval_seconds, consecutive_failures_to_alert, min_failing_locations, is_enabled)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [
           tenantId,
@@ -59,6 +59,7 @@ export class MonitorsService {
           JSON.stringify(dto.config ?? {}),
           dto.intervalSeconds ?? 60,
           dto.consecutiveFailuresToAlert ?? 2,
+          dto.minFailingLocations ?? 1,
           dto.isEnabled ?? true,
         ],
       );

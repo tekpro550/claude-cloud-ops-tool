@@ -28,6 +28,7 @@ export default function ResourceDashboardPage() {
   const { confirm, confirmDialog } = useConfirm();
 
   const [monitorName, setMonitorName] = useState("");
+  const [minLocations, setMinLocations] = useState("1");
   const [monitorType, setMonitorType] = useState<MonitorType>("http");
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
@@ -85,6 +86,7 @@ export default function ResourceDashboardPage() {
       name: monitorName,
       monitorType,
       config: configForType(monitorType, target),
+      minFailingLocations: Number(minLocations) || 1,
     })
       .then(() => {
         setMonitorName("");
@@ -203,6 +205,16 @@ export default function ResourceDashboardPage() {
 
         <form className="admin-form" onSubmit={handleAddMonitor} style={{ marginTop: "0.75rem" }}>
           <input placeholder="Monitor name" value={monitorName} onChange={(e) => setMonitorName(e.target.value)} required />
+          <label className="side-panel-toggle" title="How many probe locations must fail before an alert opens (multi-region false-positive suppression)">
+            Min failing locations
+            <input
+              type="number"
+              min={1}
+              value={minLocations}
+              onChange={(e) => setMinLocations(e.target.value)}
+              style={{ width: "4rem" }}
+            />
+          </label>
           <select value={monitorType} onChange={(e) => setMonitorType(e.target.value as MonitorType)}>
             {MONITOR_TYPES.map((t) => (
               <option key={t} value={t}>

@@ -25,6 +25,7 @@ interface DueMonitor {
   monitor_type: string;
   config: Record<string, unknown>;
   consecutive_failures_to_alert: number;
+  min_failing_locations?: number;
 }
 
 interface DueAgentMonitor extends DueMonitor {
@@ -108,7 +109,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       tenantId,
       (queryRunner) =>
         queryRunner.query(
-          `SELECT m.id, m.name, m.resource_id, m.monitor_type, m.config, m.consecutive_failures_to_alert
+          `SELECT m.id, m.name, m.resource_id, m.monitor_type, m.config, m.consecutive_failures_to_alert, m.min_failing_locations
            FROM monitors m
            LEFT JOIN LATERAL (
              SELECT checked_at FROM monitor_checks mc
@@ -193,14 +194,17 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
     await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       for (const entry of entries) {
         await queryRunner.query(
-          `INSERT INTO monitor_checks (tenant_id, monitor_id, status, response_time_ms, raw_output)
-           VALUES ($1, $2, $3, $4, $5)`,
+          `INSERT INTO monitor_checks (tenant_id, monitor_id, status, response_time_ms, raw_output, location)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
           [
             tenantId,
             entry.monitor.id,
             entry.result.status,
             entry.result.responseTimeMs,
             JSON.stringify(entry.result.rawOutput),
+            // This worker's probe location; a multi-region deployment runs an
+            // instance per location, each with its own PROBE_LOCATION.
+            process.env.PROBE_LOCATION ?? 'default',
           ],
         );
       }
@@ -217,6 +221,7 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
             resourceId: entry.monitor.resource_id,
             consecutiveFailuresToAlert:
               entry.monitor.consecutive_failures_to_alert,
+            minFailingLocations: entry.monitor.min_failing_locations ?? 1,
           },
           entry.result,
         );

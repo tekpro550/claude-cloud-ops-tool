@@ -17,10 +17,19 @@ export interface EvaluatedMonitor {
   name: string;
   resourceId: string;
   consecutiveFailuresToAlert: number;
+  /** How many distinct probe locations must be failing before an alert opens (default 1). */
+  minFailingLocations?: number;
 }
 
 type EvaluationOutcome =
-  | { action: 'no_rule' | 'not_bad' | 'not_yet_due' | 'lost_race' }
+  | {
+      action:
+        | 'no_rule'
+        | 'not_bad'
+        | 'not_yet_due'
+        | 'lost_race'
+        | 'awaiting_location_quorum';
+    }
   | { action: 'repeat'; ticketId: string | null; noteBody: string | null }
   | { action: 'resolved'; ticketId: string | null }
   | { action: 'created'; alertId: string; reasonText: string };
@@ -158,6 +167,26 @@ export class AlertEvaluationService {
           statusIn.includes(c.status),
         );
       if (!thresholdReached) return { action: 'not_yet_due' };
+
+      // Multi-location false-positive suppression: only open once enough
+      // distinct probe locations are currently failing. With the default of 1
+      // this is a no-op (single-location behavior); set higher to require a
+      // quorum so one region's blip doesn't page anyone.
+      const minLocations = monitor.minFailingLocations ?? 1;
+      if (minLocations > 1) {
+        const perLocation = await queryRunner.query(
+          `SELECT DISTINCT ON (location) location, status
+           FROM monitor_checks WHERE monitor_id = $1
+           ORDER BY location, checked_at DESC`,
+          [monitor.id],
+        );
+        const failingLocations = perLocation.filter((c: { status: string }) =>
+          statusIn.includes(c.status),
+        ).length;
+        if (failingLocations < minLocations) {
+          return { action: 'awaiting_location_quorum' };
+        }
+      }
 
       const reasonText = generateReasonText(
         monitor.name,

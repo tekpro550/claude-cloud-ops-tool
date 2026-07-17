@@ -43,6 +43,12 @@ export class CreateMonitorDto {
   @Min(1)
   consecutiveFailuresToAlert?: number;
 
+  // Distinct probe locations that must be failing before an alert opens.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minFailingLocations?: number;
+
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
