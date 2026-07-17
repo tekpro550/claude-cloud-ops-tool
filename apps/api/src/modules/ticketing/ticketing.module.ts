@@ -55,6 +55,8 @@ import { ReportsService } from './reports/reports.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
+import { ChatController } from './chat/chat.controller';
+import { ChatService } from './chat/chat.service';
 import { SolutionsController } from './solutions.controller';
 import { SolutionsService } from './solutions.service';
 import { TicketLinksController } from './ticket-links/ticket-links.controller';
@@ -102,6 +104,7 @@ import { TicketsService } from './tickets.service';
     PortalAuthController,
     PortalTicketsController,
     PortalSolutionsController,
+    ChatController,
     SolutionsController,
     AttachmentsController,
     TicketPresenceController,
@@ -143,6 +146,7 @@ import { TicketsService } from './tickets.service';
     FreshdeskMigrationService,
     PortalAuthService,
     PortalTicketsService,
+    ChatService,
     SolutionsService,
     AttachmentsService,
     LocalDiskStorage,

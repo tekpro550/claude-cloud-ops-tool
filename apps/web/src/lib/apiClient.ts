@@ -894,3 +894,53 @@ export function getBusinessHours(tenantId: string): Promise<BusinessHours> {
 export function updateBusinessHours(tenantId: string, input: Partial<BusinessHours>): Promise<BusinessHours> {
   return request(tenantId, "PATCH", "/business-hours", input);
 }
+
+// ---- Native chat (live agent console) ----
+
+export interface ChatSession {
+  id: string;
+  contact_id: string | null;
+  visitor_name: string;
+  status: "open" | "closed";
+  assigned_agent_id: string | null;
+  created_at: string;
+  last_message_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  chat_session_id: string;
+  author_type: "visitor" | "agent" | "system";
+  author_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+export function listChatSessions(tenantId: string, status?: "open" | "closed"): Promise<ChatSession[]> {
+  const query = status ? `?status=${status}` : "";
+  return request(tenantId, "GET", `/chat/sessions${query}`);
+}
+
+export function createChatSession(
+  tenantId: string,
+  input: { visitorName: string; contactId?: string },
+): Promise<ChatSession> {
+  return request(tenantId, "POST", "/chat/sessions", input);
+}
+
+export function listChatMessages(tenantId: string, sessionId: string, since?: string): Promise<ChatMessage[]> {
+  const query = since ? `?since=${encodeURIComponent(since)}` : "";
+  return request(tenantId, "GET", `/chat/sessions/${sessionId}/messages${query}`);
+}
+
+export function sendChatMessage(
+  tenantId: string,
+  sessionId: string,
+  input: { authorType: "visitor" | "agent"; body: string; authorId?: string },
+): Promise<ChatMessage> {
+  return request(tenantId, "POST", `/chat/sessions/${sessionId}/messages`, input);
+}
+
+export function closeChatSession(tenantId: string, sessionId: string): Promise<ChatSession> {
+  return request(tenantId, "PATCH", `/chat/sessions/${sessionId}/close`);
+}

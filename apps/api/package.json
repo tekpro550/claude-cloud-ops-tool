@@ -70,6 +70,7 @@
     "rbac:verify": "ts-node -r dotenv/config src/modules/platform/http/scripts/verify-rbac.ts",
     "portal:verify": "ts-node -r dotenv/config src/modules/ticketing/portal/scripts/verify-portal.ts",
     "solutions:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-solutions.ts",
+    "chat:verify": "ts-node -r dotenv/config src/modules/ticketing/chat/scripts/verify-chat.ts",
     "attachments:verify": "ts-node -r dotenv/config src/modules/ticketing/attachments/scripts/verify-attachments.ts",
     "monitor-engine:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitor-engine.ts",
     "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts",

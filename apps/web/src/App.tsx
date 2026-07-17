@@ -9,6 +9,7 @@ import { LOCALES, useTranslation } from "./lib/i18n";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
 import AlertsPage from "./pages/AlertsPage";
+import ChatPage from "./pages/ChatPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import ComposeOutboundPage from "./pages/ComposeOutboundPage";
 import ContactsPage from "./pages/ContactsPage";
@@ -147,6 +148,7 @@ const TICKETS_NAV_ITEMS: NavItem[] = [
   { i18nKey: "nav.contacts", to: "/contacts", icon: "👤" },
   { i18nKey: "nav.companies", to: "/companies", icon: "🏢" },
   { i18nKey: "nav.compose", to: "/compose", icon: "✉️" },
+  { i18nKey: "nav.chat", to: "/chat", icon: "💬" },
 ];
 
 const MONITORING_NAV_ITEMS: NavItem[] = [
@@ -274,6 +276,7 @@ function App() {
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/compose" element={<ComposeOutboundPage />} />
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
