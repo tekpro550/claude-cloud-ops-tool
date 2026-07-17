@@ -10,6 +10,7 @@ import {
   updateTicketType,
 } from "../../lib/apiClient";
 import type { Group, SlaPolicy, TicketType } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function TicketTypesAdmin({
   tenantId,
@@ -28,6 +29,7 @@ export default function TicketTypesAdmin({
   const [defaultSlaPolicyId, setDefaultSlaPolicyId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -156,7 +158,17 @@ export default function TicketTypesAdmin({
                   <button type="button" className="link-button" onClick={() => startEdit(t)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(t)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete ticket type",
+                        message: `Delete the ticket type “${t.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(t),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -187,6 +199,7 @@ export default function TicketTypesAdmin({
           Add ticket type
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

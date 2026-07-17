@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createCloudCredential, deleteCloudCredential, listCloudCredentials } from "../../lib/monitoringApiClient";
 import type { CloudCredential, CloudProvider } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 /** config is never re-displayed once submitted -- see CloudCredentialsService, it's write-only from here on. */
 export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
@@ -11,6 +12,7 @@ export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId
   const [label, setLabel] = useState("");
   const [configJson, setConfigJson] = useState('{\n  "region": "us-east-1",\n  "accessKeyId": "",\n  "secretAccessKey": ""\n}');
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listCloudCredentials(tenantId).then(setCredentials);
@@ -70,7 +72,17 @@ export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId
                 )}
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(c.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete cloud credential",
+                      message: `Delete the ${c.provider} credential “${c.label}”? Monitoring and cost polling for it will stop.`,
+                      onConfirm: () => handleDelete(c.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -99,6 +111,7 @@ export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId
         />
         <button type="submit">Connect</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

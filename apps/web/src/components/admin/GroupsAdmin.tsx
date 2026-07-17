@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, createGroup, deleteGroup, listGroups, updateGroup } from "../../lib/apiClient";
 import type { Group } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function GroupsAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -9,6 +10,7 @@ export default function GroupsAdmin({ tenantId, onChange }: { tenantId: string; 
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -99,7 +101,17 @@ export default function GroupsAdmin({ tenantId, onChange }: { tenantId: string; 
                   <button type="button" className="link-button" onClick={() => startEdit(g)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(g)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete group",
+                        message: `Delete “${g.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(g),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -115,6 +127,7 @@ export default function GroupsAdmin({ tenantId, onChange }: { tenantId: string; 
           Add group
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

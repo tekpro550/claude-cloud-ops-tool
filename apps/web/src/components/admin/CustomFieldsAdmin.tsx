@@ -9,6 +9,7 @@ import {
   type CustomFieldDef,
   type CustomFieldType,
 } from "../../lib/apiClient";
+import { useConfirm } from "../useConfirm";
 
 const FIELD_TYPES: CustomFieldType[] = ["text", "number", "dropdown", "checkbox", "date"];
 
@@ -25,6 +26,7 @@ export default function CustomFieldsAdmin({ tenantId, onChange }: { tenantId: st
   const [isRequired, setIsRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listCustomFields(tenantId).then(setFields).catch(() => {});
@@ -76,7 +78,17 @@ export default function CustomFieldsAdmin({ tenantId, onChange }: { tenantId: st
             <button type="button" className="btn-ghost btn-sm" onClick={() => toggleActive(f)}>
               {f.is_active ? "Deactivate" : "Activate"}
             </button>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => remove(f)}>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() =>
+                confirm({
+                  title: "Delete custom field",
+                  message: `Delete the custom field “${f.label}”? Values stored on tickets for it will no longer be shown.`,
+                  onConfirm: () => remove(f),
+                })
+              }
+            >
               Delete
             </button>
           </li>
@@ -99,6 +111,7 @@ export default function CustomFieldsAdmin({ tenantId, onChange }: { tenantId: st
         </label>
         <button type="submit" className="btn-primary btn-sm" disabled={busy}>Add field</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

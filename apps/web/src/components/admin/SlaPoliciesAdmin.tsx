@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, createSlaPolicy, deleteSlaPolicy, listSlaPolicies, updateSlaPolicy } from "../../lib/apiClient";
 import type { SlaPolicy } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [policies, setPolicies] = useState<SlaPolicy[]>([]);
@@ -11,6 +12,7 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
   const [businessHoursOnly, setBusinessHoursOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -145,7 +147,17 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
                   <button type="button" className="link-button" onClick={() => startEdit(p)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(p)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete SLA policy",
+                        message: `Delete the SLA policy “${p.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(p),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -178,6 +190,7 @@ export default function SlaPoliciesAdmin({ tenantId, onChange }: { tenantId: str
           Add SLA policy
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

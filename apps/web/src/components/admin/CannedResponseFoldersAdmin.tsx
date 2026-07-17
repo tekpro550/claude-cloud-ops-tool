@@ -8,6 +8,7 @@ import {
   updateCannedResponseFolder,
 } from "../../lib/apiClient";
 import type { CannedResponseFolder } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function CannedResponseFoldersAdmin({
   tenantId,
@@ -20,6 +21,7 @@ export default function CannedResponseFoldersAdmin({
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -103,7 +105,17 @@ export default function CannedResponseFoldersAdmin({
                   <button type="button" className="link-button" onClick={() => startEdit(f)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(f)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete folder",
+                        message: `Delete the folder “${f.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(f),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -118,6 +130,7 @@ export default function CannedResponseFoldersAdmin({
           Add folder
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

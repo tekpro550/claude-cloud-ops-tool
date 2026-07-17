@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, createSolution, deleteSolution, listSolutions, updateSolution } from "../../lib/apiClient";
 import type { Solution } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function SolutionsAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [solutions, setSolutions] = useState<Solution[]>([]);
@@ -9,6 +10,7 @@ export default function SolutionsAdmin({ tenantId, onChange }: { tenantId: strin
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -114,7 +116,17 @@ export default function SolutionsAdmin({ tenantId, onChange }: { tenantId: strin
                   <button type="button" className="link-button" onClick={() => startEdit(s)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(s)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete solution",
+                        message: `Delete the article “${s.title}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(s),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -136,6 +148,7 @@ export default function SolutionsAdmin({ tenantId, onChange }: { tenantId: strin
           Add article (draft)
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

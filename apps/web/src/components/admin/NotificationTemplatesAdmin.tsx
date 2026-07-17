@@ -7,6 +7,7 @@ import {
   listNotificationTemplates,
 } from "../../lib/monitoringApiClient";
 import type { NotificationTemplate } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 const CHANNELS = ["email", "whatsapp", "voice", "in_app"] as const;
 
@@ -18,6 +19,7 @@ export default function NotificationTemplatesAdmin({ tenantId, onChange }: { ten
   const [body, setBody] = useState("$MONITOR_NAME is $SEVERITY: $REASON (step $STEP_NUMBER)");
   const [isDefault, setIsDefault] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listNotificationTemplates(tenantId).then(setTemplates);
@@ -67,7 +69,17 @@ export default function NotificationTemplatesAdmin({ tenantId, onChange }: { ten
                 <span className="hint">{t.body}</span>
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(t.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete notification template",
+                      message: `Delete the ${t.channel} template for “${t.event_type}”? Escalations will fall back to the built-in default.`,
+                      onConfirm: () => handleDelete(t.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -96,6 +108,7 @@ export default function NotificationTemplatesAdmin({ tenantId, onChange }: { ten
         </label>
         <button type="submit">Add template</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

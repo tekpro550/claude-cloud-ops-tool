@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createResource, deleteResource, listResources } from "../../lib/monitoringApiClient";
 import type { Resource, ResourceType } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 const RESOURCE_TYPES: ResourceType[] = ["server", "cloud_account", "service", "website", "database", "other"];
 
@@ -11,6 +12,7 @@ export default function ResourcesAdmin({ tenantId, onChange }: { tenantId: strin
   const [name, setName] = useState("");
   const [resourceType, setResourceType] = useState<ResourceType>("server");
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listResources(tenantId).then(setResources);
@@ -53,7 +55,17 @@ export default function ResourcesAdmin({ tenantId, onChange }: { tenantId: strin
                 <strong>{r.name}</strong> <span className="hint">({r.resource_type})</span>
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(r.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete resource",
+                      message: `Delete “${r.name}”? This can't be undone.`,
+                      onConfirm: () => handleDelete(r.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -72,6 +84,7 @@ export default function ResourcesAdmin({ tenantId, onChange }: { tenantId: strin
         </select>
         <button type="submit">Add resource</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

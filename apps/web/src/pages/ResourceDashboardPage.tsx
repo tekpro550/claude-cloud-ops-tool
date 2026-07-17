@@ -14,6 +14,7 @@ import {
 import { useTenant } from "../lib/tenant";
 import type { MonitorType, ResourceDashboard } from "../types/monitoring";
 import UptimeHistoryBar from "../components/UptimeHistoryBar";
+import { useConfirm } from "../components/useConfirm";
 
 const MONITOR_TYPES: MonitorType[] = ["http", "ping", "port", "dns", "ssl", "server_agent", "cloud_metric"];
 
@@ -24,6 +25,7 @@ export default function ResourceDashboardPage() {
   const [data, setData] = useState<ResourceDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checksByMonitor, setChecksByMonitor] = useState<Record<string, MonitorCheck[]>>({});
+  const { confirm, confirmDialog } = useConfirm();
 
   const [monitorName, setMonitorName] = useState("");
   const [monitorType, setMonitorType] = useState<MonitorType>("http");
@@ -181,7 +183,17 @@ export default function ResourceDashboardPage() {
                 </span>
                 <UptimeHistoryBar checks={checksByMonitor[m.id] ?? []} />
                 <span className={`badge status-${m.last_status ?? "none"}`}>{m.last_status ?? "pending"}</span>
-                <button type="button" className="link-button" onClick={() => handleDeleteMonitor(m.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete monitor",
+                      message: `Delete the “${m.name}” monitor? Its check history will stop being collected.`,
+                      onConfirm: () => handleDeleteMonitor(m.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </li>
@@ -223,6 +235,7 @@ export default function ResourceDashboardPage() {
           <button type="submit">Start downtime</button>
         </form>
       </section>
+      {confirmDialog}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { relativeTime } from "../lib/relativeTime";
 import { formatTicketNumber } from "../lib/ticketNumber";
 import { useTenant } from "../lib/tenant";
 import type { Agent, Contact, Group, Ticket, TicketPlatform, TicketPriority, TicketStatus, TicketView } from "../types/ticket";
+import { useConfirm } from "../components/useConfirm";
 
 const STATUSES: TicketStatus[] = ["new", "open", "pending", "resolved", "closed"];
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -38,6 +39,7 @@ export default function TicketListPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [total, setTotal] = useState(0);
   const [view, setView] = useState<ViewKey>("all");
+  const { confirm, confirmDialog } = useConfirm();
   const [status, setStatus] = useState<TicketStatus | "">("");
   const [priority, setPriority] = useState<TicketPriority | "">("");
   const [platform, setPlatform] = useState<TicketPlatform | "">("");
@@ -276,7 +278,13 @@ export default function TicketListPage() {
               type="button"
               className="view-tab-saved-remove"
               aria-label={`Delete view ${v.name}`}
-              onClick={() => handleDeleteSavedView(v)}
+              onClick={() =>
+                confirm({
+                  title: "Delete saved view",
+                  message: `Delete the saved view “${v.name}”? This can't be undone.`,
+                  onConfirm: () => handleDeleteSavedView(v),
+                })
+              }
             >
               &times;
             </button>
@@ -535,6 +543,7 @@ export default function TicketListPage() {
           </button>
         </div>
       )}
+      {confirmDialog}
     </div>
   );
 }

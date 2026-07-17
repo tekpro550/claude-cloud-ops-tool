@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createOnCallSchedule, deleteOnCallSchedule, listOnCallSchedules } from "../../lib/monitoringApiClient";
 import type { OnCallSchedule } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 const ENTRIES_PLACEHOLDER = JSON.stringify(
   [{ agentId: "<agent id>", startsAt: new Date().toISOString(), endsAt: new Date(Date.now() + 7 * 86400_000).toISOString() }],
@@ -15,6 +16,7 @@ export default function OnCallSchedulesAdmin({ tenantId, onChange }: { tenantId:
   const [name, setName] = useState("");
   const [entriesJson, setEntriesJson] = useState(ENTRIES_PLACEHOLDER);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listOnCallSchedules(tenantId).then(setSchedules);
@@ -64,7 +66,17 @@ export default function OnCallSchedulesAdmin({ tenantId, onChange }: { tenantId:
                 <strong>{s.name}</strong> <span className="hint">— {s.entries.length} entr{s.entries.length === 1 ? "y" : "ies"}</span>
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(s.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete on-call schedule",
+                      message: `Delete the schedule “${s.name}”? This can't be undone.`,
+                      onConfirm: () => handleDelete(s.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -82,6 +94,7 @@ export default function OnCallSchedulesAdmin({ tenantId, onChange }: { tenantId:
         />
         <button type="submit">Create schedule</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

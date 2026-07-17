@@ -12,6 +12,7 @@ import {
 import { platformLabel, PLATFORMS } from "../../lib/platform";
 import type { Agent, AutomationActionType, Group, Scenario } from "../../types/ticket";
 import ActionValueInput, { ACTION_TYPES } from "./ActionValueInput";
+import { useConfirm } from "../useConfirm";
 
 export default function ScenariosAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -23,6 +24,7 @@ export default function ScenariosAdmin({ tenantId, onChange }: { tenantId: strin
   const [actionValue, setActionValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -152,7 +154,17 @@ export default function ScenariosAdmin({ tenantId, onChange }: { tenantId: strin
                   <button type="button" className="link-button" onClick={() => startEdit(s)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(s)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete scenario",
+                        message: `Delete the scenario “${s.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(s),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -181,6 +193,7 @@ export default function ScenariosAdmin({ tenantId, onChange }: { tenantId: strin
           Add scenario
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import type {
   Group,
 } from "../../types/ticket";
 import ActionValueInput, { ACTION_TYPES } from "./ActionValueInput";
+import { useConfirm } from "../useConfirm";
 
 const TRIGGERS: AutomationTrigger[] = ["ticket_created", "ticket_updated", "time_based"];
 const FIELDS: AutomationConditionField[] = [
@@ -58,6 +59,7 @@ export default function AutomationRulesAdmin({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -287,7 +289,17 @@ export default function AutomationRulesAdmin({
                   <button type="button" className="link-button" onClick={() => handleToggleActive(rule)}>
                     {rule.is_active ? "Deactivate" : "Activate"}
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(rule)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete automation rule",
+                        message: `Delete the automation rule “${rule.name}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(rule),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -357,6 +369,7 @@ export default function AutomationRulesAdmin({
           Add automation rule
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

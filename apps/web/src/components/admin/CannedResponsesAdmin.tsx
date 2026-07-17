@@ -9,6 +9,7 @@ import {
   updateCannedResponse,
 } from "../../lib/apiClient";
 import type { CannedResponse, CannedResponseFolder } from "../../types/ticket";
+import { useConfirm } from "../useConfirm";
 
 export default function CannedResponsesAdmin({
   tenantId,
@@ -26,6 +27,7 @@ export default function CannedResponsesAdmin({
   const [folderId, setFolderId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -138,7 +140,17 @@ export default function CannedResponsesAdmin({
                   <button type="button" className="link-button" onClick={() => startEdit(r)}>
                     Edit
                   </button>
-                  <button type="button" className="link-button" onClick={() => handleDelete(r)}>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      confirm({
+                        title: "Delete canned response",
+                        message: `Delete the canned response “${r.title}”? This can't be undone.`,
+                        onConfirm: () => handleDelete(r),
+                      })
+                    }
+                  >
                     Delete
                   </button>
                 </span>
@@ -165,6 +177,7 @@ export default function CannedResponsesAdmin({
           Add canned response
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createEscalationPolicy, deleteEscalationPolicy, listEscalationPolicies } from "../../lib/monitoringApiClient";
 import type { EscalationPolicy } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 const STEPS_PLACEHOLDER = JSON.stringify(
   [
@@ -18,6 +19,7 @@ export default function EscalationPoliciesAdmin({ tenantId, onChange }: { tenant
   const [name, setName] = useState("");
   const [stepsJson, setStepsJson] = useState(STEPS_PLACEHOLDER);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listEscalationPolicies(tenantId).then(setPolicies);
@@ -67,7 +69,17 @@ export default function EscalationPoliciesAdmin({ tenantId, onChange }: { tenant
                 <strong>{p.name}</strong> <span className="hint">— {p.steps.length} step(s)</span>
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(p.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete escalation policy",
+                      message: `Delete the escalation policy “${p.name}”? This can't be undone.`,
+                      onConfirm: () => handleDelete(p.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -85,6 +97,7 @@ export default function EscalationPoliciesAdmin({ tenantId, onChange }: { tenant
         />
         <button type="submit">Create policy</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

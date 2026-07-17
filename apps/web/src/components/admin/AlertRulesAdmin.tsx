@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createAlertRule, deleteAlertRule, listAlertRules, listMonitors } from "../../lib/monitoringApiClient";
 import type { AlertRule, Monitor } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 export default function AlertRulesAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [rules, setRules] = useState<AlertRule[]>([]);
@@ -10,6 +11,7 @@ export default function AlertRulesAdmin({ tenantId, onChange }: { tenantId: stri
   const [monitorId, setMonitorId] = useState("");
   const [severity, setSeverity] = useState("critical");
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listAlertRules(tenantId).then(setRules);
@@ -55,7 +57,17 @@ export default function AlertRulesAdmin({ tenantId, onChange }: { tenantId: stri
                 <strong>{monitorName(r.monitor_id)}</strong> <span className="hint">→ {r.severity}</span>
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleDelete(r.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Delete alert rule",
+                      message: `Delete the ${r.severity} alert rule on “${monitorName(r.monitor_id)}”? This can't be undone.`,
+                      onConfirm: () => handleDelete(r.id),
+                    })
+                  }
+                >
                   Delete
                 </button>
               </span>
@@ -79,6 +91,7 @@ export default function AlertRulesAdmin({ tenantId, onChange }: { tenantId: stri
         </select>
         <button type="submit">Add alert rule</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

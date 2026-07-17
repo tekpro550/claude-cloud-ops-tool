@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../lib/apiClient";
 import { createAgentToken, deleteAgentToken, listAgentTokens, listResources } from "../../lib/monitoringApiClient";
 import type { AgentToken, Resource } from "../../types/monitoring";
+import { useConfirm } from "../useConfirm";
 
 /** Shows the signed device token exactly once, at creation -- see AgentTokensService, it isn't stored raw server-side. */
 export default function AgentTokensAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
@@ -12,6 +13,7 @@ export default function AgentTokensAdmin({ tenantId, onChange }: { tenantId: str
   const [label, setLabel] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = () => {
     listAgentTokens(tenantId).then(setTokens);
@@ -71,7 +73,18 @@ export default function AgentTokensAdmin({ tenantId, onChange }: { tenantId: str
                 {t.last_seen_at && <span className="hint"> · last seen {new Date(t.last_seen_at).toLocaleString()}</span>}
               </span>
               <span>
-                <button type="button" className="link-button" onClick={() => handleRevoke(t.id)}>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    confirm({
+                      title: "Revoke agent token",
+                      message: `Revoke the device token “${t.label}”? The agent using it will stop reporting.`,
+                      confirmLabel: "Revoke",
+                      onConfirm: () => handleRevoke(t.id),
+                    })
+                  }
+                >
                   Revoke
                 </button>
               </span>
@@ -91,6 +104,7 @@ export default function AgentTokensAdmin({ tenantId, onChange }: { tenantId: str
         <input placeholder="Label (e.g. prod-db-01)" value={label} onChange={(e) => setLabel(e.target.value)} required />
         <button type="submit">Issue token</button>
       </form>
+      {confirmDialog}
     </div>
   );
 }
