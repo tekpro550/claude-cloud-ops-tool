@@ -5,6 +5,7 @@ import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { ApiError } from "./lib/apiClient";
 import { useAuth } from "./lib/auth";
+import { LOCALES, useTranslation } from "./lib/i18n";
 import { useTenant } from "./lib/tenant";
 import AdminPage from "./pages/AdminPage";
 import AlertsPage from "./pages/AlertsPage";
@@ -31,6 +32,7 @@ import TicketListPage from "./pages/TicketListPage";
 function HeaderSearch() {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -40,14 +42,33 @@ function HeaderSearch() {
 
   return (
     <form className="header-search" onSubmit={handleSubmit}>
-      <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input placeholder={t("common.search")} value={q} onChange={(e) => setQ(e.target.value)} />
     </form>
+  );
+}
+
+function LanguageSelect() {
+  const { locale, setLocale } = useTranslation();
+  return (
+    <select
+      className="language-select"
+      aria-label="Language"
+      value={locale}
+      onChange={(e) => setLocale(e.target.value as (typeof LOCALES)[number]["value"])}
+    >
+      {LOCALES.map((l) => (
+        <option key={l.value} value={l.value}>
+          {l.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
 function HeaderAuth() {
   const { tenantId } = useTenant();
   const { user, login, logout } = useAuth();
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,7 +82,7 @@ function HeaderAuth() {
           {user.name} <span className="header-auth-role">({user.role})</span>
         </span>
         <button type="button" onClick={logout}>
-          Log out
+          {t("auth.logout")}
         </button>
       </div>
     );
@@ -71,7 +92,7 @@ function HeaderAuth() {
     return (
       <div className="header-auth">
         <button type="button" onClick={() => setExpanded(true)}>
-          Log in
+          {t("auth.login")}
         </button>
       </div>
     );
@@ -103,45 +124,46 @@ function HeaderAuth() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <button type="submit" disabled={submitting}>
-        {submitting ? "Logging in…" : "Log in"}
+        {submitting ? t("auth.loggingIn") : t("auth.login")}
       </button>
       <button type="button" onClick={() => setExpanded(false)}>
-        Cancel
+        {t("auth.cancel")}
       </button>
       <Link className="header-auth-forgot" to="/reset-password" onClick={() => setExpanded(false)}>
-        Forgot?
+        {t("auth.forgot")}
       </Link>
       {error && <span className="header-auth-error">{error}</span>}
     </form>
   );
 }
 
-type NavItem = { label: string; to: string; icon: string; end?: boolean };
+type NavItem = { i18nKey: string; to: string; icon: string; end?: boolean };
 
 const TICKETS_NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", to: "/dashboard", icon: "📊" },
-  { label: "Tickets", to: "/", icon: "🎫", end: true },
-  { label: "Reports", to: "/reports", icon: "📈" },
-  { label: "Knowledge base", to: "/knowledge-base", icon: "📚" },
-  { label: "Contacts", to: "/contacts", icon: "👤" },
-  { label: "Companies", to: "/companies", icon: "🏢" },
-  { label: "Compose email", to: "/compose", icon: "✉️" },
+  { i18nKey: "nav.dashboard", to: "/dashboard", icon: "📊" },
+  { i18nKey: "nav.tickets", to: "/", icon: "🎫", end: true },
+  { i18nKey: "nav.reports", to: "/reports", icon: "📈" },
+  { i18nKey: "nav.knowledgeBase", to: "/knowledge-base", icon: "📚" },
+  { i18nKey: "nav.contacts", to: "/contacts", icon: "👤" },
+  { i18nKey: "nav.companies", to: "/companies", icon: "🏢" },
+  { i18nKey: "nav.compose", to: "/compose", icon: "✉️" },
 ];
 
 const MONITORING_NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", to: "/monitoring/dashboard", icon: "📊" },
-  { label: "Fleet", to: "/monitoring", icon: "🖥️", end: true },
-  { label: "Alerts", to: "/alerts", icon: "🔔" },
+  { i18nKey: "nav.dashboard", to: "/monitoring/dashboard", icon: "📊" },
+  { i18nKey: "nav.fleet", to: "/monitoring", icon: "🖥️", end: true },
+  { i18nKey: "nav.alerts", to: "/alerts", icon: "🔔" },
 ];
 
 const COST_NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", to: "/cost/dashboard", icon: "📊" },
-  { label: "Cost", to: "/cost", icon: "💰", end: true },
-  { label: "Recommendations", to: "/cost/recommendations", icon: "💡" },
-  { label: "Savings log", to: "/cost/savings", icon: "📈" },
+  { i18nKey: "nav.dashboard", to: "/cost/dashboard", icon: "📊" },
+  { i18nKey: "nav.group.cost", to: "/cost", icon: "💰", end: true },
+  { i18nKey: "nav.recommendations", to: "/cost/recommendations", icon: "💡" },
+  { i18nKey: "nav.savingsLog", to: "/cost/savings", icon: "📈" },
 ];
 
 function NavPanelButton({ item, extraClassName, onClick }: { item: NavItem; extraClassName?: string; onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <NavLink
       to={item.to}
@@ -154,12 +176,13 @@ function NavPanelButton({ item, extraClassName, onClick }: { item: NavItem; extr
       <span className="nav-panel-button-icon" aria-hidden="true">
         {item.icon}
       </span>
-      {item.label}
+      {t(item.i18nKey)}
     </NavLink>
   );
 }
 
 function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   if (!open) return null;
 
   return (
@@ -170,25 +193,25 @@ function NavPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
           ×
         </button>
         <div className="nav-panel-group">
-          <span className="nav-group-label">Tickets</span>
+          <span className="nav-group-label">{t("nav.group.tickets")}</span>
           {TICKETS_NAV_ITEMS.map((item) => (
             <NavPanelButton key={item.to} item={item} onClick={onClose} />
           ))}
         </div>
         <div className="nav-panel-group">
-          <span className="nav-group-label">Monitoring</span>
+          <span className="nav-group-label">{t("nav.group.monitoring")}</span>
           {MONITORING_NAV_ITEMS.map((item) => (
             <NavPanelButton key={item.to} item={item} onClick={onClose} />
           ))}
         </div>
         <div className="nav-panel-group">
-          <span className="nav-group-label">Cost</span>
+          <span className="nav-group-label">{t("nav.group.cost")}</span>
           {COST_NAV_ITEMS.map((item) => (
             <NavPanelButton key={item.to} item={item} onClick={onClose} />
           ))}
         </div>
         <div className="nav-panel-group">
-          <NavPanelButton item={{ label: "Admin", to: "/admin", icon: "⚙️" }} extraClassName="nav-admin-button" onClick={onClose} />
+          <NavPanelButton item={{ i18nKey: "nav.admin", to: "/admin", icon: "⚙️" }} extraClassName="nav-admin-button" onClick={onClose} />
         </div>
       </nav>
     </>
@@ -214,6 +237,7 @@ function App() {
             onChange={(e) => setTenantId(e.target.value.trim())}
           />
         </label>
+        <LanguageSelect />
         <HeaderAuth />
         <button
           type="button"
