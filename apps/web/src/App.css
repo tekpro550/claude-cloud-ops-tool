@@ -1462,6 +1462,41 @@ td {
   overflow-y: auto;
 }
 
+/* Stacked label+input form used inside modals (create/edit dialogs). */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.modal-form label input,
+.modal-form label select,
+.modal-form label textarea {
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+.modal-form-actions,
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.confirm-message {
+  margin: 0 0 0.5rem;
+}
+
 /* Inside the modal the editor's own card chrome and title are redundant with
    the dialog frame + header, so flatten them for a clean single-panel look. */
 .modal-body .admin-entity {
@@ -1510,6 +1545,11 @@ td {
 
 .admin-list li:hover {
   background: var(--color-surface-2);
+}
+
+/* Space adjacent row actions ("Edit" / "Delete") so they don't run together. */
+.admin-list .link-button + .link-button {
+  margin-left: 0.6rem;
 }
 
 .admin-list li > span:first-child {
