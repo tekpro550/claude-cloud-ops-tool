@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import Modal from "../components/Modal";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
@@ -26,17 +28,108 @@ import type { SetupStatus } from "../types/ticket";
 
 type AdminModule = "ticket" | "monitor" | "cost";
 
+/** Props every setting editor is invoked with; each render() picks the ones its component accepts. */
+interface SettingRenderProps {
+  tenantId: string;
+  onChange: () => void;
+  refreshSignal: number;
+}
+
+interface SettingDef {
+  key: string;
+  label: string;
+  description: string;
+  icon: string;
+  render: (props: SettingRenderProps) => ReactNode;
+}
+
+interface SettingGroup {
+  heading: string;
+  items: SettingDef[];
+}
+
 const MODULES: { key: AdminModule; label: string; icon: string; description: string }[] = [
   { key: "ticket", label: "Ticket admin", icon: "🎫", description: "Team, SLAs, workflows and the knowledge base" },
   { key: "monitor", label: "Monitor admin", icon: "📡", description: "Resources, alerts, escalations and on-call" },
   { key: "cost", label: "Cost admin", icon: "💰", description: "Budgets and cost tracking settings" },
 ];
 
+// Each module's settings, grouped by heading. Rendering the actual editor is a
+// closure so every component receives exactly the props its signature accepts
+// (only some take refreshSignal; the audit log takes no onChange).
+const SETTINGS: Record<AdminModule, SettingGroup[]> = {
+  ticket: [
+    {
+      heading: "Team",
+      items: [
+        { key: "groups", label: "Groups", description: "Support teams tickets are routed to", icon: "👥", render: (p) => <GroupsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "agents", label: "Agents", description: "People who work tickets and their roles", icon: "🧑‍💼", render: (p) => <AgentsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+    {
+      heading: "Support operations",
+      items: [
+        { key: "ticket-types", label: "Ticket types", description: "Categories with default group and SLA", icon: "🏷️", render: (p) => <TicketTypesAdmin tenantId={p.tenantId} onChange={p.onChange} refreshSignal={p.refreshSignal} /> },
+        { key: "sla-policies", label: "SLA policies", description: "First-response and resolution targets", icon: "⏱️", render: (p) => <SlaPoliciesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "business-hours", label: "Business hours", description: "Working window SLA clocks respect", icon: "🕐", render: (p) => <BusinessHoursAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "custom-fields", label: "Custom fields", description: "Extra fields captured on tickets", icon: "🧩", render: (p) => <CustomFieldsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+    {
+      heading: "Workflows",
+      items: [
+        { key: "automation-rules", label: "Automation rules", description: "Trigger-based actions on tickets", icon: "⚙️", render: (p) => <AutomationRulesAdmin tenantId={p.tenantId} onChange={p.onChange} refreshSignal={p.refreshSignal} /> },
+        { key: "scenarios", label: "Scenarios", description: "One-click macros agents can apply", icon: "🎬", render: (p) => <ScenariosAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "canned-folders", label: "Canned response folders", description: "Organize reusable replies", icon: "🗂️", render: (p) => <CannedResponseFoldersAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "canned-responses", label: "Canned responses", description: "Reusable reply templates", icon: "💬", render: (p) => <CannedResponsesAdmin tenantId={p.tenantId} onChange={p.onChange} refreshSignal={p.refreshSignal} /> },
+      ],
+    },
+    {
+      heading: "Knowledge base",
+      items: [
+        { key: "solutions", label: "Solutions", description: "Help articles for agents and the portal", icon: "📚", render: (p) => <SolutionsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+  ],
+  monitor: [
+    {
+      heading: "Monitoring",
+      items: [
+        { key: "resources", label: "Resources", description: "Servers and services being monitored", icon: "🖥️", render: (p) => <ResourcesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "alert-rules", label: "Alert rules", description: "Thresholds that raise alerts", icon: "🔔", render: (p) => <AlertRulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "agent-tokens", label: "Agent tokens", description: "Device tokens for the server agent", icon: "🔑", render: (p) => <AgentTokensAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "cloud-credentials", label: "Cloud credentials", description: "AWS / Azure keys for polling", icon: "☁️", render: (p) => <CloudCredentialsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "escalation-policies", label: "Escalation policies", description: "Who gets paged and when", icon: "📣", render: (p) => <EscalationPoliciesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "on-call", label: "On-call schedules", description: "Rotations for escalation targets", icon: "📅", render: (p) => <OnCallSchedulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "notification-templates", label: "Notification templates", description: "Message bodies for alert channels", icon: "✉️", render: (p) => <NotificationTemplatesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+  ],
+  cost: [
+    {
+      heading: "Cost",
+      items: [
+        { key: "budgets", label: "Budgets", description: "Spend limits and pace alerting", icon: "💵", render: (p) => <CostBudgetsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "cost-settings", label: "Cost settings", description: "Currency and tracking preferences", icon: "🧾", render: (p) => <TenantCostSettingsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+  ],
+};
+
+// Shown regardless of the active module, same as before.
+const SECURITY_GROUP: SettingGroup = {
+  heading: "Security & audit",
+  items: [
+    { key: "audit-log", label: "Audit log", description: "History of admin configuration changes", icon: "📜", render: (p) => <AuditLogAdmin tenantId={p.tenantId} refreshSignal={p.refreshSignal} /> },
+  ],
+};
+
 export default function AdminPage() {
   const { tenantId } = useTenant();
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [activeModule, setActiveModule] = useState<AdminModule>("ticket");
+  const [openSetting, setOpenSetting] = useState<SettingDef | null>(null);
 
   const loadStatus = () => {
     if (!tenantId) return;
@@ -53,6 +146,8 @@ export default function AdminPage() {
   if (!tenantId) {
     return <p className="hint">Set a tenant id above to view admin settings.</p>;
   }
+
+  const groups = [...SETTINGS[activeModule], SECURITY_GROUP];
 
   return (
     <div>
@@ -98,62 +193,33 @@ export default function AdminPage() {
         </>
       )}
 
-      {activeModule === "ticket" && (
-        <>
-          <section className="admin-group">
-            <h3>Team</h3>
-            <GroupsAdmin tenantId={tenantId} onChange={handleChange} />
-            <AgentsAdmin tenantId={tenantId} onChange={handleChange} />
-          </section>
-
-          <section className="admin-group">
-            <h3>Support Operations</h3>
-            <TicketTypesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-            <SlaPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
-            <BusinessHoursAdmin tenantId={tenantId} onChange={handleChange} />
-            <CustomFieldsAdmin tenantId={tenantId} onChange={handleChange} />
-          </section>
-
-          <section className="admin-group">
-            <h3>Workflows</h3>
-            <AutomationRulesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-            <ScenariosAdmin tenantId={tenantId} onChange={handleChange} />
-            <CannedResponseFoldersAdmin tenantId={tenantId} onChange={handleChange} />
-            <CannedResponsesAdmin tenantId={tenantId} onChange={handleChange} refreshSignal={refreshSignal} />
-          </section>
-
-          <section className="admin-group">
-            <h3>Knowledge base</h3>
-            <SolutionsAdmin tenantId={tenantId} onChange={handleChange} />
-          </section>
-        </>
-      )}
-
-      {activeModule === "cost" && (
-        <section className="admin-group">
-          <h3>Cost</h3>
-          <CostBudgetsAdmin tenantId={tenantId} onChange={handleChange} />
-          <TenantCostSettingsAdmin tenantId={tenantId} onChange={handleChange} />
+      {groups.map((group) => (
+        <section className="admin-group" key={group.heading}>
+          <h3>{group.heading}</h3>
+          <div className="admin-settings-grid">
+            {group.items.map((setting) => (
+              <button
+                key={setting.key}
+                type="button"
+                className="admin-setting-card"
+                onClick={() => setOpenSetting(setting)}
+              >
+                <span className="admin-setting-card-icon" aria-hidden="true">
+                  {setting.icon}
+                </span>
+                <span className="admin-setting-card-label">{setting.label}</span>
+                <span className="admin-setting-card-desc">{setting.description}</span>
+              </button>
+            ))}
+          </div>
         </section>
-      )}
+      ))}
 
-      {activeModule === "monitor" && (
-        <section className="admin-group">
-          <h3>Monitoring</h3>
-          <ResourcesAdmin tenantId={tenantId} onChange={handleChange} />
-          <AlertRulesAdmin tenantId={tenantId} onChange={handleChange} />
-          <AgentTokensAdmin tenantId={tenantId} onChange={handleChange} />
-          <CloudCredentialsAdmin tenantId={tenantId} onChange={handleChange} />
-          <EscalationPoliciesAdmin tenantId={tenantId} onChange={handleChange} />
-          <OnCallSchedulesAdmin tenantId={tenantId} onChange={handleChange} />
-          <NotificationTemplatesAdmin tenantId={tenantId} onChange={handleChange} />
-        </section>
+      {openSetting && (
+        <Modal title={openSetting.label} onClose={() => setOpenSetting(null)}>
+          {openSetting.render({ tenantId, onChange: handleChange, refreshSignal })}
+        </Modal>
       )}
-
-      <section className="admin-group">
-        <h3>Security &amp; audit</h3>
-        <AuditLogAdmin tenantId={tenantId} refreshSignal={refreshSignal} />
-      </section>
     </div>
   );
 }
