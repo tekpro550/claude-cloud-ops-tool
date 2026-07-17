@@ -307,17 +307,43 @@ below is **verified against the code now in `main`**, not just commit messages.
   plus custom fields, ticket merge, parent/child links, watchers, an **admin
   audit log**, ticketing analytics/reporting, cost anomaly detection, disk-full
   forecast alerts, and AI-assist (thread summarize + suggested reply).
+- **Multi-location / multi-region probing.** `AddMultiLocationProbing` records a
+  per-check `location` (from `PROBE_LOCATION`) and a per-monitor
+  `min_failing_locations`; `AlertEvaluationService` only fires once a quorum of
+  distinct locations report failing, suppressing single-vantage false positives
+  (`verify-multi-location.ts`).
+- **Escalation depth — SMS + voice.** `AddSmsNotificationChannel`, plus
+  `SmsChannel`/`VoiceChannel` (Twilio REST via `fetch`, `SMS_TRANSPORT` /
+  `VOICE_TRANSPORT` defaulting to `log`); the dispatcher registers them alongside
+  email/Slack/webhook (`verify-notification-channels.ts`).
+- **GCP / DigitalOcean / Alibaba / Oracle billing.** `AddCloudProviders` extends
+  the provider enum; `cloud/extra-provider-clients.ts` adds real billing fetches
+  for GCP + DigitalOcean and honest empty-scaffold clients for Alibaba + Oracle,
+  wired through the `CLOUD_PROVIDER_CLIENT_FACTORY`
+  (`verify-cloud-billing-providers.ts`).
+- **i18n.** `lib/i18n.tsx` (`I18nProvider` + `useTranslation`, en/es dictionaries,
+  `localStorage` locale, header language switcher); nav/auth/search strings run
+  through `t()`.
+- **Auth hardening.** Password reset (single-use hashed tokens + email),
+  login rate-limiting, JWT revocation (`auth-security.ts`, Redis), **2FA/TOTP**
+  (native RFC 6238; encrypted secret; `MfaService`; login demands the code),
+  and **OIDC single sign-on** (`tenant_sso_configs`, `SsoService` with signed
+  state + JIT provisioning behind an injectable OIDC client)
+  (`verify-auth-hygiene.ts`, `verify-auth-mfa-sso.ts`).
+- **Native chat.** `CreateChat` (chat_sessions + chat_messages, RLS-scoped),
+  `ChatService`/`ChatController` (`@Controller('chat')`) with agent-claim /
+  visitor-reopen semantics and `?since=` delta polling; web `ChatPage` console
+  (`verify-chat.ts`).
 
-**Still open (per the delivery notes — genuinely not built yet):**
-- **Multi-location / multi-region probing** — checks still run from one location.
-- **Escalation depth** — SMS, voice, and richer multi-channel escalation routing
-  (Slack + webhook exist as channels; the escalation engine doesn't route to them deeply).
-- **GCP (and Alibaba/DO) billing ingestion** — cloud coverage is still AWS + Azure.
-- **i18n** — user-facing strings are hardcoded English.
-- **SSO / SAML** — plus the broader auth-hygiene items (2FA, password reset,
-  login rate-limiting, JWT revocation). Note `X-Tenant-Id` header auth remains a
-  fallback path; treat the tenant UUID as non-secret until it's removed.
-- **Native chat / telephony** channels.
+**Still open (genuinely not built yet):**
+- **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the
+  remaining SSO protocol. Note `X-Tenant-Id` header auth also remains a fallback
+  path; treat the tenant UUID as non-secret until it's removed.
+- **Telephony / native voice + video chat** — SMS and voice *notifications*
+  exist (Twilio), and text chat ships, but there's no inbound telephony or
+  real-time voice/video channel.
+- **Deeper escalation routing** — SMS/voice are available as channels, but the
+  escalation engine's multi-step routing across them is still shallow.
 
 When you close one of the remaining items, update this list and add/extend the
 relevant `verify-*.ts` script.
