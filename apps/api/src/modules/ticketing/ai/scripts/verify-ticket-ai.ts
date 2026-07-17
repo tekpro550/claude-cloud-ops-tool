@@ -5,7 +5,15 @@ import { Client } from 'pg';
 import { AppModule } from '../../../../app.module';
 import { AiCompletionClient } from '../ai-completion.client';
 import { TicketAiService } from '../ticket-ai.service';
+import { TenantAiSettingsService } from '../tenant-ai-settings.service';
 import { TicketsService } from '../../tickets.service';
+
+// This script exercises the env-fallback path (no per-tenant row configured),
+// so the settings service always resolves to null and the injected client is
+// used as-is. Per-tenant provider config has its own script (verify-ai-settings).
+const NO_TENANT_SETTINGS = {
+  resolveClient: async () => null,
+} as unknown as TenantAiSettingsService;
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -89,7 +97,7 @@ async function main() {
 
     // --- enabled path: summarize ---
     const fake = new FakeCompletionClient();
-    const service = new TicketAiService(dataSource, fake);
+    const service = new TicketAiService(dataSource, fake, NO_TENANT_SETTINGS);
 
     const summary = await service.summarize(tenant.id, ticket.id);
     assert(
@@ -122,9 +130,13 @@ async function main() {
     );
 
     // --- disabled path ---
-    const disabled = new TicketAiService(dataSource, new DisabledFake());
+    const disabled = new TicketAiService(
+      dataSource,
+      new DisabledFake(),
+      NO_TENANT_SETTINGS,
+    );
     assert(
-      disabled.status().enabled === false,
+      (await disabled.status(tenant.id)).enabled === false,
       'status reflects a disabled client',
     );
     const disabledResult = await disabled.summarize(tenant.id, ticket.id);

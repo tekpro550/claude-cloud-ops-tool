@@ -1497,6 +1497,42 @@ td {
   margin: 0 0 0.5rem;
 }
 
+/* Closed vs open model chooser (AI settings) */
+.ai-kind-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.ai-kind-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.ai-kind-option:hover {
+  border-color: var(--color-primary-border);
+  background: var(--color-surface-hover);
+}
+
+.ai-kind-option-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+@media (max-width: 480px) {
+  .ai-kind-toggle {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Inside the modal the editor's own card chrome and title are redundant with
    the dialog frame + header, so flatten them for a clean single-panel look. */
 .modal-body .admin-entity {

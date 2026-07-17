@@ -833,6 +833,37 @@ export function getCsatSummary(tenantId: string, days = 30): Promise<CsatSummary
   return request(tenantId, "GET", `/dashboard/csat-summary?days=${days}`);
 }
 
+// ---- AI assist provider settings ----
+
+export type AiProvider = "anthropic" | "openai" | "openai_compatible";
+
+export interface AiSettings {
+  id: string;
+  provider: AiProvider;
+  model: string;
+  base_url: string | null;
+  is_enabled: boolean;
+  has_api_key: boolean;
+  updated_at: string;
+}
+
+export interface UpdateAiSettingsInput {
+  provider: AiProvider;
+  model: string;
+  baseUrl?: string;
+  apiKey?: string;
+  isEnabled?: boolean;
+}
+
+// Returns null when the tenant hasn't configured a provider yet.
+export function getAiSettings(tenantId: string): Promise<AiSettings | null> {
+  return request(tenantId, "GET", "/tenant-ai-settings");
+}
+
+export function updateAiSettings(tenantId: string, input: UpdateAiSettingsInput): Promise<AiSettings> {
+  return request(tenantId, "PUT", "/tenant-ai-settings", input);
+}
+
 // ---- Business hours (SLA working window) ----
 
 export interface BusinessHours {

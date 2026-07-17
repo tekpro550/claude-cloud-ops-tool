@@ -7,6 +7,8 @@ import {
   AI_COMPLETION_CLIENT,
   createCompletionClient,
 } from './ai/ai-completion.client';
+import { TenantAiSettingsController } from './ai/tenant-ai-settings.controller';
+import { TenantAiSettingsService } from './ai/tenant-ai-settings.service';
 import { TicketAiController } from './ai/ticket-ai.controller';
 import { TicketAiService } from './ai/ticket-ai.service';
 import { AdminController } from './admin/admin.controller';
@@ -110,6 +112,7 @@ import { TicketsService } from './tickets.service';
     TicketWatchersController,
     ReportsController,
     TicketAiController,
+    TenantAiSettingsController,
   ],
   providers: [
     TicketsService,
@@ -147,6 +150,7 @@ import { TicketsService } from './tickets.service';
     TicketWatchersService,
     ReportsService,
     TicketAiService,
+    TenantAiSettingsService,
     {
       provide: AI_COMPLETION_CLIENT,
       inject: [ConfigService],

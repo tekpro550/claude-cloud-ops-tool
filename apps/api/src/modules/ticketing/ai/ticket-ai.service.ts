@@ -7,6 +7,7 @@ import {
   AI_COMPLETION_CLIENT,
   AiCompletionClient,
 } from './ai-completion.client';
+import { TenantAiSettingsService } from './tenant-ai-settings.service';
 
 export interface AiAssistResult {
   enabled: boolean;
@@ -36,18 +37,28 @@ const REPLY_SYSTEM =
 export class TicketAiService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
+    // Process-wide client built from env vars — the fallback when a tenant
+    // hasn't configured its own provider in admin.
     @Inject(AI_COMPLETION_CLIENT)
-    private readonly client: AiCompletionClient,
+    private readonly envClient: AiCompletionClient,
+    private readonly settings: TenantAiSettingsService,
   ) {}
 
-  status(): { enabled: boolean } {
-    return { enabled: this.client.enabled };
+  /** Tenant's configured client if it has one, otherwise the env fallback. */
+  private async resolveClient(tenantId: string): Promise<AiCompletionClient> {
+    return (await this.settings.resolveClient(tenantId)) ?? this.envClient;
+  }
+
+  async status(tenantId: string): Promise<{ enabled: boolean }> {
+    const client = await this.resolveClient(tenantId);
+    return { enabled: client.enabled };
   }
 
   async summarize(tenantId: string, ticketId: string): Promise<AiAssistResult> {
-    if (!this.client.enabled) return { enabled: false };
+    const client = await this.resolveClient(tenantId);
+    if (!client.enabled) return { enabled: false };
     const transcript = await this.loadTranscript(tenantId, ticketId);
-    const result = await this.client.complete(SUMMARY_SYSTEM, transcript);
+    const result = await client.complete(SUMMARY_SYSTEM, transcript);
     return { enabled: true, result };
   }
 
@@ -55,9 +66,10 @@ export class TicketAiService {
     tenantId: string,
     ticketId: string,
   ): Promise<AiAssistResult> {
-    if (!this.client.enabled) return { enabled: false };
+    const client = await this.resolveClient(tenantId);
+    if (!client.enabled) return { enabled: false };
     const transcript = await this.loadTranscript(tenantId, ticketId);
-    const result = await this.client.complete(REPLY_SYSTEM, transcript);
+    const result = await client.complete(REPLY_SYSTEM, transcript);
     return { enabled: true, result };
   }
 

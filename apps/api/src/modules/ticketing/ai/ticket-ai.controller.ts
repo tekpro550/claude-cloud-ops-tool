@@ -18,8 +18,8 @@ export class TicketAiController {
   constructor(private readonly ai: TicketAiService) {}
 
   @Get('status')
-  status() {
-    return this.ai.status();
+  status(@CurrentTenantId() tenantId: string) {
+    return this.ai.status(tenantId);
   }
 
   @Post(':id/summarize')

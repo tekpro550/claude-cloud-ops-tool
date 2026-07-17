@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Modal from "../components/Modal";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
+import AiSettingsAdmin from "../components/admin/AiSettingsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
 import AuditLogAdmin from "../components/admin/AuditLogAdmin";
@@ -88,6 +89,12 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
       heading: "Knowledge base",
       items: [
         { key: "solutions", label: "Solutions", description: "Help articles for agents and the portal", icon: "📚", render: (p) => <SolutionsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+      ],
+    },
+    {
+      heading: "AI assist",
+      items: [
+        { key: "ai-settings", label: "AI provider", description: "Model + API key for summaries and suggested replies", icon: "🤖", render: (p) => <AiSettingsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],
