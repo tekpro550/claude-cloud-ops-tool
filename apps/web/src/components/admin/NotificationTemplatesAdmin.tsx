@@ -9,7 +9,7 @@ import {
 import type { NotificationTemplate } from "../../types/monitoring";
 import { useConfirm } from "../useConfirm";
 
-const CHANNELS = ["email", "whatsapp", "voice", "in_app"] as const;
+const CHANNELS = ["email", "sms", "voice", "whatsapp", "in_app"] as const;
 
 /** Renders with $VARIABLE substitution -- see EscalationSweepService.renderBody. Only alert.escalated is wired up as an event_type so far. */
 export default function NotificationTemplatesAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {

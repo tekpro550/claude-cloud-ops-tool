@@ -7,7 +7,8 @@ import { EventBusService } from '../event-bus/event-bus.service';
 
 export interface EnqueueNotificationInput {
   tenantId: string;
-  channel: 'email' | 'slack' | 'webhook' | 'whatsapp' | 'voice' | 'in_app';
+  channel:
+    'email' | 'slack' | 'webhook' | 'sms' | 'whatsapp' | 'voice' | 'in_app';
   recipient: string;
   templateName: string;
   payload: Record<string, unknown>;

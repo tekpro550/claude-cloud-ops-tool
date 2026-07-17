@@ -25,6 +25,7 @@
     "ticketing-rls:verify": "ts-node -r dotenv/config src/database/scripts/verify-ticketing-rls.ts",
     "eventbus:verify": "ts-node -r dotenv/config src/event-bus/scripts/verify-event-bus.ts",
     "notifications:verify": "ts-node -r dotenv/config src/notifications/scripts/verify-notifications.ts",
+    "notification-channels:verify": "ts-node -r dotenv/config src/notifications/scripts/verify-notification-channels.ts",
     "slack-webhook:verify": "ts-node -r dotenv/config src/notifications/scripts/verify-slack-webhook-channels.ts",
     "tickets-api:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-tickets-api.ts",
     "email-intake:verify": "ts-node -r dotenv/config src/modules/ticketing/email-intake/scripts/verify-email-intake.ts",

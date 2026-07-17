@@ -36,7 +36,7 @@ export interface CostLineItem {
   currency: string;
 }
 
-export type NotifyChannel = "email" | "whatsapp" | "voice" | "in_app";
+export type NotifyChannel = "email" | "sms" | "whatsapp" | "voice" | "in_app";
 
 export interface CostBudget {
   id: string;

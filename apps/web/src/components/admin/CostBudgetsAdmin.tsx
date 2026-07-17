@@ -6,7 +6,7 @@ import { listCloudCredentials } from "../../lib/monitoringApiClient";
 import type { CostBudget, NotifyChannel } from "../../types/cost";
 import type { CloudCredential } from "../../types/monitoring";
 
-const NOTIFY_CHANNELS: (NotifyChannel | "")[] = ["", "email", "whatsapp", "voice", "in_app"];
+const NOTIFY_CHANNELS: (NotifyChannel | "")[] = ["", "email", "sms", "voice", "whatsapp", "in_app"];
 
 export default function CostBudgetsAdmin({ tenantId, onChange }: { tenantId: string; onChange?: () => void }) {
   const [budgets, setBudgets] = useState<CostBudget[]>([]);

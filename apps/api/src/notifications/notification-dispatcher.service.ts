@@ -10,6 +10,8 @@ import {
   stubChannel,
 } from './channels/notification-channel.interface';
 import { SlackChannel } from './channels/slack.channel';
+import { SmsChannel } from './channels/sms.channel';
+import { VoiceChannel } from './channels/voice.channel';
 import { WebhookChannel } from './channels/webhook.channel';
 import { renderTemplate } from './templates/template-registry';
 
@@ -18,8 +20,9 @@ const CONSUMER_GROUP = 'notification-dispatcher';
 
 /**
  * Consumes notification.requested off the shared event bus and dispatches
- * through the channel the notification was queued for. email, slack, and
- * webhook have real implementations; whatsapp/voice/in_app are wired to the
+ * through the channel the notification was queued for. email, slack, webhook,
+ * sms, and voice have real implementations (sms/voice via Twilio, defaulting to
+ * a log transport until credentials are set); whatsapp/in_app are wired to the
  * same dispatch path but stubbed, so a queued notification on those channels
  * ends up "failed" with a clear reason rather than silently vanishing.
  */
@@ -34,13 +37,16 @@ export class NotificationDispatcherService implements OnModuleInit {
     emailChannel: EmailChannel,
     slackChannel: SlackChannel,
     webhookChannel: WebhookChannel,
+    smsChannel: SmsChannel,
+    voiceChannel: VoiceChannel,
   ) {
     this.channels = new Map<string, NotificationChannel>([
       ['email', emailChannel],
       ['slack', slackChannel],
       ['webhook', webhookChannel],
+      ['sms', smsChannel],
+      ['voice', voiceChannel],
       ['whatsapp', stubChannel('whatsapp')],
-      ['voice', stubChannel('voice')],
       ['in_app', stubChannel('in_app')],
     ]);
   }
