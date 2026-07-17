@@ -84,6 +84,7 @@
     "needs-attention-cost:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-needs-attention.ts",
     "cost-dashboard:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-dashboard.ts",
     "ai-settings:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ai-settings.ts",
+    "kb-autopopulate:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-kb-autopopulate.ts",
     "cost-anomaly:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-anomaly.ts"
   },
   "dependencies": {

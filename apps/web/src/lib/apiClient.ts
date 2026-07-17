@@ -773,8 +773,9 @@ export function getCurrentUser(tenantId: string): Promise<AuthUser> {
   return request(tenantId, "GET", "/auth/me");
 }
 
-export function listSolutions(tenantId: string): Promise<Solution[]> {
-  return request(tenantId, "GET", "/admin/solutions");
+export function listSolutions(tenantId: string, search?: string): Promise<Solution[]> {
+  const query = search && search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
+  return request(tenantId, "GET", `/admin/solutions${query}`);
 }
 
 export function createSolution(

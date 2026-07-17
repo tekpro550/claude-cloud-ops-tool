@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
@@ -21,8 +22,8 @@ export class SolutionsController {
   constructor(private readonly solutions: SolutionsService) {}
 
   @Get()
-  list(@CurrentTenantId() tenantId: string) {
-    return this.solutions.list(tenantId);
+  list(@CurrentTenantId() tenantId: string, @Query('search') search?: string) {
+    return this.solutions.list(tenantId, search);
   }
 
   @Get(':id')

@@ -8,6 +8,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { SolutionsService } from './solutions.service';
 import { AutomationRulesService } from './automation/automation-rules.service';
 import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { validateCustomFields } from './custom-fields/custom-field-validate';
@@ -114,6 +115,7 @@ export class TicketsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly automationRules: AutomationRulesService,
     private readonly notifications: NotificationsService,
+    private readonly solutions: SolutionsService,
   ) {}
 
   async create(tenantId: string, dto: CreateTicketDto) {
@@ -470,7 +472,7 @@ export class TicketsService {
     dto: UpdateTicketDto,
     actorAgentId?: string,
   ) {
-    const { result, assignedAgentId } = await withTenantContext(
+    const { result, assignedAgentId, resolvedNow } = await withTenantContext(
       this.dataSource,
       tenantId,
       async (queryRunner) => {
@@ -538,11 +540,17 @@ export class TicketsService {
           }
         };
 
+        // Whether this update transitions the ticket into 'resolved' -- drives
+        // auto-seeding a knowledge-base draft from the resolving reply, below.
+        let resolvedNow = false;
+
         if (dto.status !== undefined) {
           trackChange('status', existing.status, dto.status);
           assign('status', dto.status);
           const closing = dto.status === 'resolved' || dto.status === 'closed';
           assign('resolved_at', closing ? new Date() : null);
+          resolvedNow =
+            dto.status === 'resolved' && existing.status !== 'resolved';
         }
         if (dto.priority !== undefined) {
           trackChange('priority', existing.priority, dto.priority);
@@ -655,7 +663,7 @@ export class TicketsService {
           rows[0],
           queryRunner,
         );
-        return { result, assignedAgentId };
+        return { result, assignedAgentId, resolvedNow };
       },
     );
 
@@ -667,6 +675,18 @@ export class TicketsService {
             `failed to enqueue assignment email for ticket ${id}: ${(err as Error).message}`,
           ),
       );
+    }
+
+    // Seed a draft knowledge-base article from the resolving reply, after
+    // commit and best-effort: a KB failure must never fail resolving a ticket.
+    if (resolvedNow) {
+      await this.solutions
+        .createFromResolvedTicket(tenantId, id)
+        .catch((err) =>
+          this.logger.error(
+            `failed to auto-create KB article for resolved ticket ${id}: ${(err as Error).message}`,
+          ),
+        );
     }
 
     return result;

@@ -212,6 +212,7 @@ export interface Solution {
   title: string;
   body: string;
   is_published: boolean;
+  source_ticket_id: string | null;
   created_at: string;
   updated_at: string;
 }

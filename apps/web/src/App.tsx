@@ -15,6 +15,7 @@ import CostAccountDetailPage from "./pages/CostAccountDetailPage";
 import CostDashboardPage from "./pages/CostDashboardPage";
 import CostRollupPage from "./pages/CostRollupPage";
 import DashboardPage from "./pages/DashboardPage";
+import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import ReportsPage from "./pages/ReportsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
@@ -117,6 +118,7 @@ const TICKETS_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: "📊" },
   { label: "Tickets", to: "/", icon: "🎫", end: true },
   { label: "Reports", to: "/reports", icon: "📈" },
+  { label: "Knowledge base", to: "/knowledge-base", icon: "📚" },
   { label: "Contacts", to: "/contacts", icon: "👤" },
   { label: "Companies", to: "/companies", icon: "🏢" },
   { label: "Compose email", to: "/compose", icon: "✉️" },
@@ -231,6 +233,7 @@ function App() {
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
           <Route path="/monitoring" element={<MonitoringFleetPage />} />
           <Route path="/monitoring/dashboard" element={<MonitoringDashboardPage />} />
           <Route path="/monitoring/resources/:id" element={<ResourceDashboardPage />} />

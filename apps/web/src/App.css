@@ -1497,6 +1497,63 @@ td {
   margin: 0 0 0.5rem;
 }
 
+/* Knowledge base grid */
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.kb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.kb-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.kb-card-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.kb-card-body {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  flex: 1 1 auto;
+}
+
+.kb-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+}
+
+.kb-badge-published {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.kb-badge-draft {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+}
+
 /* Closed vs open model chooser (AI settings) */
 .ai-kind-toggle {
   display: grid;
