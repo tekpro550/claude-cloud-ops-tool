@@ -246,6 +246,21 @@ credentials; `.env` / `.env.local` are gitignored.
 Before pushing, locally run at minimum the API build, lint, and the verify
 scripts relevant to your change against a `docker compose up -d` stack.
 
+### Pre-push hook
+
+A tracked pre-push hook (`.githooks/pre-push`) runs `pnpm preflight` — the two
+checks that gate CI before anything else: the frozen-lockfile sync check
+(`pnpm install --frozen-lockfile`) and lint (eslint on api, oxlint on
+web/portal). Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+It's fast (no build/test) and skips silently if pnpm isn't installed. If a
+push is blocked by a lockfile mismatch, run `pnpm install` to regenerate
+`pnpm-lock.yaml` and commit it. `pnpm preflight` can also be run by hand.
+
 ## Production deployment
 
 `docker-compose.prod.yml` + `.env.prod.example` run the full stack (Postgres,

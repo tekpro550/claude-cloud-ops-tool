@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+#
+# Pre-push guard. Catches, before a push reaches GitHub Actions, the two things
+# that have broken CI on this repo:
+#   1. pnpm-lock.yaml out of sync with a package.json (CI's `pnpm install
+#      --frozen-lockfile` step fails, blocking every job before it starts).
+#   2. lint errors — eslint on the api (no --fix, exactly as CI runs it) and
+#      oxlint on web + portal.
+#
+# Build and unit tests are intentionally left out to keep the hook fast; CI
+# still runs those (and the DB-backed verify suite).
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Skips (without blocking the push) if pnpm isn't installed, so it doesn't get
+# in the way of a docs-only or tooling-less checkout.
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pre-push: pnpm not found — skipping preflight checks" >&2
+  exit 0
+fi
+
+echo "pre-push: running preflight (lockfile sync + lint)..."
+if ! pnpm preflight; then
+  echo >&2
+  echo "pre-push: preflight FAILED — push aborted." >&2
+  echo "  Fix the above, then push again. If it's a lockfile mismatch, run" >&2
+  echo "  'pnpm install' to regenerate pnpm-lock.yaml and commit it." >&2
+  echo "  (To bypass in an emergency: git push --no-verify)" >&2
+  exit 1
+fi
+
+echo "pre-push: preflight OK"

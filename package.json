@@ -8,7 +8,8 @@
     "dev:portal": "pnpm --filter @cloud-ops-tool/portal dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "preflight": "pnpm install --frozen-lockfile && pnpm --filter @cloud-ops-tool/api exec eslint \"{src,apps,libs,test}/**/*.ts\" && pnpm --filter @cloud-ops-tool/web lint && pnpm --filter @cloud-ops-tool/portal lint"
   },
   "packageManager": "pnpm@10.33.0"
 }
