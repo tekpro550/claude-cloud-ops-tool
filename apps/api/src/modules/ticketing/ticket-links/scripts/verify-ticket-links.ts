@@ -46,15 +46,25 @@ async function main() {
   const links = app.get(TicketLinksService);
 
   const mk = (subject: string) =>
-    tickets.create(tenant.id, { subject, contactId: contact.id, source: 'web_form' });
+    tickets.create(tenant.id, {
+      subject,
+      contactId: contact.id,
+      source: 'web_form',
+    });
 
   try {
     const a = await mk('Ticket A');
     const b = await mk('Ticket B');
     const c = await mk('Ticket C');
 
-    await links.create(tenant.id, a.id, { toTicketNumber: b.ticket_number, linkType: 'related' });
-    await links.create(tenant.id, a.id, { toTicketNumber: c.ticket_number, linkType: 'parent_of' });
+    await links.create(tenant.id, a.id, {
+      toTicketNumber: b.ticket_number,
+      linkType: 'related',
+    });
+    await links.create(tenant.id, a.id, {
+      toTicketNumber: c.ticket_number,
+      linkType: 'parent_of',
+    });
 
     const aLinks = await links.list(tenant.id, a.id);
     assert(aLinks.length === 2, 'A has two links');
@@ -66,20 +76,31 @@ async function main() {
     // From C's point of view, A is its parent.
     const cLinks = await links.list(tenant.id, c.id);
     assert(
-      cLinks.length === 1 && cLinks[0].relation === 'parent' && cLinks[0].ticketNumber === a.ticket_number,
+      cLinks.length === 1 &&
+        cLinks[0].relation === 'parent' &&
+        cLinks[0].ticketNumber === a.ticket_number,
       'C sees A as its parent (inverse direction resolves correctly)',
     );
 
     // child_of is stored as the inverse parent_of edge.
-    await links.create(tenant.id, b.id, { toTicketNumber: a.ticket_number, linkType: 'child_of' });
+    await links.create(tenant.id, b.id, {
+      toTicketNumber: a.ticket_number,
+      linkType: 'child_of',
+    });
     const bLinks = await links.list(tenant.id, b.id);
     const bParent = bLinks.find((l) => l.relation === 'parent');
-    assert(bParent?.ticketNumber === a.ticket_number, "'child_of' makes A the parent of B");
+    assert(
+      bParent?.ticketNumber === a.ticket_number,
+      "'child_of' makes A the parent of B",
+    );
 
     // Self-link and duplicate are rejected.
     let threw = false;
     try {
-      await links.create(tenant.id, a.id, { toTicketNumber: a.ticket_number, linkType: 'related' });
+      await links.create(tenant.id, a.id, {
+        toTicketNumber: a.ticket_number,
+        linkType: 'related',
+      });
     } catch {
       threw = true;
     }
@@ -95,12 +116,25 @@ async function main() {
 
     console.log('\nAll ticket links checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_links WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM ticket_links WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

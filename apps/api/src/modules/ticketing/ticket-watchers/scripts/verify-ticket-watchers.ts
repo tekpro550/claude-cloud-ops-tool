@@ -81,7 +81,11 @@ async function main() {
       source: 'web_form',
     });
 
-    const afterWatch = await watchers.watch(tenant.id, ticket.id, watcherAgentId);
+    const afterWatch = await watchers.watch(
+      tenant.id,
+      ticket.id,
+      watcherAgentId,
+    );
     assert(afterWatch.length === 1, 'watch() adds the agent as a watcher');
     // Idempotent.
     const again = await watchers.watch(tenant.id, ticket.id, watcherAgentId);
@@ -130,7 +134,11 @@ async function main() {
       'a private note does not notify watchers',
     );
 
-    const afterUnwatch = await watchers.unwatch(tenant.id, ticket.id, watcherAgentId);
+    const afterUnwatch = await watchers.unwatch(
+      tenant.id,
+      ticket.id,
+      watcherAgentId,
+    );
     assert(
       !afterUnwatch.some((w) => w.agentId === watcherAgentId),
       'unwatch() removes the watcher',
@@ -138,15 +146,32 @@ async function main() {
 
     console.log('\nAll ticket watchers checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM notifications WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_watchers WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM notifications WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_watchers WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

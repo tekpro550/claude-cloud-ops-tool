@@ -11,7 +11,10 @@ import { signJwt } from '../../platform/auth/jwt';
 import { isEmailValid } from '../contact-email-validation';
 import { PortalLoginDto, PortalRegisterDto } from './portal-auth.dto';
 
-function toAuthResult(contact: { id: string; name: string; email: string }, tenantId: string) {
+function toAuthResult(
+  contact: { id: string; name: string; email: string },
+  tenantId: string,
+) {
   return {
     token: signJwt({
       sub: contact.id,

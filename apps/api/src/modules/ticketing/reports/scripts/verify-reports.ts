@@ -57,7 +57,8 @@ async function main() {
   const MIN = 60 * 1000;
   const HOUR = 60 * MIN;
   const DAY = 24 * HOUR;
-  const at = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString();
+  const at = (offsetMs: number) =>
+    new Date(Date.now() + offsetMs).toISOString();
   let nextNumber = 1;
   const mkTicket = async (opts: {
     created: string;
@@ -130,10 +131,7 @@ async function main() {
       s.sla.firstResponse.total === 2 && s.sla.firstResponse.met === 1,
       'first-response SLA: 1 of 2 met',
     );
-    assert(
-      s.sla.firstResponse.pct === 50,
-      'first-response attainment is 50%',
-    );
+    assert(s.sla.firstResponse.pct === 50, 'first-response attainment is 50%');
     assert(
       s.sla.resolution.met === 1 && s.sla.resolution.total === 2,
       'resolution SLA: 1 of 2 met (the unresolved one counts against)',
@@ -147,8 +145,13 @@ async function main() {
       s.csat.total === 1 && s.csat.score === 100 && s.csat.positivePct === 100,
       'CSAT: one happy rating → score 100 / 100% positive',
     );
-    const agentRow = s.agents.find((a: { agent_id: string }) => a.agent_id === agent.id);
-    assert(!!agentRow && agentRow.resolved === 1, 'agent performance shows 1 resolved');
+    const agentRow = s.agents.find(
+      (a: { agent_id: string }) => a.agent_id === agent.id,
+    );
+    assert(
+      !!agentRow && agentRow.resolved === 1,
+      'agent performance shows 1 resolved',
+    );
     assert(
       s.volume.some((v: { created: number }) => v.created > 0),
       'volume-by-day has at least one day with created tickets',
@@ -156,12 +159,24 @@ async function main() {
 
     console.log('\nAll reports checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_satisfaction_ratings WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(
+      `DELETE FROM ticket_satisfaction_ratings WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM agents WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

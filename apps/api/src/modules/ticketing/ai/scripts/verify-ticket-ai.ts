@@ -33,7 +33,8 @@ class FakeCompletionClient implements AiCompletionClient {
   async complete(system: string, user: string): Promise<string> {
     this.lastSystem = system;
     this.lastUser = user;
-    return system.includes('draft the next reply') || system.includes('drafting the next reply')
+    return system.includes('draft the next reply') ||
+      system.includes('drafting the next reply')
       ? 'Thanks for reaching out — here is how to reset your password...'
       : 'Customer cannot log in; agent asked for their account email.';
   }
@@ -91,8 +92,14 @@ async function main() {
     const service = new TicketAiService(dataSource, fake);
 
     const summary = await service.summarize(tenant.id, ticket.id);
-    assert(summary.enabled === true, 'summarize reports enabled when a client is present');
-    assert(!!summary.result && summary.result.length > 0, 'summarize returns text');
+    assert(
+      summary.enabled === true,
+      'summarize reports enabled when a client is present',
+    );
+    assert(
+      !!summary.result && summary.result.length > 0,
+      'summarize returns text',
+    );
     assert(
       fake.lastUser.includes('Cannot log in') &&
         fake.lastUser.includes('invalid password'),
@@ -105,7 +112,10 @@ async function main() {
 
     // --- enabled path: suggest reply ---
     const reply = await service.suggestReply(tenant.id, ticket.id);
-    assert(reply.enabled === true && !!reply.result, 'suggestReply returns a drafted reply');
+    assert(
+      reply.enabled === true && !!reply.result,
+      'suggestReply returns a drafted reply',
+    );
     assert(
       fake.lastSystem.toLowerCase().includes('reply'),
       'suggestReply uses the reply-drafting system prompt',
@@ -113,7 +123,10 @@ async function main() {
 
     // --- disabled path ---
     const disabled = new TicketAiService(dataSource, new DisabledFake());
-    assert(disabled.status().enabled === false, 'status reflects a disabled client');
+    assert(
+      disabled.status().enabled === false,
+      'status reflects a disabled client',
+    );
     const disabledResult = await disabled.summarize(tenant.id, ticket.id);
     assert(
       disabledResult.enabled === false && disabledResult.result === undefined,
@@ -122,11 +135,22 @@ async function main() {
 
     console.log('\nAll ticket AI checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

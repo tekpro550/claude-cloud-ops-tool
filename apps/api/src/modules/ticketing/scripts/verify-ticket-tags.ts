@@ -50,11 +50,14 @@ async function main() {
     "conditionMatches: 'contains' matches a substring of any tag",
   );
   assert(
-    !conditionMatches({ tags: [] }, {
-      field: 'tags',
-      operator: 'contains',
-      value: 'x',
-    }),
+    !conditionMatches(
+      { tags: [] },
+      {
+        field: 'tags',
+        operator: 'contains',
+        value: 'x',
+      },
+    ),
     'conditionMatches: an empty tag array matches nothing',
   );
 
@@ -100,9 +103,7 @@ async function main() {
     });
     const sorted = [...updated.tags].sort();
     assert(
-      sorted.length === 2 &&
-        sorted[0] === 'billing' &&
-        sorted[1] === 'network',
+      sorted.length === 2 && sorted[0] === 'billing' && sorted[1] === 'network',
       'update() trims, de-duplicates, and drops empty tags',
     );
 

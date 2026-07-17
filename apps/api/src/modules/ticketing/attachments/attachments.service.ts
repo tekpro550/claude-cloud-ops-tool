@@ -34,11 +34,21 @@ export class AttachmentsService {
         );
       }
 
-      const storagePath = await this.storage.save(file.buffer, file.originalname);
+      const storagePath = await this.storage.save(
+        file.buffer,
+        file.originalname,
+      );
       const [attachment] = await queryRunner.query(
         `INSERT INTO ticket_attachments (tenant_id, ticket_id, ticket_message_id, file_name, file_size_bytes, storage_path)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [tenantId, ticketId, messageId, file.originalname, file.size, storagePath],
+        [
+          tenantId,
+          ticketId,
+          messageId,
+          file.originalname,
+          file.size,
+          storagePath,
+        ],
       );
       return attachment;
     });
@@ -53,7 +63,11 @@ export class AttachmentsService {
     );
   }
 
-  async getForDownload(tenantId: string, ticketId: string, attachmentId: string) {
+  async getForDownload(
+    tenantId: string,
+    ticketId: string,
+    attachmentId: string,
+  ) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [attachment] = await queryRunner.query(
         `SELECT * FROM ticket_attachments WHERE id = $1 AND ticket_id = $2`,

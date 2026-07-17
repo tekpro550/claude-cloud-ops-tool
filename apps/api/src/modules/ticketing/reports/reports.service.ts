@@ -39,7 +39,16 @@ export class ReportsService {
       const times = await this.responseTimes(qr, win);
       const csat = await this.csat(qr, win);
       const agents = await this.agentPerformance(qr, win);
-      return { window: win, volume, byStatus, byPriority, sla, times, csat, agents };
+      return {
+        window: win,
+        volume,
+        byStatus,
+        byPriority,
+        sla,
+        times,
+        csat,
+        agents,
+      };
     });
   }
 
@@ -92,8 +101,16 @@ export class ReportsService {
     const pct = (met: number, total: number) =>
       total > 0 ? Math.round((met / total) * 1000) / 10 : null;
     return {
-      firstResponse: { met: row.fr_met, total: row.fr_total, pct: pct(row.fr_met, row.fr_total) },
-      resolution: { met: row.res_met, total: row.res_total, pct: pct(row.res_met, row.res_total) },
+      firstResponse: {
+        met: row.fr_met,
+        total: row.fr_total,
+        pct: pct(row.fr_met, row.fr_total),
+      },
+      resolution: {
+        met: row.res_met,
+        total: row.res_total,
+        pct: pct(row.res_met, row.res_total),
+      },
     };
   }
 
@@ -116,8 +133,14 @@ export class ReportsService {
     const round = (v: number | null) =>
       v === null || v === undefined ? null : Math.round(Number(v));
     return {
-      firstResponseMinutes: { avg: round(row.fr_avg), median: round(row.fr_p50) },
-      resolutionMinutes: { avg: round(row.res_avg), median: round(row.res_p50) },
+      firstResponseMinutes: {
+        avg: round(row.fr_avg),
+        median: round(row.fr_p50),
+      },
+      resolutionMinutes: {
+        avg: round(row.res_avg),
+        median: round(row.res_p50),
+      },
     };
   }
 
@@ -132,7 +155,8 @@ export class ReportsService {
       [win.from, win.to],
     );
     const total = rows.reduce((s, r) => s + r.count, 0);
-    const weightOf = (r: string) => (r === 'happy' ? 1 : r === 'neutral' ? 0.5 : 0);
+    const weightOf = (r: string) =>
+      r === 'happy' ? 1 : r === 'neutral' ? 0.5 : 0;
     const weighted = rows.reduce((s, r) => s + weightOf(r.rating) * r.count, 0);
     const happy = rows.find((r) => r.rating === 'happy')?.count ?? 0;
     return {

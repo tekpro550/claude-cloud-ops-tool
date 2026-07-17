@@ -32,31 +32,35 @@ export class AuditLogService {
 
   async record(tenantId: string, entry: AuditEntry): Promise<void> {
     try {
-      await withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-        let actorLabel: string | null = null;
-        if (entry.actorUserId) {
-          const [user] = await queryRunner.query(
-            `SELECT COALESCE(name, email) AS label FROM users WHERE id = $1`,
-            [entry.actorUserId],
-          );
-          actorLabel = user?.label ?? null;
-        }
-        await queryRunner.query(
-          `INSERT INTO admin_audit_log
+      await withTenantContext(
+        this.dataSource,
+        tenantId,
+        async (queryRunner) => {
+          let actorLabel: string | null = null;
+          if (entry.actorUserId) {
+            const [user] = await queryRunner.query(
+              `SELECT COALESCE(name, email) AS label FROM users WHERE id = $1`,
+              [entry.actorUserId],
+            );
+            actorLabel = user?.label ?? null;
+          }
+          await queryRunner.query(
+            `INSERT INTO admin_audit_log
              (tenant_id, actor_user_id, actor_label, action, entity_type, entity_id, summary, details)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [
-            tenantId,
-            entry.actorUserId ?? null,
-            actorLabel,
-            entry.action,
-            entry.entityType,
-            entry.entityId ?? null,
-            entry.summary,
-            JSON.stringify(entry.details ?? {}),
-          ],
-        );
-      });
+            [
+              tenantId,
+              entry.actorUserId ?? null,
+              actorLabel,
+              entry.action,
+              entry.entityType,
+              entry.entityId ?? null,
+              entry.summary,
+              JSON.stringify(entry.details ?? {}),
+            ],
+          );
+        },
+      );
     } catch (err) {
       this.logger.error(
         `failed to record audit entry '${entry.action}' for tenant ${tenantId}: ${(err as Error).message}`,

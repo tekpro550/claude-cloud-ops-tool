@@ -56,7 +56,8 @@ export class SolutionsService {
       };
       if (dto.title !== undefined) assign('title', dto.title);
       if (dto.body !== undefined) assign('body', dto.body);
-      if (dto.isPublished !== undefined) assign('is_published', dto.isPublished);
+      if (dto.isPublished !== undefined)
+        assign('is_published', dto.isPublished);
 
       params.push(id);
       const [rows] = await queryRunner.query(

@@ -9,9 +9,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * stable as fields come and go, the same shape scenarios/automation configs
  * already use.
  */
-export class CreateTicketCustomFields1784270000000
-  implements MigrationInterface
-{
+export class CreateTicketCustomFields1784270000000 implements MigrationInterface {
   name = 'CreateTicketCustomFields1784270000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

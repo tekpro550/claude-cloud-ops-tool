@@ -33,7 +33,10 @@ async function main() {
     nested: { a: 1 },
     nothing: null,
   });
-  assert(normalized.team === 'platform', 'normalizeAllocationTags trims values');
+  assert(
+    normalized.team === 'platform',
+    'normalizeAllocationTags trims values',
+  );
   assert(
     normalized.cost === '12.5' && normalized.active === 'true',
     'normalizeAllocationTags coerces scalar values to strings',
@@ -93,7 +96,10 @@ async function main() {
     );
 
     const byTeam = await allocation.allocationByTag(tenant.id, 'team');
-    assert(byTeam.total === 225, 'allocationByTag total reconciles with all spend');
+    assert(
+      byTeam.total === 225,
+      'allocationByTag total reconciles with all spend',
+    );
     const platform = byTeam.rows.find((r) => r.tagValue === 'platform');
     const data = byTeam.rows.find((r) => r.tagValue === 'data');
     const untagged = byTeam.rows.find((r) => r.tagValue === '(untagged)');

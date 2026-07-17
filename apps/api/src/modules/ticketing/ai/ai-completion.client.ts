@@ -37,13 +37,15 @@ export class AnthropicCompletionClient implements AiCompletionClient {
   // its types at build time.
   private readonly client: {
     messages: {
-      create(args: unknown): Promise<{ content: Array<{ type: string; text?: string }> }>;
+      create(
+        args: unknown,
+      ): Promise<{ content: Array<{ type: string; text?: string }> }>;
     };
   };
 
   constructor(apiKey: string, model: string) {
     this.model = model;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const mod = require('@anthropic-ai/sdk');
     const Anthropic = mod.default ?? mod;
     this.client = new Anthropic({ apiKey });

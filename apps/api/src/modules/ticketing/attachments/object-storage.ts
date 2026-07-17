@@ -49,7 +49,9 @@ export class LocalDiskStorage implements ObjectStorage {
   }
 
   readStream(storagePath: string): NodeJS.ReadableStream {
-    return createReadStream(path.join(this.root, this.assertSafeKey(storagePath)));
+    return createReadStream(
+      path.join(this.root, this.assertSafeKey(storagePath)),
+    );
   }
 
   async delete(storagePath: string): Promise<void> {

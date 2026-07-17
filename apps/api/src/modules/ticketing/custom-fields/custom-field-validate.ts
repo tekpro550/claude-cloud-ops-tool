@@ -1,9 +1,5 @@
 export type CustomFieldType =
-  | 'text'
-  | 'number'
-  | 'dropdown'
-  | 'checkbox'
-  | 'date';
+  'text' | 'number' | 'dropdown' | 'checkbox' | 'date';
 
 export interface CustomFieldDef {
   key: string;

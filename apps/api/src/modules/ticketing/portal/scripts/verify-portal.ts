@@ -131,7 +131,10 @@ async function main() {
         email: 'guest@portal-verify.example',
         password: 'super-secret-1',
       });
-    assert(loginRes.status === 201, 'portal login with the right password succeeds');
+    assert(
+      loginRes.status === 201,
+      'portal login with the right password succeeds',
+    );
     const contactToken = loginRes.body.token;
 
     const unregisteredLogin = await request(server)
@@ -208,7 +211,10 @@ async function main() {
     const agentLoginRes = await request(server)
       .post('/api/v1/auth/login')
       .set('X-Tenant-Id', tenant.id)
-      .send({ email: 'agent@portal-verify.example', password: 'correct-horse' });
+      .send({
+        email: 'agent@portal-verify.example',
+        password: 'correct-horse',
+      });
     const agentToken = agentLoginRes.body.token;
     const agentTokenOnPortal = await request(server)
       .get('/api/v1/portal/tickets')
@@ -277,9 +283,7 @@ async function main() {
     await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
       tenant.id,
     ]);
-    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [
-      tenant.id,
-    ]);
+    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [tenant.id]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
   }

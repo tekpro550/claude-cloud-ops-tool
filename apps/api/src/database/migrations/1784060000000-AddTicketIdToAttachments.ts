@@ -11,9 +11,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * lets a ticket-level attachment exist honestly, without a message to lie
  * about being attached to.
  */
-export class AddTicketIdToAttachments1784060000000
-  implements MigrationInterface
-{
+export class AddTicketIdToAttachments1784060000000 implements MigrationInterface {
   name = 'AddTicketIdToAttachments1784060000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

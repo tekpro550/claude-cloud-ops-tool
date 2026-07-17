@@ -62,8 +62,7 @@ async function main() {
     const { items, total } = await audit.list(tenant.id);
     assert(total === 2, 'list returns both recorded entries');
     assert(
-      (items[0] as { action: string }).action ===
-        'tenant_cost_settings.update',
+      (items[0] as { action: string }).action === 'tenant_cost_settings.update',
       'entries are returned newest-first',
     );
     const first = items[1] as {

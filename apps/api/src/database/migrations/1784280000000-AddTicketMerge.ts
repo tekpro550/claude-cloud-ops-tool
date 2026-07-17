@@ -21,8 +21,6 @@ export class AddTicketMerge1784280000000 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP INDEX IF EXISTS idx_tickets_merged_into`);
-    await queryRunner.query(
-      `ALTER TABLE tickets DROP COLUMN merged_into_id`,
-    );
+    await queryRunner.query(`ALTER TABLE tickets DROP COLUMN merged_into_id`);
   }
 }

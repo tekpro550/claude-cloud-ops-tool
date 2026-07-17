@@ -25,7 +25,9 @@ export class PortalSolutionsController {
   @Get()
   async list(@CurrentTenantId() tenantId: string) {
     const all = await this.solutions.list(tenantId);
-    return all.filter((solution: { is_published: boolean }) => solution.is_published);
+    return all.filter(
+      (solution: { is_published: boolean }) => solution.is_published,
+    );
   }
 
   @Get(':id')

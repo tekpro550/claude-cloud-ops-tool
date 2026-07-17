@@ -172,7 +172,14 @@ export class FreshdeskMigrationService {
     await queryRunner.query(
       `INSERT INTO ticket_attachments (tenant_id, ticket_id, ticket_message_id, file_name, file_size_bytes, storage_path)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [tenantId, ticketId, messageId, attachment.name, attachment.size, storagePath],
+      [
+        tenantId,
+        ticketId,
+        messageId,
+        attachment.name,
+        attachment.size,
+        storagePath,
+      ],
     );
   }
 

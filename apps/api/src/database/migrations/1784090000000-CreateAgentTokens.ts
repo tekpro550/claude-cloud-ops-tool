@@ -50,7 +50,9 @@ export class CreateAgentTokens1784090000000 implements MigrationInterface {
       ALTER TABLE agent_tokens DISABLE ROW LEVEL SECURITY;
     `);
 
-    await queryRunner.query(`REVOKE ALL PRIVILEGES ON agent_tokens FROM app_user;`);
+    await queryRunner.query(
+      `REVOKE ALL PRIVILEGES ON agent_tokens FROM app_user;`,
+    );
 
     await queryRunner.query(`DROP TABLE IF EXISTS agent_tokens;`);
   }

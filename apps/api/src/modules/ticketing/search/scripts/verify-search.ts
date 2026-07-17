@@ -137,7 +137,10 @@ async function main() {
     const loginRes = await request(server)
       .post('/api/v1/auth/login')
       .set('X-Tenant-Id', tenant.id)
-      .send({ email: 'agent@search-verify.example', password: 'correct-horse' });
+      .send({
+        email: 'agent@search-verify.example',
+        password: 'correct-horse',
+      });
     const agentToken = loginRes.body.token;
 
     const searchViaHeaderOnly = await request(server)
@@ -161,9 +164,7 @@ async function main() {
     await migrator.query(`DELETE FROM solutions WHERE tenant_id = $1`, [
       tenant.id,
     ]);
-    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [
-      tenant.id,
-    ]);
+    await migrator.query(`DELETE FROM users WHERE tenant_id = $1`, [tenant.id]);
     await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
       tenant.id,
     ]);

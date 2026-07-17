@@ -53,7 +53,9 @@ export class CreateCloudCredentials1784100000000 implements MigrationInterface {
       ALTER TABLE cloud_credentials DISABLE ROW LEVEL SECURITY;
     `);
 
-    await queryRunner.query(`REVOKE ALL PRIVILEGES ON cloud_credentials FROM app_user;`);
+    await queryRunner.query(
+      `REVOKE ALL PRIVILEGES ON cloud_credentials FROM app_user;`,
+    );
 
     await queryRunner.query(`
       DROP TABLE IF EXISTS cloud_credentials;

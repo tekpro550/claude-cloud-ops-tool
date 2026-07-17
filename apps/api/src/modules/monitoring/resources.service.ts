@@ -124,7 +124,10 @@ export class ResourcesService {
   /** Per-resource template (section 6): the resource plus every monitor on it with its latest check. */
   async dashboard(tenantId: string, id: string) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
-      const [resource] = await queryRunner.query(`SELECT * FROM resources WHERE id = $1`, [id]);
+      const [resource] = await queryRunner.query(
+        `SELECT * FROM resources WHERE id = $1`,
+        [id],
+      );
       if (!resource) {
         throw new NotFoundException(`Resource ${id} not found`);
       }

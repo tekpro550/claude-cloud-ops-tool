@@ -62,10 +62,7 @@ export class TicketAiService {
   }
 
   /** Builds a plain-text transcript (subject + each message) for the prompt. */
-  private loadTranscript(
-    tenantId: string,
-    ticketId: string,
-  ): Promise<string> {
+  private loadTranscript(tenantId: string, ticketId: string): Promise<string> {
     return withTenantContext(this.dataSource, tenantId, async (qr) => {
       const [ticket] = await qr.query(
         `SELECT subject FROM tickets WHERE id = $1`,

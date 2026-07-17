@@ -26,7 +26,10 @@ export class ResourcesController {
   }
 
   @Get(':id')
-  get(@CurrentTenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+  get(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.resources.get(tenantId, id);
   }
 
@@ -54,7 +57,10 @@ export class ResourcesController {
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@CurrentTenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentTenantId() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.resources.remove(tenantId, id);
   }
 }

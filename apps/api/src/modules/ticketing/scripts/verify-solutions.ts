@@ -55,7 +55,10 @@ async function main() {
       body: 'Answers to common billing questions.',
       isPublished: true,
     });
-    assert(published.is_published === true, 'isPublished: true is honored on create');
+    assert(
+      published.is_published === true,
+      'isPublished: true is honored on create',
+    );
 
     const allSolutions = await solutions.list(tenant.id);
     assert(

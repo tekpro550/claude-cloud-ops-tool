@@ -4,11 +4,7 @@ import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
 
 export type SearchScope =
-  | 'all'
-  | 'tickets'
-  | 'contacts'
-  | 'companies'
-  | 'solutions';
+  'all' | 'tickets' | 'contacts' | 'companies' | 'solutions';
 
 /**
  * Global search across tickets, contacts, companies, and solutions (the

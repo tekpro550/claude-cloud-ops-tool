@@ -2,10 +2,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { Client } from 'pg';
 import { AppModule } from '../../../../app.module';
-import {
-  validateCustomFields,
-  CustomFieldDef,
-} from '../custom-field-validate';
+import { validateCustomFields, CustomFieldDef } from '../custom-field-validate';
 import { CustomFieldsService } from '../custom-fields.service';
 import { TicketsService } from '../../tickets.service';
 
@@ -27,12 +24,54 @@ function migratorClient() {
 }
 
 const defs: CustomFieldDef[] = [
-  { key: 'severity', label: 'Severity', field_type: 'dropdown', options: ['low', 'high'], is_required: true, is_active: true },
-  { key: 'cost_center', label: 'Cost center', field_type: 'text', options: [], is_required: false, is_active: true },
-  { key: 'seats', label: 'Seats', field_type: 'number', options: [], is_required: false, is_active: true },
-  { key: 'vip', label: 'VIP', field_type: 'checkbox', options: [], is_required: false, is_active: true },
-  { key: 'due', label: 'Due', field_type: 'date', options: [], is_required: false, is_active: true },
-  { key: 'legacy', label: 'Legacy', field_type: 'text', options: [], is_required: false, is_active: false },
+  {
+    key: 'severity',
+    label: 'Severity',
+    field_type: 'dropdown',
+    options: ['low', 'high'],
+    is_required: true,
+    is_active: true,
+  },
+  {
+    key: 'cost_center',
+    label: 'Cost center',
+    field_type: 'text',
+    options: [],
+    is_required: false,
+    is_active: true,
+  },
+  {
+    key: 'seats',
+    label: 'Seats',
+    field_type: 'number',
+    options: [],
+    is_required: false,
+    is_active: true,
+  },
+  {
+    key: 'vip',
+    label: 'VIP',
+    field_type: 'checkbox',
+    options: [],
+    is_required: false,
+    is_active: true,
+  },
+  {
+    key: 'due',
+    label: 'Due',
+    field_type: 'date',
+    options: [],
+    is_required: false,
+    is_active: true,
+  },
+  {
+    key: 'legacy',
+    label: 'Legacy',
+    field_type: 'text',
+    options: [],
+    is_required: false,
+    is_active: false,
+  },
 ];
 
 async function main() {
@@ -145,12 +184,26 @@ async function main() {
 
     console.log('\nAll custom fields checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_custom_field_defs WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(
+      `DELETE FROM ticket_custom_field_defs WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

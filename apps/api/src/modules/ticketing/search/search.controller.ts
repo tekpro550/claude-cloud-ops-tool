@@ -32,11 +32,6 @@ export class SearchController {
     // A verified agent identity (a valid Bearer JWT, not just a bare
     // X-Tenant-Id header) sees drafts; a header-only caller only sees
     // published solutions, same as the portal's public browsing.
-    return this.searchService.search(
-      tenantId,
-      q ?? '',
-      resolvedScope,
-      !userId,
-    );
+    return this.searchService.search(tenantId, q ?? '', resolvedScope, !userId);
   }
 }

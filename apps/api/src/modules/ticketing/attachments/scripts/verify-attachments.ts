@@ -68,13 +68,22 @@ async function main() {
     const createTicketRes = await request(server)
       .post('/api/v1/tickets')
       .set('X-Tenant-Id', tenant.id)
-      .send({ subject: 'Needs a screenshot', contactId: contact.id, source: 'web_form' });
+      .send({
+        subject: 'Needs a screenshot',
+        contactId: contact.id,
+        source: 'web_form',
+      });
     const ticketId = createTicketRes.body.id;
 
     const messageRes = await request(server)
       .post(`/api/v1/tickets/${ticketId}/messages`)
       .set('X-Tenant-Id', tenant.id)
-      .send({ type: 'reply', authorType: 'contact', authorId: contact.id, body: 'Here is a screenshot.' });
+      .send({
+        type: 'reply',
+        authorType: 'contact',
+        authorId: contact.id,
+        body: 'Here is a screenshot.',
+      });
     const messageId = messageRes.body.id;
 
     const noFileRes = await request(server)
@@ -116,7 +125,9 @@ async function main() {
     );
 
     const wrongTicketUpload = await request(server)
-      .post(`/api/v1/tickets/00000000-0000-4000-8000-000000000000/messages/${messageId}/attachments`)
+      .post(
+        `/api/v1/tickets/00000000-0000-4000-8000-000000000000/messages/${messageId}/attachments`,
+      )
       .set('X-Tenant-Id', tenant.id)
       .attach('file', fileContents, 'x.png');
     assert(
@@ -135,7 +146,9 @@ async function main() {
     );
 
     const downloadRes = await request(server)
-      .get(`/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`)
+      .get(
+        `/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`,
+      )
       .set('X-Tenant-Id', tenant.id);
     assert(
       downloadRes.status === 200 &&
@@ -156,7 +169,9 @@ async function main() {
     const onDiskPath = path.join(storageDir, onDiskFiles[0]);
     await fs.rm(onDiskPath);
     const missingFileDownload = await request(server)
-      .get(`/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`)
+      .get(
+        `/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`,
+      )
       .set('X-Tenant-Id', tenant.id);
     assert(
       missingFileDownload.status === 404,
@@ -172,7 +187,9 @@ async function main() {
     );
 
     const missingDownload = await request(server)
-      .get(`/api/v1/tickets/${ticketId}/attachments/00000000-0000-4000-8000-000000000000/download`)
+      .get(
+        `/api/v1/tickets/${ticketId}/attachments/00000000-0000-4000-8000-000000000000/download`,
+      )
       .set('X-Tenant-Id', tenant.id);
     assert(
       missingDownload.status === 404,
@@ -188,7 +205,9 @@ async function main() {
       [`attachments-verify-other-${Date.now()}`],
     );
     const crossTenantDownload = await request(server)
-      .get(`/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`)
+      .get(
+        `/api/v1/tickets/${ticketId}/attachments/${uploadRes.body.id}/download`,
+      )
       .set('X-Tenant-Id', otherTenant.id);
     assert(
       crossTenantDownload.status === 404,
