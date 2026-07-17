@@ -2,12 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { CloudProvider } from '../monitoring/cloud/cloud-provider-client';
 import { calculateBudgetPace, generateCostInsightText } from './cost-pace';
 import { ListLineItemsQueryDto } from './cost-accounts.dto';
 
 interface CloudCredentialRow {
   id: string;
-  provider: 'aws' | 'azure';
+  provider: CloudProvider;
   label: string;
   last_polled_at: string | null;
 }

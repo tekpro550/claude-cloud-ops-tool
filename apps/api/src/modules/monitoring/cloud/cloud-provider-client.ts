@@ -1,7 +1,20 @@
+/** Every cloud provider the platform can hold credentials for and bill from. */
+export type CloudProvider =
+  'aws' | 'azure' | 'gcp' | 'alibaba' | 'digitalocean' | 'oracle';
+
+export const CLOUD_PROVIDERS: readonly CloudProvider[] = [
+  'aws',
+  'azure',
+  'gcp',
+  'alibaba',
+  'digitalocean',
+  'oracle',
+];
+
 export interface CloudResourceRef {
   externalId: string;
   name: string;
-  provider: 'aws' | 'azure';
+  provider: CloudProvider;
   region?: string;
 }
 
@@ -42,7 +55,7 @@ export interface CloudCostLineItem {
  * lets it be verified against a fake in tests without real cloud credentials.
  */
 export interface CloudProviderClient {
-  readonly provider: 'aws' | 'azure';
+  readonly provider: CloudProvider;
   listResources(): Promise<CloudResourceRef[]>;
   getMetrics(externalId: string): Promise<CloudMetricSample[]>;
   /** startDate/endDate are YYYY-MM-DD, end exclusive (matches AWS Cost Explorer's own TimePeriod semantics). */
@@ -53,7 +66,7 @@ export interface CloudProviderClient {
 }
 
 export type CloudProviderClientFactory = (
-  provider: 'aws' | 'azure',
+  provider: CloudProvider,
   config: Record<string, unknown>,
 ) => CloudProviderClient;
 

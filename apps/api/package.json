@@ -79,6 +79,7 @@
     "escalation:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-escalation.ts",
     "monitoring-dashboard:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitoring-dashboard.ts",
     "cost-sync:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-sync.ts",
+    "cloud-billing-providers:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cloud-billing-providers.ts",
     "cost-pace:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-pace-alerting.ts",
     "cost-accounts:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-accounts.ts",
     "rightsizing:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-rightsizing.ts",

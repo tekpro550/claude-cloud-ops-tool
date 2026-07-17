@@ -11,6 +11,7 @@ import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import {
   CLOUD_PROVIDER_CLIENT_FACTORY,
+  CloudProvider,
   CloudProviderClientFactory,
 } from '../monitoring/cloud/cloud-provider-client';
 import { credentialsEncryptionKey } from '../monitoring/credentials-crypto';
@@ -20,7 +21,7 @@ import { CostPaceCheckService } from './cost-pace-check.service';
 
 interface CloudCredentialRow {
   id: string;
-  provider: 'aws' | 'azure';
+  provider: CloudProvider;
   config: Record<string, unknown>;
 }
 

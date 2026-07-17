@@ -94,7 +94,7 @@ export interface AgentToken {
   token?: string;
 }
 
-export type CloudProvider = "aws" | "azure";
+export type CloudProvider = "aws" | "azure" | "gcp" | "alibaba" | "digitalocean" | "oracle";
 
 export interface CloudCredential {
   id: string;

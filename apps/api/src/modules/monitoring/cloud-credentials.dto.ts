@@ -6,7 +6,14 @@ import {
   IsString,
 } from 'class-validator';
 
-const CLOUD_PROVIDERS = ['aws', 'azure'] as const;
+const CLOUD_PROVIDERS = [
+  'aws',
+  'azure',
+  'gcp',
+  'alibaba',
+  'digitalocean',
+  'oracle',
+] as const;
 
 export class CreateCloudCredentialDto {
   @IsIn(CLOUD_PROVIDERS)
@@ -15,7 +22,12 @@ export class CreateCloudCredentialDto {
   @IsString()
   label: string;
 
-  /** AWS: { region, accessKeyId, secretAccessKey }. Azure: { subscriptionId, tenantId, clientId, clientSecret }. */
+  /**
+   * Provider-specific config. AWS: { region, accessKeyId, secretAccessKey }.
+   * Azure: { subscriptionId, tenantId, clientId, clientSecret }.
+   * GCP: { projectId, billingExportTable, accessToken }.
+   * DigitalOcean: { apiToken }. Alibaba/Oracle: provider credentials.
+   */
   @IsObject()
   config: Record<string, unknown>;
 }

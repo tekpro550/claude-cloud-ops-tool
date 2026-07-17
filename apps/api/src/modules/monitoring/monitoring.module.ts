@@ -14,7 +14,17 @@ import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
 import { AwsCloudProviderClient } from './cloud/aws-provider-client';
 import { AzureCloudProviderClient } from './cloud/azure-provider-client';
-import { CLOUD_PROVIDER_CLIENT_FACTORY } from './cloud/cloud-provider-client';
+import {
+  CLOUD_PROVIDER_CLIENT_FACTORY,
+  CloudProvider,
+  CloudProviderClient,
+} from './cloud/cloud-provider-client';
+import {
+  AlibabaCloudProviderClient,
+  DigitalOceanCloudProviderClient,
+  GcpCloudProviderClient,
+  OracleCloudProviderClient,
+} from './cloud/extra-provider-clients';
 import { CloudCredentialsController } from './cloud-credentials.controller';
 import { CloudCredentialsService } from './cloud-credentials.service';
 import { CloudResourcePollerService } from './cloud-resource-poller.service';
@@ -87,16 +97,33 @@ import { ResourcesService } from './resources.service';
     DiskForecastsService,
     DiskForecastSweepService,
     {
-      // The real AWS/Azure clients by default; verify-cloud-polling.ts
+      // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,
       // so CloudResourcePollerService's actual logic (resource upsert,
       // threshold evaluation, alert wiring) can be verified without real
       // cloud credentials.
       provide: CLOUD_PROVIDER_CLIENT_FACTORY,
-      useValue: (provider: 'aws' | 'azure', config: Record<string, unknown>) =>
-        provider === 'aws'
-          ? new AwsCloudProviderClient(config as any)
-          : new AzureCloudProviderClient(config as any),
+      useValue: (
+        provider: CloudProvider,
+        config: Record<string, unknown>,
+      ): CloudProviderClient => {
+        switch (provider) {
+          case 'aws':
+            return new AwsCloudProviderClient(config as any);
+          case 'azure':
+            return new AzureCloudProviderClient(config as any);
+          case 'gcp':
+            return new GcpCloudProviderClient(config);
+          case 'digitalocean':
+            return new DigitalOceanCloudProviderClient(config);
+          case 'alibaba':
+            return new AlibabaCloudProviderClient();
+          case 'oracle':
+            return new OracleCloudProviderClient();
+          default:
+            throw new Error(`Unknown cloud provider: ${provider}`);
+        }
+      },
     },
   ],
   // CLOUD_PROVIDER_CLIENT_FACTORY is exported so Module 3 (Cost) can reuse

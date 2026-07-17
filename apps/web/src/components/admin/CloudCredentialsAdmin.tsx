@@ -20,10 +20,15 @@ export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId
 
   useEffect(load, [tenantId]);
 
-  const configPlaceholder = (p: CloudProvider) =>
-    p === "aws"
-      ? '{\n  "region": "us-east-1",\n  "accessKeyId": "",\n  "secretAccessKey": ""\n}'
-      : '{\n  "subscriptionId": "",\n  "tenantId": "",\n  "clientId": "",\n  "clientSecret": ""\n}';
+  const CONFIG_PLACEHOLDERS: Record<CloudProvider, string> = {
+    aws: '{\n  "region": "us-east-1",\n  "accessKeyId": "",\n  "secretAccessKey": ""\n}',
+    azure: '{\n  "subscriptionId": "",\n  "tenantId": "",\n  "clientId": "",\n  "clientSecret": ""\n}',
+    gcp: '{\n  "projectId": "",\n  "billingExportTable": "project.dataset.gcp_billing_export_v1_XXXX",\n  "accessToken": ""\n}',
+    digitalocean: '{\n  "apiToken": ""\n}',
+    alibaba: '{\n  "accessKeyId": "",\n  "accessKeySecret": "",\n  "region": "cn-hangzhou"\n}',
+    oracle: '{\n  "tenancyOcid": "",\n  "userOcid": "",\n  "region": "us-ashburn-1"\n}',
+  };
+  const configPlaceholder = (p: CloudProvider) => CONFIG_PLACEHOLDERS[p];
 
   const handleCreate = (event: FormEvent) => {
     event.preventDefault();
@@ -101,6 +106,10 @@ export default function CloudCredentialsAdmin({ tenantId, onChange }: { tenantId
         >
           <option value="aws">aws</option>
           <option value="azure">azure</option>
+          <option value="gcp">gcp</option>
+          <option value="digitalocean">digitalocean</option>
+          <option value="alibaba">alibaba</option>
+          <option value="oracle">oracle</option>
         </select>
         <input placeholder="Label" value={label} onChange={(e) => setLabel(e.target.value)} required />
         <textarea
