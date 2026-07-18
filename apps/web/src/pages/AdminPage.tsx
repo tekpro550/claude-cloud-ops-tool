@@ -19,6 +19,7 @@ import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin
 import GroupsAdmin from "../components/admin/GroupsAdmin";
 import LogAlertRulesAdmin from "../components/admin/LogAlertRulesAdmin";
 import LogSourcesAdmin from "../components/admin/LogSourcesAdmin";
+import NetworkDevicesAdmin from "../components/admin/NetworkDevicesAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
 import OnCallSchedulesAdmin from "../components/admin/OnCallSchedulesAdmin";
 import ResourcesAdmin from "../components/admin/ResourcesAdmin";
@@ -124,6 +125,7 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
         { key: "log-alert-rules", label: "Log alert rules", description: "Open a ticket when matching log entries cross a threshold", icon: "🚨", render: (p) => <LogAlertRulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "apm-ingest-keys", label: "APM ingest keys", description: "Keys for sending server-side traces in", icon: "🧵", render: (p) => <ApmIngestKeysAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "rum-app-keys", label: "RUM app keys", description: "Keys for browser real-user monitoring beacons", icon: "🌐", render: (p) => <RumAppKeysAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "network-devices", label: "Network devices", description: "SNMP-polled routers/switches", icon: "🔀", render: (p) => <NetworkDevicesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],

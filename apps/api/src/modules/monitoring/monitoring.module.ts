@@ -56,6 +56,11 @@ import { NotificationTemplatesController } from './notification-templates.contro
 import { NotificationTemplatesService } from './notification-templates.service';
 import { OnCallSchedulesController } from './on-call-schedules.controller';
 import { OnCallSchedulesService } from './on-call-schedules.service';
+import { NetSnmpClient } from './network/net-snmp-client';
+import { NetworkDevicesController } from './network/network-devices.controller';
+import { NetworkDevicesService } from './network/network-devices.service';
+import { NetworkPollerService } from './network/network-poller.service';
+import { SNMP_CLIENT } from './network/snmp-client';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
 import { RumController } from './rum/rum.controller';
@@ -102,6 +107,7 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     ApmIngestionController,
     RumController,
     RumIngestionController,
+    NetworkDevicesController,
   ],
   providers: [
     ResourcesService,
@@ -136,6 +142,12 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     ApmService,
     ApmIngestTokenGuard,
     RumService,
+    NetworkDevicesService,
+    NetworkPollerService,
+    {
+      provide: SNMP_CLIENT,
+      useClass: NetSnmpClient,
+    },
     {
       // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,

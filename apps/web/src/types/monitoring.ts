@@ -359,3 +359,30 @@ export interface RumPageStats {
   errorCount: number;
   errorRatePct: number;
 }
+
+export type SnmpVersion = "1" | "2c" | "3";
+
+export interface NetworkDevice {
+  id: string;
+  tenant_id: string;
+  name: string;
+  host: string;
+  snmp_version: SnmpVersion;
+  port: number;
+  is_active: boolean;
+  last_polled_at: string | null;
+  created_at: string;
+}
+
+export type InterfaceOperStatus = "up" | "down" | "unknown";
+
+export interface NetworkInterfaceSample {
+  id: string;
+  network_device_id: string;
+  if_index: number;
+  if_name: string | null;
+  oper_status: InterfaceOperStatus;
+  in_octets: number;
+  out_octets: number;
+  ts: string;
+}

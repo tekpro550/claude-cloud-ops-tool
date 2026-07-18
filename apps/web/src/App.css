@@ -2893,3 +2893,18 @@ td {
   background: var(--color-danger-bg);
   color: var(--color-danger);
 }
+
+.network-sparkline {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 20px;
+  width: 60px;
+}
+
+.network-sparkline-bar {
+  flex: 1 1 auto;
+  min-width: 2px;
+  background: var(--color-info);
+  border-radius: 1px;
+}

@@ -21,6 +21,8 @@ import type {
   Monitor,
   MonitoringDashboardSummary,
   MonitorStatus,
+  NetworkDevice,
+  NetworkInterfaceSample,
   RumAppKey,
   RumPageStats,
   RumPageSummary,
@@ -459,4 +461,47 @@ export function listRumPages(tenantId: string): Promise<RumPageSummary[]> {
 
 export function getRumPageStats(tenantId: string, page: string): Promise<RumPageStats> {
   return request(tenantId, "GET", `/rum/pages/${encodeURIComponent(page)}/stats`);
+}
+
+// ---- Network / SNMP ----
+
+export interface CreateNetworkDeviceInput {
+  name: string;
+  host: string;
+  snmpVersion?: string;
+  community: string;
+  port?: number;
+}
+
+export function listNetworkDevices(tenantId: string): Promise<NetworkDevice[]> {
+  return request(tenantId, "GET", "/network-devices");
+}
+
+export function createNetworkDevice(tenantId: string, input: CreateNetworkDeviceInput): Promise<NetworkDevice> {
+  return request(tenantId, "POST", "/network-devices", input);
+}
+
+export function updateNetworkDevice(
+  tenantId: string,
+  id: string,
+  input: Partial<CreateNetworkDeviceInput & { isActive: boolean }>,
+): Promise<NetworkDevice> {
+  return request(tenantId, "PATCH", `/network-devices/${id}`, input);
+}
+
+export function deleteNetworkDevice(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/network-devices/${id}`);
+}
+
+export function getNetworkDeviceInterfaces(tenantId: string, deviceId: string): Promise<NetworkInterfaceSample[]> {
+  return request(tenantId, "GET", `/network-devices/${deviceId}/interfaces`);
+}
+
+export function getNetworkInterfaceHistory(
+  tenantId: string,
+  deviceId: string,
+  ifIndex: number,
+  limit = 30,
+): Promise<NetworkInterfaceSample[]> {
+  return request(tenantId, "GET", `/network-devices/${deviceId}/interfaces/${ifIndex}/history?limit=${limit}`);
 }

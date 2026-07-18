@@ -572,6 +572,44 @@ below is **verified against the code now in `main`**, not just commit messages.
   percentiles + error rate, and RLS isolation for both APM and RUM;
   `monitor-engine:verify`/`logs:verify`/`synthetic:verify`/`alerting:verify`/
   `auth:verify`/`status-pages:verify` re-run clean as regressions).
+- **SNMP / network monitoring (competitive-parity plan, task 11).**
+  `CreateNetworkMonitoring` adds `network_devices` and
+  `network_interface_samples` (both RLS-scoped). `network_devices` follows
+  `cloud_credentials`' encryption pattern exactly -- `community_encrypted`
+  via pgcrypto `pgp_sym_encrypt`/`pgp_sym_decrypt` with the same
+  `CREDENTIALS_ENCRYPTION_KEY` (`credentials-crypto.ts`, no new key), and
+  `NetworkDevicesService`'s `SAFE_COLUMNS` never selects it -- the community
+  string is never returned by the API, same as a cloud credential's config.
+  `SNMP_CLIENT` (a `Symbol` DI token, same pattern as
+  `CLOUD_PROVIDER_CLIENT_FACTORY`/`SYNTHETIC_RUNNER`) abstracts walking a
+  device's IF-MIB `ifTable`; `NetSnmpClient` is the real implementation
+  (`net-snmp`, now an `apps/api` dependency, GET/WALKs `ifDescr`/
+  `ifOperStatus`/`ifInOctets`/`ifOutOctets`). `NetworkPollerService` mirrors
+  `CloudResourcePollerService`'s per-tenant-transaction-plus-timer shape but
+  deliberately doesn't route through monitors/monitor_checks/
+  `AlertEvaluationService` the way `cloud_metric` monitors do -- an
+  interface is auto-discovered by walking the ifTable, not something a
+  tenant explicitly provisions a monitor for, so an up→down *transition*
+  (not "is currently down", which would re-fire every poll while it stays
+  down) opens a ticket directly via the internal contract, the same simpler
+  pattern `LogAlertSweepService` uses for a log-alert breach. Throughput
+  (`network-throughput.ts`, pure) is delta-octets/delta-time computed from
+  consecutive samples at read time, not stored -- a documented limitation
+  for 32-bit (non-`ifHC*`) counter wraparound reports "unknown" rather than
+  a negative rate. Web: `NetworkDevicesAdmin` (create a device, community
+  string write-only, delete) and a `/monitoring/network` dashboard (device
+  picker → interface table with status badges + a `NetworkThroughputSparkline`
+  per interface) (`verify-network.ts`, 15 checks incl. the community string
+  round-tripping through encryption and never being returned by the API,
+  hand-computed throughput from two consecutive polls, an up→down
+  transition opening exactly one ticket while staying down opens no second
+  one, and RLS isolation; `monitor-engine:verify`/`alerting:verify`/
+  `logs:verify`/`apm-rum:verify`/`synthetic:verify`/`auth:verify`/
+  `credentials-encryption:verify`/`rbac:verify`/`status-pages:verify`
+  re-run clean as regressions).
+
+All 11 tasks of the competitive-parity plan (`docs/implementation-plan-competitive-parity.md`)
+are now complete.
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the
