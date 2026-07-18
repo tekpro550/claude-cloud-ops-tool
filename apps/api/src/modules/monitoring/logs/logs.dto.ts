@@ -1,7 +1,9 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -37,7 +39,7 @@ export class UpdateLogSourceDto {
 
 export class IngestLogEntryDto {
   @IsOptional()
-  @IsString()
+  @IsDateString()
   ts?: string;
 
   @IsOptional()
@@ -56,6 +58,7 @@ export class IngestLogEntryDto {
 
 export class IngestLogBatchDto {
   @IsArray()
+  @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
   @Type(() => IngestLogEntryDto)
   entries: IngestLogEntryDto[];

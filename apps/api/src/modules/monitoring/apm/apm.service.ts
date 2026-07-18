@@ -8,6 +8,12 @@ import { computeLatencyStats } from './apm-percentile';
 import { CreateApmIngestKeyDto, IngestTraceDto } from './apm.dto';
 
 const DEFAULT_APDEX_TOLERATING_MS = 500;
+// When the caller doesn't bound the window, aggregate over a trailing period
+// rather than the whole trace history -- serviceStats pulls every matching
+// row into Node to compute percentiles, so an unbounded scan would grow with
+// total ingested volume. A caller wanting a wider view passes an explicit
+// `from`.
+const DEFAULT_STATS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class ApmService {
@@ -130,12 +136,13 @@ export class ApmService {
       this.dataSource,
       tenantId,
       (queryRunner) => {
+        const from =
+          opts.from ??
+          new Date(Date.now() - DEFAULT_STATS_WINDOW_MS).toISOString();
         const conditions = [`service = $1`];
         const params: unknown[] = [service];
-        if (opts.from) {
-          params.push(opts.from);
-          conditions.push(`ts >= $${params.length}`);
-        }
+        params.push(from);
+        conditions.push(`ts >= $${params.length}`);
         if (opts.to) {
           params.push(opts.to);
           conditions.push(`ts <= $${params.length}`);

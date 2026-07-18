@@ -1,5 +1,10 @@
 const TEST_PORT = 32900 + Math.floor(Math.random() * 500);
 process.env.PORT = String(TEST_PORT);
+// Low cap so the rate-limit assertion below trips deterministically without
+// hundreds of requests. The main-flow assertions post far fewer than this
+// per key, so it doesn't interfere with them.
+const RATE_LIMIT = 5;
+process.env.INGEST_MAX_REQUESTS_PER_WINDOW = String(RATE_LIMIT);
 
 import 'dotenv/config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -268,6 +273,54 @@ async function main() {
     assert(
       !tenantBPages.some((p: { page: string }) => p.page === '/checkout'),
       "RLS: tenant B's page list never includes tenant A's RUM data",
+    );
+
+    // ==================== Abuse-surface hardening ====================
+    // A fresh key so these assertions don't share a rate-limit counter with
+    // the main-flow keys above.
+    const hardeningKey = await apm.createIngestKey(tenantA.id, {
+      service: 'hardening-svc',
+    });
+
+    // A malformed timestamp is rejected by the DTO (400), not passed through
+    // to a Postgres cast error (500).
+    const badTsRes = await postTraces(hardeningKey.token, [
+      { transaction: 'x', durationMs: 1, ts: 'not-a-real-timestamp' },
+    ]);
+    assert(
+      badTsRes.status === 400,
+      'a malformed trace ts is rejected with 400, not a 500 cast error',
+    );
+
+    // An oversized batch is rejected by the DTO's ArrayMaxSize before any
+    // insert runs.
+    const oversized = Array.from({ length: 1001 }, () => ({
+      transaction: 'bulk',
+      durationMs: 1,
+    }));
+    const oversizedRes = await postTraces(hardeningKey.token, oversized);
+    assert(
+      oversizedRes.status === 400,
+      'a batch over the ArrayMaxSize cap (1000) is rejected with 400',
+    );
+
+    // The rate limiter (env cap set to RATE_LIMIT above) trips once a key
+    // exceeds its per-window budget. Validation failures above never reached
+    // the handler, so they didn't count -- the counter starts fresh here.
+    const rateStatuses: number[] = [];
+    for (let i = 0; i < RATE_LIMIT + 1; i++) {
+      const res = await postTraces(hardeningKey.token, [
+        { transaction: 'ratecheck', durationMs: 1 },
+      ]);
+      rateStatuses.push(res.status);
+    }
+    assert(
+      rateStatuses.slice(0, RATE_LIMIT).every((s) => s === 204),
+      `the first ${RATE_LIMIT} ingest requests within the window are accepted`,
+    );
+    assert(
+      rateStatuses[RATE_LIMIT] === 429,
+      `the request past the per-window cap is rejected with 429 (got ${rateStatuses[RATE_LIMIT]})`,
     );
 
     console.log('\nAll APM/RUM checks passed.');

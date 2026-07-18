@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
+  IsDateString,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -41,7 +43,7 @@ export class IngestRumEventDto {
   attributes?: Record<string, unknown>;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   ts?: string;
 }
 
@@ -51,6 +53,7 @@ export class RumCollectDto {
   appKey: string;
 
   @IsArray()
+  @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
   @Type(() => IngestRumEventDto)
   events: IngestRumEventDto[];

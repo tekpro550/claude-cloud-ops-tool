@@ -571,7 +571,15 @@ below is **verified against the code now in `main`**, not just commit messages.
   being rejected, an invalid RUM app key being rejected, hand-computed RUM
   percentiles + error rate, and RLS isolation for both APM and RUM;
   `monitor-engine:verify`/`logs:verify`/`synthetic:verify`/`alerting:verify`/
-  `auth:verify`/`status-pages:verify` re-run clean as regressions).
+  `auth:verify`/`status-pages:verify` re-run clean as regressions). All three
+  token-authed ingest paths (`/apm/traces`, `/rum/collect`, `/logs/ingest`)
+  share a Redis fixed-window rate limiter (`ingest-rate-limit.ts`, keyed per
+  ingest key/source, fail-open on a Redis outage, `INGEST_MAX_REQUESTS_PER_
+  WINDOW`/`INGEST_RATE_WINDOW_SECONDS`) and an `@ArrayMaxSize(1000)` batch cap;
+  ingest `ts` fields validate as `@IsDateString()` so a malformed timestamp
+  is a 400, not a Postgres cast 500. `serviceStats`/`pageStats` default to a
+  trailing 24h window when the caller doesn't bound it, so the in-Node
+  percentile aggregation never scans the full history unbounded.
 - **SNMP / network monitoring (competitive-parity plan, task 11).**
   `CreateNetworkMonitoring` adds `network_devices` and
   `network_interface_samples` (both RLS-scoped). `network_devices` follows

@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { enforceIngestRate } from '../ingest-rate-limit';
 import { IngestLogBatchDto } from './logs.dto';
 import { LogIngestionService } from './log-ingestion.service';
 import {
@@ -20,7 +21,11 @@ export class LogIngestionController {
 
   @Post('ingest')
   @HttpCode(204)
-  ingest(@Req() req: LogSourceScopedRequest, @Body() dto: IngestLogBatchDto) {
+  async ingest(
+    @Req() req: LogSourceScopedRequest,
+    @Body() dto: IngestLogBatchDto,
+  ) {
+    await enforceIngestRate(`log:${req.logSourceId}`);
     return this.ingestion.ingest(req.tenantId, req.logSourceId, dto.entries);
   }
 }

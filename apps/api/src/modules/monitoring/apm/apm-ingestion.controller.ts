@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { enforceIngestRate } from '../ingest-rate-limit';
 import { IngestTraceBatchDto } from './apm.dto';
 import {
   ApmScopedRequest,
@@ -20,7 +21,8 @@ export class ApmIngestionController {
 
   @Post('traces')
   @HttpCode(204)
-  ingest(@Req() req: ApmScopedRequest, @Body() dto: IngestTraceBatchDto) {
+  async ingest(@Req() req: ApmScopedRequest, @Body() dto: IngestTraceBatchDto) {
+    await enforceIngestRate(`apm:${req.apmIngestKeyId}`);
     return this.apm.ingestTraces(req.tenantId, req.service, dto.traces);
   }
 }

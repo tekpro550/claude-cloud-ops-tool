@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -61,11 +63,12 @@ export class IngestTraceDto {
   status?: 'ok' | 'error';
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   ts?: string;
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
   @Type(() => IngestSpanDto)
   spans?: IngestSpanDto[];
@@ -73,6 +76,7 @@ export class IngestTraceDto {
 
 export class IngestTraceBatchDto {
   @IsArray()
+  @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
   @Type(() => IngestTraceDto)
   traces: IngestTraceDto[];

@@ -8,9 +8,12 @@ import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
 import { signRumAppJwt, verifyRumAppJwt } from '../../platform/auth/jwt';
 import { percentile } from '../apm/apm-percentile';
+import { enforceIngestRate } from '../ingest-rate-limit';
 import { CreateRumAppKeyDto, IngestRumEventDto } from './rum.dto';
 
 const TIMING_METRICS = ['lcp', 'fcp', 'ttfb'] as const;
+// Matches ApmService's default aggregation window (see the note there).
+const DEFAULT_STATS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class RumService {
@@ -64,6 +67,11 @@ export class RumService {
     if (!claims) {
       throw new UnauthorizedException('Invalid or expired RUM app key');
     }
+
+    // The plan calls out RUM's open-CORS beacon as the one ingest path that
+    // must be rate-limited -- the app key ships in public client-side JS, so
+    // anyone can replay it. Enforced per app key (before any DB work).
+    await enforceIngestRate(`rum:${claims.sub}`);
 
     const isActive = await withTenantContext(
       this.dataSource,
@@ -127,12 +135,16 @@ export class RumService {
       this.dataSource,
       tenantId,
       (queryRunner) => {
+        // Same unbounded-scan guard as ApmService.serviceStats: default to a
+        // trailing window when the caller doesn't bound it, since pageStats
+        // pulls every matching event into Node to compute percentiles.
+        const from =
+          opts.from ??
+          new Date(Date.now() - DEFAULT_STATS_WINDOW_MS).toISOString();
         const conditions = [`page = $1`];
         const params: unknown[] = [page];
-        if (opts.from) {
-          params.push(opts.from);
-          conditions.push(`ts >= $${params.length}`);
-        }
+        params.push(from);
+        conditions.push(`ts >= $${params.length}`);
         if (opts.to) {
           params.push(opts.to);
           conditions.push(`ts <= $${params.length}`);
