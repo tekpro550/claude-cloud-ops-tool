@@ -15,6 +15,9 @@ import { CostBudgetsService } from './cost-budgets.service';
 import { CostDashboardController } from './cost-dashboard.controller';
 import { CostDashboardService } from './cost-dashboard.service';
 import { CostPaceCheckService } from './cost-pace-check.service';
+import { CommitmentSweepService } from './commitments/commitment-sweep.service';
+import { CommitmentsController } from './commitments/commitments.controller';
+import { CommitmentsService } from './commitments/commitments.service';
 import { CostSavingsSweepService } from './cost-savings-sweep.service';
 import { RecommendationsController } from './recommendations.controller';
 import { RecommendationsService } from './recommendations.service';
@@ -44,6 +47,7 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     CostDashboardController,
     CostAnomaliesController,
     CostAllocationController,
+    CommitmentsController,
   ],
   providers: [
     CostBudgetsService,
@@ -59,6 +63,8 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     TenantCostSettingsService,
     CostDashboardService,
     CostAllocationService,
+    CommitmentsService,
+    CommitmentSweepService,
   ],
 })
 export class CostModule {}

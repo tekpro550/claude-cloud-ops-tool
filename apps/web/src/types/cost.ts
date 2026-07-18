@@ -97,3 +97,54 @@ export interface CostDashboardSummary {
   openBudgetAlerts: number;
   openRecommendations: number;
 }
+
+export type CommitmentKind = "reserved_instance" | "savings_plan";
+export type CommitmentPaymentOption = "no_upfront" | "partial_upfront" | "all_upfront";
+
+export interface Commitment {
+  id: string;
+  cloud_credential_id: string;
+  kind: CommitmentKind;
+  service: string;
+  region: string | null;
+  term_months: 12 | 36;
+  payment_option: CommitmentPaymentOption;
+  hourly_commitment: number;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+}
+
+export interface CommitmentCoverage {
+  totalSpend: number;
+  coveredSpend: number;
+  coveragePct: number;
+}
+
+export interface CommitmentUtilization {
+  committedTotal: number;
+  usedTotal: number;
+  utilizationPct: number;
+  wastedAmount: number;
+}
+
+export interface CommitmentCoverageResult {
+  commitment: Commitment;
+  coverage: CommitmentCoverage | null;
+  utilization: CommitmentUtilization | null;
+  reason: string | null;
+}
+
+export interface CommitmentRecommendation {
+  id: string;
+  cloud_credential_id: string;
+  kind: CommitmentKind;
+  service: string;
+  region: string | null;
+  recommended_hourly_commitment: number;
+  estimated_monthly_savings: number;
+  break_even_months: number | null;
+  based_on_days: number;
+  status: "open" | "dismissed";
+  generated_at: string;
+}

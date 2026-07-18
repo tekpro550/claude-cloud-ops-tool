@@ -375,6 +375,23 @@ below is **verified against the code now in `main`**, not just commit messages.
   open/repeat/resolve/dedupe, ticket linking — is unchanged and shared with
   the status path (`verify-metric-alert-rules.ts`, plus `alerting:verify` and
   `multi-location:verify` re-run clean as regressions).
+- **RI/Savings-Plan recommendations + coverage/utilization (competitive-parity
+  plan, task 4).** `CreateCommitments` adds `commitments` (owned purchases) and
+  `commitment_recommendations` (RLS-scoped), scoped to
+  `(cloud_credential_id, service, region)` -- `cost_line_items` has no
+  per-instance-family granularity (documented limitation, same one
+  `cost-savings-estimate.ts` already discloses). `commitment-recommend.ts`
+  recommends the 20th-percentile trailing daily spend as the commitment level
+  (a stable floor, not the average/max) with disclosed 1-year discount rates
+  (RI ~35%, Savings Plan ~27%) and a partial-upfront break-even model;
+  `commitment-coverage.ts` computes coverage % (of spend) and utilization %
+  (of commitment) + wasted $ from zero-filled daily spend arrays, both pure
+  and unit-tested directly. `CommitmentSweepService` mirrors
+  `RightsizingSweepService`'s idempotent per-scope upsert. Web: a
+  `/cost/commitments` page (recommendations, owned commitments with live
+  coverage/utilization, a record-commitment form) (`verify-commitments.ts`,
+  14 checks incl. cross-tenant credential rejection and RLS isolation;
+  `rightsizing:verify`/`cost-allocation:verify` re-run clean as regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

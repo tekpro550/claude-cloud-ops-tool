@@ -45,6 +45,7 @@
     "agent-notifications:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-agent-notifications.ts",
     "ticket-tags:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-tags.ts",
     "cost-allocation:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-allocation.ts",
+    "commitments:verify": "ts-node -r dotenv/config src/modules/cost/commitments/scripts/verify-commitments.ts",
     "custom-fields:verify": "ts-node -r dotenv/config src/modules/ticketing/custom-fields/scripts/verify-custom-fields.ts",
     "ticket-merge:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-ticket-merge.ts",
     "ticket-links:verify": "ts-node -r dotenv/config src/modules/ticketing/ticket-links/scripts/verify-ticket-links.ts",

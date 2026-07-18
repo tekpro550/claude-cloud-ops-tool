@@ -1,6 +1,11 @@
 import { request } from "./apiClient";
 import type {
   AccountCostSummary,
+  Commitment,
+  CommitmentCoverageResult,
+  CommitmentKind,
+  CommitmentPaymentOption,
+  CommitmentRecommendation,
   CostBudget,
   CostDashboardSummary,
   CostLineItem,
@@ -202,4 +207,42 @@ export function getCostAllocation(
 ): Promise<CostAllocation> {
   const qs = new URLSearchParams({ tagKey }).toString();
   return request(tenantId, "GET", `/cost/allocation?${qs}`);
+}
+
+// ---- Commitments (RI / Savings Plan) ----
+
+export function listCommitments(tenantId: string): Promise<Commitment[]> {
+  return request(tenantId, "GET", "/cost/commitments");
+}
+
+export interface CreateCommitmentInput {
+  cloudCredentialId: string;
+  kind: CommitmentKind;
+  service: string;
+  region?: string;
+  termMonths: 12 | 36;
+  paymentOption?: CommitmentPaymentOption;
+  hourlyCommitment: number;
+  startDate: string;
+  endDate: string;
+}
+
+export function createCommitment(tenantId: string, input: CreateCommitmentInput): Promise<Commitment> {
+  return request(tenantId, "POST", "/cost/commitments", input);
+}
+
+export function deleteCommitment(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/cost/commitments/${id}`);
+}
+
+export function getCommitmentCoverage(tenantId: string, id: string): Promise<CommitmentCoverageResult> {
+  return request(tenantId, "GET", `/cost/commitments/${id}/coverage`);
+}
+
+export function listCommitmentRecommendations(tenantId: string): Promise<CommitmentRecommendation[]> {
+  return request(tenantId, "GET", "/cost/commitments/recommendations");
+}
+
+export function dismissCommitmentRecommendation(tenantId: string, id: string): Promise<CommitmentRecommendation> {
+  return request(tenantId, "PATCH", `/cost/commitments/recommendations/${id}/dismiss`);
 }

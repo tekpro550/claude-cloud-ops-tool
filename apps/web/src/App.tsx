@@ -21,6 +21,7 @@ import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SsoCallbackPage from "./pages/SsoCallbackPage";
 import ReportsPage from "./pages/ReportsPage";
+import CommitmentsPage from "./pages/CommitmentsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
 import MonitoringDashboardPage from "./pages/MonitoringDashboardPage";
@@ -196,6 +197,7 @@ const COST_NAV_ITEMS: NavItem[] = [
   { i18nKey: "nav.dashboard", to: "/cost/dashboard", icon: "📊" },
   { i18nKey: "nav.group.cost", to: "/cost", icon: "💰", end: true },
   { i18nKey: "nav.recommendations", to: "/cost/recommendations", icon: "💡" },
+  { i18nKey: "nav.commitments", to: "/cost/commitments", icon: "🏷️" },
   { i18nKey: "nav.savingsLog", to: "/cost/savings", icon: "📈" },
 ];
 
@@ -320,6 +322,7 @@ function App() {
           <Route path="/cost/dashboard" element={<CostDashboardPage />} />
           <Route path="/cost/accounts/:id" element={<CostAccountDetailPage />} />
           <Route path="/cost/recommendations" element={<RecommendationsPage />} />
+          <Route path="/cost/commitments" element={<CommitmentsPage />} />
           <Route path="/cost/savings" element={<SavingsLogPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
