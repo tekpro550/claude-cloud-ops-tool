@@ -461,6 +461,40 @@ below is **verified against the code now in `main`**, not just commit messages.
   narrowing results, three separate out-of-allowlist rejections that leave
   the `tickets` table intact, and a saved definition re-running identically
   to its original preview; `reports:verify` re-runs clean as a regression).
+- **Synthetic browser / transaction monitoring (competitive-parity plan, task
+  8).** `AddSyntheticMonitors` widens `monitor_type_enum` with `'synthetic'`
+  and adds `synthetic_run_steps` (RLS-scoped; one row per step of a run,
+  `monitor_check_id` FK back to the `monitor_checks` row that run produced)
+  -- the per-step timing data a waterfall UI needs that `monitor_checks`
+  alone can't hold. `monitoring/synthetic/synthetic-script.ts` is a pure
+  allowlist validator (same reject-before-save contract as
+  `reports/report-builder.ts`): a monitor's `config.steps` must each name an
+  allowlisted action (`goto`/`click`/`fill`/`expectText`) with the right
+  shape for that action, or `MonitorsService.create`/`update` throws
+  `BadRequestException` before saving. `SYNTHETIC_RUNNER` (a `Symbol` DI
+  token, same pattern as `CLOUD_PROVIDER_CLIENT_FACTORY`) abstracts *running*
+  a script; `PlaywrightSyntheticRunner` is the real implementation (headless
+  Chromium via the `playwright` package, now an `apps/api` dependency --
+  Chromium itself was already pre-installed in this environment). A new
+  `SyntheticSchedulerService` (mirrors `MonitorSchedulerService`'s
+  per-tenant-transaction-plus-timer shape, but its own timer/interval since
+  `'synthetic'` isn't in `MonitorSchedulerService`'s actively-polled types)
+  polls due synthetic monitors, runs the script, writes the usual
+  `monitor_checks` row (status up/down, `response_time_ms` = total run time)
+  plus one `synthetic_run_steps` row per step, and feeds the result through
+  the existing `AlertEvaluationService.evaluate()` -- a synthetic monitor
+  alerts exactly like an http/ping one. Web: a script builder (add/remove
+  step rows, per-action fields, `maxStepMs`) on the resource dashboard's
+  "add monitor" form, and a `SyntheticWaterfall` component rendering each
+  monitor's last run as per-step timing bars with the failing step called
+  out in red (`verify-synthetic.ts`, 15 checks against a **fake**
+  `SYNTHETIC_RUNNER` -- no real browser in CI -- incl. a passing run writing
+  "up" plus 4 step rows, a failing step writing "down" with the error on the
+  right step index, a step exceeding `maxStepMs` marking the run down via
+  the same timeout path the real runner's `withTimeout` would hit, and two
+  consecutive failures opening a real alert through the unmodified alerting
+  pipeline; `monitor-engine:verify`/`alerting:verify`/`multi-location:verify`
+  re-run clean as regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

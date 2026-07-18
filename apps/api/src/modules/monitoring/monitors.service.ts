@@ -3,6 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { CreateMonitorDto, UpdateMonitorDto } from './monitors.dto';
+import { validateSyntheticScript } from './synthetic/synthetic-script';
 
 @Injectable()
 export class MonitorsService {
@@ -38,6 +39,12 @@ export class MonitorsService {
   }
 
   create(tenantId: string, dto: CreateMonitorDto) {
+    // Validates the script up front (an out-of-allowlist action throws
+    // BadRequestException before the monitor is ever saved) -- a saved
+    // synthetic monitor should never be one the scheduler can't run.
+    if (dto.monitorType === 'synthetic') {
+      validateSyntheticScript(dto.config ?? {});
+    }
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [resource] = await queryRunner.query(
         `SELECT id FROM resources WHERE id = $1`,
@@ -70,11 +77,14 @@ export class MonitorsService {
   async update(tenantId: string, id: string, dto: UpdateMonitorDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(
-        `SELECT id FROM monitors WHERE id = $1`,
+        `SELECT id, monitor_type FROM monitors WHERE id = $1`,
         [id],
       );
       if (!existing) {
         throw new NotFoundException(`Monitor ${id} not found`);
+      }
+      if (dto.config !== undefined && existing.monitor_type === 'synthetic') {
+        validateSyntheticScript(dto.config);
       }
 
       const sets: string[] = [];

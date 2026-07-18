@@ -17,6 +17,7 @@ const MONITOR_TYPES = [
   'ssl',
   'server_agent',
   'cloud_metric',
+  'synthetic',
 ] as const;
 
 export class CreateMonitorDto {

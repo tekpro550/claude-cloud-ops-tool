@@ -24,8 +24,25 @@ export interface FleetSummaryItem {
   worst_status: MonitorStatus | null;
 }
 
-export type MonitorType = "http" | "ping" | "port" | "dns" | "ssl" | "server_agent" | "cloud_metric";
+export type MonitorType = "http" | "ping" | "port" | "dns" | "ssl" | "server_agent" | "cloud_metric" | "synthetic";
 export type MonitorStatus = "up" | "down" | "critical" | "trouble";
+
+export type SyntheticAction = "goto" | "click" | "fill" | "expectText";
+
+export interface SyntheticStep {
+  action: SyntheticAction;
+  selector?: string;
+  url?: string;
+  value?: string;
+}
+
+export interface SyntheticStepResult {
+  index: number;
+  action: string;
+  status: "ok" | "failed";
+  durationMs: number;
+  error?: string;
+}
 
 export interface Monitor {
   id: string;

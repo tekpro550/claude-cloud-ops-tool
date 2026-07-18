@@ -1897,6 +1897,65 @@ td {
   background: var(--color-warning);
 }
 
+.synthetic-waterfall {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 26rem;
+}
+
+.synthetic-waterfall-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.synthetic-waterfall-label {
+  flex: 0 0 8rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.synthetic-waterfall-track {
+  flex: 1 1 auto;
+  height: 8px;
+  background: var(--color-neutral-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.synthetic-waterfall-bar {
+  display: block;
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 2px;
+}
+
+.synthetic-waterfall-bar-failed {
+  background: var(--color-danger);
+}
+
+.synthetic-step-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.synthetic-step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .alert-card {
   padding: 0.7rem 1rem;
   background: var(--color-surface);

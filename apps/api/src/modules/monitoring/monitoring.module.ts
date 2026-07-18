@@ -51,6 +51,9 @@ import { ResourcesService } from './resources.service';
 import { StatusPagePublicController } from './status-pages/status-page-public.controller';
 import { StatusPagesController } from './status-pages/status-pages.controller';
 import { StatusPagesService } from './status-pages/status-pages.service';
+import { PlaywrightSyntheticRunner } from './synthetic/playwright-synthetic-runner';
+import { SYNTHETIC_RUNNER } from './synthetic/synthetic-runner';
+import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -102,6 +105,11 @@ import { StatusPagesService } from './status-pages/status-pages.service';
     DowntimeEventsService,
     DiskForecastsService,
     DiskForecastSweepService,
+    SyntheticSchedulerService,
+    {
+      provide: SYNTHETIC_RUNNER,
+      useClass: PlaywrightSyntheticRunner,
+    },
     {
       // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,
