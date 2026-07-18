@@ -52,6 +52,9 @@ export interface ResourceDashboard {
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";
+export type AlertRuleKind = "status" | "threshold" | "anomaly";
+export type MetricComparator = "gt" | "gte" | "lt" | "lte";
+export type AlertMetric = "response_time_ms" | "cpu_percent" | "mem_percent" | "disk_percent" | "cloud_metric_value";
 
 export interface AlertRule {
   id: string;
@@ -61,6 +64,12 @@ export interface AlertRule {
   severity: AlertSeverity;
   is_enabled: boolean;
   escalation_policy_id: string | null;
+  rule_kind: AlertRuleKind;
+  metric: AlertMetric | null;
+  comparator: MetricComparator | null;
+  threshold: number | null;
+  for_consecutive: number;
+  anomaly_sensitivity: number | null;
   created_at: string;
   updated_at: string;
 }

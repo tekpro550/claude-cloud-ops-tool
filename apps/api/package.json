@@ -78,6 +78,7 @@
     "monitor-engine:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-monitor-engine.ts",
     "alerting:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alerting.ts",
     "multi-location:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-multi-location.ts",
+    "metric-alert-rules:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-metric-alert-rules.ts",
     "agent:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-agent.ts",
     "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts",
     "disk-forecast:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-disk-forecast.ts",

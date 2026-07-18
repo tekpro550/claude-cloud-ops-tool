@@ -2,11 +2,14 @@ import { publicRequest, request } from "./apiClient";
 import type {
   AgentToken,
   Alert,
+  AlertMetric,
   AlertRule,
+  AlertRuleKind,
   CloudCredential,
   DowntimeEvent,
   EscalationPolicy,
   FleetSummaryItem,
+  MetricComparator,
   Monitor,
   MonitoringDashboardSummary,
   MonitorStatus,
@@ -94,11 +97,28 @@ export function listAlertRules(tenantId: string): Promise<AlertRule[]> {
   return request(tenantId, "GET", "/alert-rules");
 }
 
-export function createAlertRule(
-  tenantId: string,
-  input: { monitorId: string; severity?: string; escalationPolicyId?: string },
-): Promise<AlertRule> {
+export interface CreateAlertRuleInput {
+  monitorId: string;
+  severity?: string;
+  escalationPolicyId?: string;
+  ruleKind?: AlertRuleKind;
+  metric?: AlertMetric;
+  comparator?: MetricComparator;
+  threshold?: number;
+  forConsecutive?: number;
+  anomalySensitivity?: number;
+}
+
+export function createAlertRule(tenantId: string, input: CreateAlertRuleInput): Promise<AlertRule> {
   return request(tenantId, "POST", "/alert-rules", input);
+}
+
+export function updateAlertRule(
+  tenantId: string,
+  id: string,
+  input: Partial<CreateAlertRuleInput>,
+): Promise<AlertRule> {
+  return request(tenantId, "PATCH", `/alert-rules/${id}`, input);
 }
 
 export function deleteAlertRule(tenantId: string, id: string): Promise<void> {

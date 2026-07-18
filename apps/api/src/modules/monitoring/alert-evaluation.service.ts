@@ -1,11 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
 import { EventBusService } from '../../event-bus/event-bus.service';
 import { CheckResult } from './checks/types';
+import {
+  AlertRuleKind,
+  MetricComparator,
+  compare,
+  detectMetricAnomaly,
+  metricValueSql,
+} from './metric-alert-rule';
 import { generateReasonText, generateRepeatNoteText } from './reason-text';
+
+// How far back an anomaly rule looks for its baseline, excluding the newest
+// `for_consecutive` samples being evaluated against it.
+const ANOMALY_BASELINE_WINDOW = 30;
+
+interface MetricRuleRow {
+  rule_kind: AlertRuleKind;
+  metric: string;
+  comparator: MetricComparator | null;
+  threshold: number | null;
+  for_consecutive: number;
+  anomaly_sensitivity: number | null;
+}
+
+interface MetricEvaluation {
+  isBad: boolean;
+  thresholdReached: boolean;
+  latestValue: number | null;
+}
 
 const DUPLICATE_KEY_ERROR = '23505';
 // Avoid posting a ticket note on every single repeat check (which could be
@@ -110,11 +136,25 @@ export class AlertEvaluationService {
       );
       if (!rule) return { action: 'no_rule' };
 
+      const ruleKind: AlertRuleKind = rule.rule_kind ?? 'status';
       const statusIn: string[] = rule.condition?.statusIn ?? [
         'down',
         'critical',
       ];
-      const isBad = statusIn.includes(result.status);
+
+      // 'status' keeps its original, unextended behavior exactly (isBad from
+      // the current CheckResult's status); 'threshold'/'anomaly' instead read
+      // monitor_checks history for the configured metric. Computed once up
+      // front and reused below for both the isBad and debounce checks, so a
+      // metric rule issues one query per evaluate() call, not two.
+      const metricEval: MetricEvaluation | null =
+        ruleKind === 'status'
+          ? null
+          : await this.evaluateMetricRule(queryRunner, monitor.id, rule);
+      const isBad =
+        ruleKind === 'status'
+          ? statusIn.includes(result.status)
+          : (metricEval as MetricEvaluation).isBad;
 
       // 'acknowledged' counts as active alongside 'open' -- a human
       // acknowledging an alert shouldn't let a still-failing monitor open a
@@ -125,7 +165,12 @@ export class AlertEvaluationService {
       );
 
       if (!isBad) {
-        if (openAlert && result.status === 'up') {
+        // For a status rule, only a genuine "up" result resolves (matches
+        // the original behavior precisely). A metric rule has no analogous
+        // status field -- "not bad" is resolution enough.
+        const shouldResolve =
+          ruleKind === 'status' ? result.status === 'up' : true;
+        if (openAlert && shouldResolve) {
           await queryRunner.query(
             `UPDATE alerts SET status = 'resolved', resolved_at = now() WHERE id = $1`,
             [openAlert.id],
@@ -157,42 +202,52 @@ export class AlertEvaluationService {
         };
       }
 
-      const recentChecks = await queryRunner.query(
-        `SELECT status FROM monitor_checks WHERE monitor_id = $1 ORDER BY checked_at DESC LIMIT $2`,
-        [monitor.id, monitor.consecutiveFailuresToAlert],
-      );
-      const thresholdReached =
-        recentChecks.length === monitor.consecutiveFailuresToAlert &&
-        recentChecks.every((c: { status: string }) =>
-          statusIn.includes(c.status),
+      let thresholdReached: boolean;
+      if (ruleKind === 'status') {
+        const recentChecks = await queryRunner.query(
+          `SELECT status FROM monitor_checks WHERE monitor_id = $1 ORDER BY checked_at DESC LIMIT $2`,
+          [monitor.id, monitor.consecutiveFailuresToAlert],
         );
+        thresholdReached =
+          recentChecks.length === monitor.consecutiveFailuresToAlert &&
+          recentChecks.every((c: { status: string }) =>
+            statusIn.includes(c.status),
+          );
+      } else {
+        thresholdReached = (metricEval as MetricEvaluation).thresholdReached;
+      }
       if (!thresholdReached) return { action: 'not_yet_due' };
 
-      // Multi-location false-positive suppression: only open once enough
-      // distinct probe locations are currently failing. With the default of 1
-      // this is a no-op (single-location behavior); set higher to require a
-      // quorum so one region's blip doesn't page anyone.
-      const minLocations = monitor.minFailingLocations ?? 1;
-      if (minLocations > 1) {
-        const perLocation = await queryRunner.query(
-          `SELECT DISTINCT ON (location) location, status
-           FROM monitor_checks WHERE monitor_id = $1
-           ORDER BY location, checked_at DESC`,
-          [monitor.id],
-        );
-        const failingLocations = perLocation.filter((c: { status: string }) =>
-          statusIn.includes(c.status),
-        ).length;
-        if (failingLocations < minLocations) {
-          return { action: 'awaiting_location_quorum' };
+      // Multi-location false-positive suppression is a status-rule concept
+      // (per-location up/down); threshold/anomaly rules watch a single
+      // metric series and don't have a per-location breakdown to quorum over.
+      if (ruleKind === 'status') {
+        const minLocations = monitor.minFailingLocations ?? 1;
+        if (minLocations > 1) {
+          const perLocation = await queryRunner.query(
+            `SELECT DISTINCT ON (location) location, status
+             FROM monitor_checks WHERE monitor_id = $1
+             ORDER BY location, checked_at DESC`,
+            [monitor.id],
+          );
+          const failingLocations = perLocation.filter((c: { status: string }) =>
+            statusIn.includes(c.status),
+          ).length;
+          if (failingLocations < minLocations) {
+            return { action: 'awaiting_location_quorum' };
+          }
         }
       }
 
-      const reasonText = generateReasonText(
-        monitor.name,
-        result.status,
-        result.rawOutput,
-      );
+      const reasonText =
+        ruleKind === 'status'
+          ? generateReasonText(monitor.name, result.status, result.rawOutput)
+          : this.metricReasonText(
+              monitor.name,
+              ruleKind,
+              rule,
+              (metricEval as MetricEvaluation).latestValue,
+            );
       try {
         const [alert] = await queryRunner.query(
           `INSERT INTO alerts (tenant_id, monitor_id, alert_rule_id, severity, reason_text)
@@ -208,6 +263,83 @@ export class AlertEvaluationService {
         throw err;
       }
     });
+  }
+
+  /**
+   * threshold: bad when the metric satisfies comparator/threshold; reached
+   * once the last `for_consecutive` samples all do.
+   * anomaly: bad when the latest sample deviates from a trailing baseline
+   * (the ANOMALY_BASELINE_WINDOW samples preceding the newest
+   * `for_consecutive`) by more than `anomaly_sensitivity` standard
+   * deviations; reached once the last `for_consecutive` samples all do,
+   * judged against that same shared baseline.
+   */
+  private async evaluateMetricRule(
+    queryRunner: QueryRunner,
+    monitorId: string,
+    rule: MetricRuleRow,
+  ): Promise<MetricEvaluation> {
+    const valueSql = metricValueSql(rule.metric);
+    const forConsecutive = rule.for_consecutive ?? 1;
+
+    if (rule.rule_kind === 'threshold') {
+      const rows: { value: number | null }[] = await queryRunner.query(
+        `SELECT ${valueSql} AS value FROM monitor_checks mc
+         WHERE mc.monitor_id = $1 ORDER BY mc.checked_at DESC LIMIT $2`,
+        [monitorId, forConsecutive],
+      );
+      const comparator = rule.comparator as MetricComparator;
+      const threshold = rule.threshold as number;
+      const latestValue = rows[0]?.value ?? null;
+      const isBad =
+        latestValue !== null && compare(latestValue, comparator, threshold);
+      const thresholdReached =
+        rows.length === forConsecutive &&
+        rows.every(
+          (r) => r.value !== null && compare(r.value, comparator, threshold),
+        );
+      return { isBad, thresholdReached, latestValue };
+    }
+
+    // anomaly
+    const rows: { value: number | null }[] = await queryRunner.query(
+      `SELECT ${valueSql} AS value FROM monitor_checks mc
+       WHERE mc.monitor_id = $1 ORDER BY mc.checked_at DESC LIMIT $2`,
+      [monitorId, forConsecutive + ANOMALY_BASELINE_WINDOW],
+    );
+    const newest = rows
+      .slice(0, forConsecutive)
+      .map((r) => r.value)
+      .filter((v): v is number => v !== null);
+    const baseline = rows
+      .slice(forConsecutive)
+      .map((r) => r.value)
+      .filter((v): v is number => v !== null);
+    const sensitivity = rule.anomaly_sensitivity as number;
+
+    const latestValue = newest[0] ?? null;
+    const isBad =
+      newest.length > 0 &&
+      detectMetricAnomaly(baseline, newest[0], sensitivity).isAnomaly;
+    const thresholdReached =
+      newest.length === forConsecutive &&
+      newest.every(
+        (v) => detectMetricAnomaly(baseline, v, sensitivity).isAnomaly,
+      );
+    return { isBad, thresholdReached, latestValue };
+  }
+
+  private metricReasonText(
+    monitorName: string,
+    ruleKind: 'threshold' | 'anomaly',
+    rule: MetricRuleRow,
+    latestValue: number | null,
+  ): string {
+    const valueText = latestValue !== null ? latestValue.toFixed(2) : 'unknown';
+    if (ruleKind === 'threshold') {
+      return `${monitorName}: ${rule.metric} is ${valueText} (threshold: ${rule.comparator} ${rule.threshold}).`;
+    }
+    return `${monitorName}: ${rule.metric} is ${valueText}, an anomaly against its recent baseline.`;
   }
 
   private async linkTicket(

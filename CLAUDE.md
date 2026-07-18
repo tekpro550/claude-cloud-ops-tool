@@ -358,6 +358,23 @@ below is **verified against the code now in `main`**, not just commit messages.
   internals. `StatusPagePublicController` (`GET /public/status/:slug`) has NO
   guard at all. The web route `/status/:slug` renders standalone, without the
   admin header/nav chrome (`App.tsx`'s `isPublicStatusRoute` check).
+- **Metric-threshold + anomaly alert rules (competitive-parity plan, task 3).**
+  `ExtendAlertRules` adds `rule_kind` (status/threshold/anomaly, default
+  `status` — every existing row keeps its exact original behavior) plus
+  `metric`/`comparator`/`threshold`/`for_consecutive`/`anomaly_sensitivity` to
+  `alert_rules` (still one row per monitor). `metric-alert-rule.ts` is a small
+  allowlist (`METRICS`, mirroring the report builder's allowlist approach) of
+  SQL expressions pulling a metric out of `monitor_checks` (a real column for
+  `response_time_ms`, `raw_output->>'…'` for agent/cloud metrics) plus a pure
+  `detectMetricAnomaly` (mean/stddev/z-score, same shape as
+  `cost/cost-anomaly-detect.ts`). `AlertEvaluationService.applyToDatabase` now
+  dispatches on `rule_kind`: threshold fires once the last `for_consecutive`
+  samples all satisfy the comparator; anomaly fires once they all deviate
+  from a trailing baseline by `anomaly_sensitivity` standard deviations
+  (baseline excludes the samples being judged). Everything downstream —
+  open/repeat/resolve/dedupe, ticket linking — is unchanged and shared with
+  the status path (`verify-metric-alert-rules.ts`, plus `alerting:verify` and
+  `multi-location:verify` re-run clean as regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

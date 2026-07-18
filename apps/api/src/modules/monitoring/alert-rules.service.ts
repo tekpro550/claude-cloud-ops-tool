@@ -10,6 +10,35 @@ import { CreateAlertRuleDto, UpdateAlertRuleDto } from './alert-rules.dto';
 
 const DUPLICATE_KEY_ERROR = '23505';
 
+/**
+ * Cross-field requirement: which fields a rule_kind needs, checked here
+ * (rather than only via DTO decorators) so create and update -- where a
+ * ruleKind change and its metric/comparator/threshold can arrive in
+ * different calls -- both land on a fully valid row.
+ */
+function assertRuleKindFieldsPresent(fields: {
+  ruleKind: string;
+  metric?: string | null;
+  comparator?: string | null;
+  threshold?: number | null;
+  anomalySensitivity?: number | null;
+}): void {
+  if (fields.ruleKind === 'threshold') {
+    if (!fields.metric || !fields.comparator || fields.threshold == null) {
+      throw new BadRequestException(
+        'A threshold rule requires metric, comparator, and threshold',
+      );
+    }
+  }
+  if (fields.ruleKind === 'anomaly') {
+    if (!fields.metric || fields.anomalySensitivity == null) {
+      throw new BadRequestException(
+        'An anomaly rule requires metric and anomalySensitivity',
+      );
+    }
+  }
+}
+
 @Injectable()
 export class AlertRulesService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
@@ -30,10 +59,16 @@ export class AlertRulesService {
         throw new NotFoundException(`Monitor ${dto.monitorId} not found`);
       }
 
+      const ruleKind = dto.ruleKind ?? 'status';
+      assertRuleKindFieldsPresent({ ruleKind, ...dto });
+
       try {
         const [rule] = await queryRunner.query(
-          `INSERT INTO alert_rules (tenant_id, monitor_id, condition, severity, is_enabled, escalation_policy_id)
-           VALUES ($1, $2, $3, $4, $5, $6)
+          `INSERT INTO alert_rules (
+             tenant_id, monitor_id, condition, severity, is_enabled, escalation_policy_id,
+             rule_kind, metric, comparator, threshold, for_consecutive, anomaly_sensitivity
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING *`,
           [
             tenantId,
@@ -42,6 +77,12 @@ export class AlertRulesService {
             dto.severity ?? 'critical',
             dto.isEnabled ?? true,
             dto.escalationPolicyId ?? null,
+            ruleKind,
+            dto.metric ?? null,
+            dto.comparator ?? null,
+            dto.threshold ?? null,
+            dto.forConsecutive ?? 1,
+            dto.anomalySensitivity ?? null,
           ],
         );
         return rule;
@@ -59,12 +100,29 @@ export class AlertRulesService {
   async update(tenantId: string, id: string, dto: UpdateAlertRuleDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [existing] = await queryRunner.query(
-        `SELECT id FROM alert_rules WHERE id = $1`,
+        `SELECT * FROM alert_rules WHERE id = $1`,
         [id],
       );
       if (!existing) {
         throw new NotFoundException(`Alert rule ${id} not found`);
       }
+
+      // Validate against the merged (existing + incoming) shape, since a
+      // PATCH updating just `threshold` on an already-threshold rule must
+      // still see the rule's existing metric/comparator to pass, and a PATCH
+      // switching ruleKind to 'threshold' must bring its own.
+      assertRuleKindFieldsPresent({
+        ruleKind: dto.ruleKind ?? existing.rule_kind,
+        metric: dto.metric !== undefined ? dto.metric : existing.metric,
+        comparator:
+          dto.comparator !== undefined ? dto.comparator : existing.comparator,
+        threshold:
+          dto.threshold !== undefined ? dto.threshold : existing.threshold,
+        anomalySensitivity:
+          dto.anomalySensitivity !== undefined
+            ? dto.anomalySensitivity
+            : existing.anomaly_sensitivity,
+      });
 
       const sets: string[] = [];
       const params: unknown[] = [];
@@ -78,6 +136,14 @@ export class AlertRulesService {
       if (dto.isEnabled !== undefined) assign('is_enabled', dto.isEnabled);
       if (dto.escalationPolicyId !== undefined)
         assign('escalation_policy_id', dto.escalationPolicyId);
+      if (dto.ruleKind !== undefined) assign('rule_kind', dto.ruleKind);
+      if (dto.metric !== undefined) assign('metric', dto.metric);
+      if (dto.comparator !== undefined) assign('comparator', dto.comparator);
+      if (dto.threshold !== undefined) assign('threshold', dto.threshold);
+      if (dto.forConsecutive !== undefined)
+        assign('for_consecutive', dto.forConsecutive);
+      if (dto.anomalySensitivity !== undefined)
+        assign('anomaly_sensitivity', dto.anomalySensitivity);
 
       if (sets.length === 0) {
         const [rule] = await queryRunner.query(
