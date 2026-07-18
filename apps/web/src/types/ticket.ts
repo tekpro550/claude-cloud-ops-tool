@@ -55,10 +55,14 @@ export interface TicketMessage {
   created_at: string;
 }
 
+export type AssignmentStrategy = "manual" | "round_robin" | "load_based" | "skill_based";
+
 export interface Group {
   id: string;
   name: string;
   description?: string | null;
+  assignment_strategy: AssignmentStrategy;
+  max_open_tickets_per_agent?: number | null;
 }
 
 export interface Company {

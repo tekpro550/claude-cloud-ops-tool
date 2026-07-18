@@ -15,6 +15,8 @@ import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AgentsController } from './agents.controller';
 import { AgentsService } from './agents.service';
+import { AgentSkillsController } from './assignment/agent-skills.controller';
+import { AgentSkillsService } from './assignment/agent-skills.service';
 import { AttachmentsController } from './attachments/attachments.controller';
 import { AttachmentsService } from './attachments/attachments.service';
 import { LocalDiskStorage } from './attachments/object-storage';
@@ -87,6 +89,7 @@ import { TicketsService } from './tickets.service';
     TicketsController,
     GroupsController,
     AgentsController,
+    AgentSkillsController,
     TicketTypesController,
     SlaPoliciesController,
     AutomationRulesController,
@@ -128,6 +131,7 @@ import { TicketsService } from './tickets.service';
     TicketSatisfactionService,
     GroupsService,
     AgentsService,
+    AgentSkillsService,
     TicketTypesService,
     SlaPoliciesService,
     AutomationRulesService,

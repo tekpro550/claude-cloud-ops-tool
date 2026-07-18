@@ -334,6 +334,15 @@ below is **verified against the code now in `main`**, not just commit messages.
   `ChatService`/`ChatController` (`@Controller('chat')`) with agent-claim /
   visitor-reopen semantics and `?since=` delta polling; web `ChatPage` console
   (`verify-chat.ts`).
+- **Auto-assignment strategies (competitive-parity plan, task 1).**
+  `AddAssignmentStrategies` adds `groups.assignment_strategy`
+  (manual/round_robin/load_based/skill_based) + `max_open_tickets_per_agent`,
+  `agent_skills`, `group_assignment_cursor`, and `tickets.required_skill`.
+  `AssignmentService.pickAssignee` (a static helper taking the caller's
+  `QueryRunner`, same pattern as `CustomFieldsService.loadDefs`) resolves the
+  next assignee inside `TicketsService.create`'s transaction; an explicit
+  `agentId` always wins. Admin UI: assignment-strategy picker on Groups, new
+  Agent skills card (`verify-assignment.ts`).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

@@ -70,6 +70,12 @@ export class CreateTicketDto {
   @IsUUID()
   agentId?: string;
 
+  // Consulted by skill_based auto-assignment when the group has no explicit
+  // agentId; ignored otherwise.
+  @IsOptional()
+  @IsString()
+  requiredSkill?: string;
+
   @IsOptional()
   @IsUUID()
   resourceId?: string;

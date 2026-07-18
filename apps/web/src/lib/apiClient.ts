@@ -1,5 +1,6 @@
 import type {
   Agent,
+  AssignmentStrategy,
   AutomationAction,
   AutomationCondition,
   AutomationRule,
@@ -507,16 +508,44 @@ export function getSetupStatus(tenantId: string): Promise<SetupStatus> {
 
 // ---- Groups ----
 
-export function createGroup(tenantId: string, input: { name: string; description?: string }): Promise<Group> {
+export interface GroupInput {
+  name: string;
+  description?: string;
+  assignmentStrategy?: AssignmentStrategy;
+  maxOpenTicketsPerAgent?: number | null;
+}
+
+export function createGroup(tenantId: string, input: GroupInput): Promise<Group> {
   return request(tenantId, "POST", "/groups", input);
 }
 
-export function updateGroup(tenantId: string, id: string, input: { name?: string; description?: string }): Promise<Group> {
+export function updateGroup(tenantId: string, id: string, input: Partial<GroupInput>): Promise<Group> {
   return request(tenantId, "PATCH", `/groups/${id}`, input);
 }
 
 export function deleteGroup(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/groups/${id}`);
+}
+
+// ---- Agent skills (skill-based auto-assignment) ----
+
+export interface AgentSkill {
+  id: string;
+  agent_id: string;
+  skill: string;
+}
+
+export function listAgentSkills(tenantId: string, agentId?: string): Promise<AgentSkill[]> {
+  const query = agentId ? `?agentId=${agentId}` : "";
+  return request(tenantId, "GET", `/agent-skills${query}`);
+}
+
+export function addAgentSkill(tenantId: string, input: { agentId: string; skill: string }): Promise<AgentSkill> {
+  return request(tenantId, "POST", "/agent-skills", input);
+}
+
+export function removeAgentSkill(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/agent-skills/${id}`);
 }
 
 // ---- Agents ----

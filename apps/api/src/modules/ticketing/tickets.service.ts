@@ -10,6 +10,7 @@ import { withTenantContext } from '../../database/context/tenant-context';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { SolutionsService } from './solutions.service';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { AssignmentService } from './assignment/assignment.service';
 import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { validateCustomFields } from './custom-fields/custom-field-validate';
 import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
@@ -205,9 +206,21 @@ export class TicketsService {
         throw new BadRequestException((err as Error).message);
       }
 
+      // Auto-assignment only kicks in when the caller didn't pin an agent and
+      // the ticket resolved into a group -- an explicit agentId always wins.
+      let agentId = dto.agentId ?? null;
+      if (!agentId && groupId) {
+        agentId = await AssignmentService.pickAssignee(
+          queryRunner,
+          tenantId,
+          groupId,
+          dto.requiredSkill,
+        );
+      }
+
       const [ticket] = await queryRunner.query(
-        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags, custom_fields)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17, $18)
+        `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, ticket_type_id, group_id, agent_id, resource_id, priority, source, source_detail, sla_policy_id, first_response_due_at, resolution_due_at, created_at, updated_at, platform, tags, custom_fields, required_skill)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16, $17, $18, $19)
          RETURNING *`,
         [
           tenantId,
@@ -216,7 +229,7 @@ export class TicketsService {
           contactId,
           dto.ticketTypeId ?? null,
           groupId,
-          dto.agentId ?? null,
+          agentId,
           dto.resourceId ?? null,
           dto.priority ?? 'medium',
           dto.source,
@@ -228,6 +241,7 @@ export class TicketsService {
           dto.platform ?? null,
           dto.tags ?? [],
           JSON.stringify(customFields),
+          dto.requiredSkill ?? null,
         ],
       );
       return this.automationRules.runRules(

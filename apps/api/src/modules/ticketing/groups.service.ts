@@ -21,8 +21,15 @@ export class GroupsService {
   create(tenantId: string, dto: CreateGroupDto) {
     return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
       const [group] = await queryRunner.query(
-        `INSERT INTO groups (tenant_id, name, description) VALUES ($1, $2, $3) RETURNING *`,
-        [tenantId, dto.name, dto.description ?? null],
+        `INSERT INTO groups (tenant_id, name, description, assignment_strategy, max_open_tickets_per_agent)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [
+          tenantId,
+          dto.name,
+          dto.description ?? null,
+          dto.assignmentStrategy ?? 'manual',
+          dto.maxOpenTicketsPerAgent ?? null,
+        ],
       );
       return group;
     });
@@ -46,6 +53,10 @@ export class GroupsService {
       };
       if (dto.name !== undefined) assign('name', dto.name);
       if (dto.description !== undefined) assign('description', dto.description);
+      if (dto.assignmentStrategy !== undefined)
+        assign('assignment_strategy', dto.assignmentStrategy);
+      if (dto.maxOpenTicketsPerAgent !== undefined)
+        assign('max_open_tickets_per_agent', dto.maxOpenTicketsPerAgent);
 
       if (sets.length === 0) {
         const [group] = await queryRunner.query(

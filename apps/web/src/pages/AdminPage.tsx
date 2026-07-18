@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Modal from "../components/Modal";
 import AgentsAdmin from "../components/admin/AgentsAdmin";
+import AgentSkillsAdmin from "../components/admin/AgentSkillsAdmin";
 import AiSettingsAdmin from "../components/admin/AiSettingsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
@@ -67,6 +68,7 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
       items: [
         { key: "groups", label: "Groups", description: "Support teams tickets are routed to", icon: "👥", render: (p) => <GroupsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "agents", label: "Agents", description: "People who work tickets and their roles", icon: "🧑‍💼", render: (p) => <AgentsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "agent-skills", label: "Agent skills", description: "Skills used by skill-based auto-assignment", icon: "🎯", render: (p) => <AgentSkillsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
     {
