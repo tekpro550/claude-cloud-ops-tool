@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import BudgetPaceGauge from "../components/BudgetPaceGauge";
 import CostAllocation from "../components/CostAllocation";
 import CostSparkline from "../components/CostSparkline";
+import ForecastPanel from "../components/ForecastPanel";
 import {
   dismissCostAnomaly,
   getCostDashboardSummary,
   getCostDashboardTrend,
+  getCostForecast,
   listCostAnomalies,
   type CostAnomaly,
 } from "../lib/costApiClient";
 import { useTenant } from "../lib/tenant";
-import type { CostDashboardSummary, CostTrendPoint } from "../types/cost";
+import type { CostDashboardSummary, CostForecastResult, CostTrendPoint } from "../types/cost";
 
 function formatMoney(value: number | null): string {
   if (value === null) return "—";
@@ -27,6 +29,7 @@ export default function CostDashboardPage() {
   const { tenantId } = useTenant();
   const [summary, setSummary] = useState<CostDashboardSummary | null>(null);
   const [trend, setTrend] = useState<CostTrendPoint[]>([]);
+  const [forecast, setForecast] = useState<CostForecastResult | null>(null);
   const [anomalies, setAnomalies] = useState<CostAnomaly[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -38,10 +41,11 @@ export default function CostDashboardPage() {
   useEffect(() => {
     if (!tenantId) return;
     setLoading(true);
-    Promise.all([getCostDashboardSummary(tenantId), getCostDashboardTrend(tenantId)])
-      .then(([summaryRes, trendRes]) => {
+    Promise.all([getCostDashboardSummary(tenantId), getCostDashboardTrend(tenantId), getCostForecast(tenantId)])
+      .then(([summaryRes, trendRes, forecastRes]) => {
         setSummary(summaryRes);
         setTrend(trendRes);
+        setForecast(forecastRes);
       })
       .finally(() => setLoading(false));
     loadAnomalies();
@@ -135,6 +139,9 @@ export default function CostDashboardPage() {
 
       <h3>Spend trend (all accounts)</h3>
       <CostSparkline data={trend} />
+
+      <h3>Forecast</h3>
+      {forecast ? <ForecastPanel forecast={forecast} /> : <p className="hint">Loading forecast…</p>}
     </div>
   );
 }

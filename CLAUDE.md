@@ -392,6 +392,22 @@ below is **verified against the code now in `main`**, not just commit messages.
   coverage/utilization, a record-commitment form) (`verify-commitments.ts`,
   14 checks incl. cross-tenant credential rejection and RLS isolation;
   `rightsizing:verify`/`cost-allocation:verify` re-run clean as regressions).
+- **Richer forecasting (competitive-parity plan, task 5).** `forecast.ts`
+  (pure) adds two forecasts beyond `cost-pace.ts`'s flat linear projection:
+  `forecastMonthEnd` buckets elapsed days by weekday and projects each
+  remaining calendar day at its own weekday's average rate (falls back to a
+  flat rate under a week of data), and `forecastMultiMonth` fits an
+  ordinary-least-squares trend across trailing monthly totals and projects it
+  forward. Both report a confidence band from residual variance, disclosed as
+  a simplification. `CostDashboardService.forecast()` (`GET
+  /cost/dashboard/forecast`, optional `cloudCredentialId`/`horizonMonths`)
+  wires real `cost_line_items` data through both; reuses
+  `commitments/commitment-coverage.ts`'s `buildDailySpend` zero-fill helper.
+  Web: a Forecast panel on the cost dashboard (projected month-end + range,
+  trend rate, multi-month table) (`verify-cost-forecast.ts`, 13 checks incl.
+  a synthetic case proving the weekday-weighted method beats a naive flat-rate
+  projection; `cost-pace:verify`/`cost-anomaly:verify` re-run clean as
+  regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

@@ -148,3 +148,29 @@ export interface CommitmentRecommendation {
   status: "open" | "dismissed";
   generated_at: string;
 }
+
+export interface MonthEndForecast {
+  mtdSpend: number;
+  projectedFullMonth: number;
+  low: number;
+  high: number;
+  method: "weekday_weighted" | "linear";
+}
+
+export interface MultiMonthForecastPoint {
+  monthsAhead: number;
+  projected: number;
+  low: number;
+  high: number;
+}
+
+export interface MultiMonthForecast {
+  points: MultiMonthForecastPoint[];
+  slopePerMonth: number;
+  residualStddev: number;
+}
+
+export interface CostForecastResult {
+  monthEnd: MonthEndForecast | null;
+  multiMonth: MultiMonthForecast | null;
+}

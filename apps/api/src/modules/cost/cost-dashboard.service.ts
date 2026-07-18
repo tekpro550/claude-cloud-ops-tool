@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
+import { buildDailySpend } from './commitments/commitment-coverage';
 import { calculateBudgetPace } from './cost-pace';
+import { forecastMonthEnd, forecastMultiMonth } from './forecast';
+
+const TREND_MONTHS_FOR_REGRESSION = 12;
 
 /**
  * Tenant-wide stat tiles + trend for Cost, the same shape Module 2's new
@@ -84,5 +88,76 @@ export class CostDashboardService {
         GROUP BY 1 ORDER BY 1
       `),
     );
+  }
+
+  /**
+   * Richer forecast than summary()'s naive linear pace: a weekday-weighted
+   * month-end projection plus a multi-month trend regression, both with a
+   * confidence band (see forecast.ts's own doc comment for the math and its
+   * disclosed simplifications). `cloudCredentialId` narrows to one account;
+   * omitted, it's the tenant-wide aggregate.
+   */
+  async forecast(
+    tenantId: string,
+    cloudCredentialId?: string,
+    horizonMonths = 3,
+  ) {
+    return withTenantContext(this.dataSource, tenantId, async (queryRunner) => {
+      const scopeClause = cloudCredentialId
+        ? 'AND cloud_credential_id = $1'
+        : '';
+      const scopeParams = cloudCredentialId ? [cloudCredentialId] : [];
+
+      const now = new Date();
+      const monthStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+      );
+      const today = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      );
+      const daysInMonth = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+      ).getUTCDate();
+
+      const dayRows = await queryRunner.query(
+        `SELECT usage_date, SUM(amount)::float AS amount FROM cost_line_items
+         WHERE usage_date >= $${scopeParams.length + 1} AND usage_date <= $${scopeParams.length + 2} ${scopeClause}
+         GROUP BY usage_date`,
+        [...scopeParams, monthStart, today],
+      );
+      const elapsedDailySpend = buildDailySpend(monthStart, today, dayRows);
+      const elapsedDayOfWeek = elapsedDailySpend.map((_, i) => {
+        const d = new Date(monthStart);
+        d.setUTCDate(d.getUTCDate() + i);
+        return d.getUTCDay();
+      });
+      const remainingDayOfWeek: number[] = [];
+      for (let day = today.getUTCDate() + 1; day <= daysInMonth; day++) {
+        remainingDayOfWeek.push(
+          new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day),
+          ).getUTCDay(),
+        );
+      }
+      const monthEnd = forecastMonthEnd({
+        elapsedDailySpend,
+        elapsedDayOfWeek,
+        remainingDayOfWeek,
+      });
+
+      const monthlyRows = await queryRunner.query(
+        `SELECT to_char(date_trunc('month', usage_date), 'YYYY-MM') AS month, SUM(amount)::float AS total
+         FROM cost_line_items
+         WHERE usage_date >= date_trunc('month', now()) - interval '${TREND_MONTHS_FOR_REGRESSION} months'
+           AND usage_date < date_trunc('month', now())
+           ${scopeClause}
+         GROUP BY 1 ORDER BY 1`,
+        scopeParams,
+      );
+      const monthlyTotals = monthlyRows.map((r: { total: number }) => r.total);
+      const multiMonth = forecastMultiMonth(monthlyTotals, horizonMonths);
+
+      return { monthEnd, multiMonth };
+    });
   }
 }

@@ -8,6 +8,7 @@ import type {
   CommitmentRecommendation,
   CostBudget,
   CostDashboardSummary,
+  CostForecastResult,
   CostLineItem,
   CostSavingsLogEntry,
   CostTrendPoint,
@@ -159,6 +160,17 @@ export function getCostDashboardSummary(tenantId: string): Promise<CostDashboard
 
 export function getCostDashboardTrend(tenantId: string): Promise<CostTrendPoint[]> {
   return request(tenantId, "GET", "/cost/dashboard/trend");
+}
+
+export function getCostForecast(
+  tenantId: string,
+  options: { cloudCredentialId?: string; horizonMonths?: number } = {},
+): Promise<CostForecastResult> {
+  const params = new URLSearchParams();
+  if (options.cloudCredentialId) params.set("cloudCredentialId", options.cloudCredentialId);
+  if (options.horizonMonths) params.set("horizonMonths", String(options.horizonMonths));
+  const qs = params.toString();
+  return request(tenantId, "GET", `/cost/dashboard/forecast${qs ? `?${qs}` : ""}`);
 }
 
 // ---- Cost anomalies ----
