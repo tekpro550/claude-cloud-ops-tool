@@ -530,6 +530,48 @@ below is **verified against the code now in `main`**, not just commit messages.
   ticket once it's crossed, and the fire being debounced on the very next
   sweep; `monitor-engine:verify`/`alerting:verify`/`synthetic:verify`/
   `auth:verify` re-run clean as regressions).
+- **APM + RUM ingestion (competitive-parity plan, task 10).** `CreateApmRum`
+  adds `apm_ingest_keys`/`apm_traces`/`apm_spans` and
+  `rum_app_keys`/`rum_events` (all RLS-scoped) -- ingestion + storage +
+  aggregation only, deliberately **not** a language-specific
+  auto-instrumentation agent, distributed trace-context propagation, or
+  sampling controls (see `docs/apm-rum-integration.md`, which ships instead
+  a copy-paste Express middleware and browser beacon snippet).
+  `apm_ingest_keys`/`rum_app_keys` follow `log_sources`' no-token-hash-column
+  precedent (self-describing signed JWTs, `kind: 'apm_ingest'` /
+  `'rum_app'`). `apm_spans.parent_span_id` has no FK -- a trace's spans
+  arrive with client-assigned `spanId`s unique only within that trace;
+  `ApmService.ingestTraces` resolves them to real uuids in one pass before
+  any insert (`crypto.randomUUID()`), so a child can reference a parent
+  that's about to be inserted in the same transaction without a two-pass or
+  deferred-constraint dance. `apm-percentile.ts` is a small pure module
+  (nearest-rank percentiles + the standard Apdex formula
+  `(satisfied + tolerating/2) / total`, T defaults to 500ms) reused by both
+  `ApmService.serviceStats` (per-transaction p50/p95/p99/apdex/error-rate)
+  and `RumService.pageStats` (per-page LCP/FCP/TTFB percentiles + JS-error
+  rate, with a disclosed simplification: there's no dedicated "page view"
+  event, so the error-rate denominator is the max sample count across the
+  three timing metrics). RUM's `POST /rum/collect` is the one deliberate
+  CORS-widening exception in the app -- RUM beacons come from arbitrary
+  customer websites, not the agent app or portal, so `main.ts` answers that
+  one path's CORS (incl. the OPTIONS preflight) with `Access-Control-Allow-
+  Origin: *` via middleware registered before the global `cors()`
+  middleware, same "narrowly-scoped, disclosed" spirit as status-pages' RLS
+  widening; tenant scoping for that route comes entirely from the signed
+  `appKey` in the request body (verified in `RumService.collect`), not from
+  origin, so the open CORS policy doesn't widen who can write data, only who
+  can attempt to. Web: an APM dashboard (`/monitoring/apm` -- service picker,
+  apdex/percentile stat tiles, a per-transaction table, slowest traces, and
+  an `ApmSpanWaterfall` reconstructing the span tree from `parent_span_id`)
+  and a RUM dashboard (`/monitoring/rum` -- page picker, LCP/FCP/TTFB
+  percentile tiles, JS error rate), plus `ApmIngestKeysAdmin`/
+  `RumAppKeysAdmin` admin cards (`verify-apm-rum.ts`, 22 checks incl.
+  hand-computed p50/p95/avg/apdex/error-rate over 10 traces, a 3-level span
+  tree reconstructing correctly by parent id, a removed ingest key's token
+  being rejected, an invalid RUM app key being rejected, hand-computed RUM
+  percentiles + error rate, and RLS isolation for both APM and RUM;
+  `monitor-engine:verify`/`logs:verify`/`synthetic:verify`/`alerting:verify`/
+  `auth:verify`/`status-pages:verify` re-run clean as regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

@@ -277,3 +277,85 @@ export interface LogAlertRule {
   last_fired_at: string | null;
   created_at: string;
 }
+
+export interface ApmIngestKey {
+  id: string;
+  tenant_id: string;
+  service: string;
+  is_active: boolean;
+  created_at: string;
+  token?: string;
+}
+
+export interface ApmServiceSummary {
+  service: string;
+  trace_count: number;
+  last_seen_at: string;
+}
+
+export interface ApmTransactionStats {
+  transaction: string;
+  count: number;
+  errorCount: number;
+  errorRatePct: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  avg: number;
+  apdex: number | null;
+}
+
+export interface ApmServiceStats {
+  service: string;
+  overall: Omit<ApmTransactionStats, "transaction">;
+  transactions: ApmTransactionStats[];
+}
+
+export interface ApmTrace {
+  id: string;
+  service: string;
+  transaction: string;
+  ts: string;
+  duration_ms: number;
+  status: "ok" | "error";
+  root: boolean;
+}
+
+export interface ApmSpan {
+  id: string;
+  trace_id: string;
+  parent_span_id: string | null;
+  name: string;
+  kind: string;
+  duration_ms: number;
+  attributes: Record<string, unknown>;
+}
+
+export interface RumAppKey {
+  id: string;
+  tenant_id: string;
+  app_name: string;
+  is_active: boolean;
+  created_at: string;
+  token?: string;
+}
+
+export interface RumPageSummary {
+  page: string;
+  event_count: number;
+  last_seen_at: string;
+}
+
+export interface RumTimingStats {
+  metric: "lcp" | "fcp" | "ttfb";
+  count: number;
+  p50: number;
+  p95: number;
+}
+
+export interface RumPageStats {
+  page: string;
+  timings: RumTimingStats[];
+  errorCount: number;
+  errorRatePct: number;
+}

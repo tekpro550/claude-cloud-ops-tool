@@ -87,3 +87,52 @@ export function verifyLogSourceJwt(token: string): LogSourceJwtClaims | null {
     return null;
   }
 }
+
+/** A sixth `kind`, for an APM ingest key (Module 2 APM). Same self-describing shape as LogSourceJwtClaims. */
+export interface ApmIngestJwtClaims {
+  sub: string;
+  tenantId: string;
+  kind: 'apm_ingest';
+}
+
+export function signApmIngestJwt(claims: ApmIngestJwtClaims): string {
+  const expiresIn = process.env.DEVICE_JWT_EXPIRES_IN ?? '3650d';
+  return jwt.sign(claims, secret(), { expiresIn } as jwt.SignOptions);
+}
+
+export function verifyApmIngestJwt(token: string): ApmIngestJwtClaims | null {
+  try {
+    const claims = jwt.verify(token, secret()) as ApmIngestJwtClaims;
+    return claims.kind === 'apm_ingest' ? claims : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A seventh `kind`, for a RUM app key. Unlike the other machine-to-machine
+ * kinds, this token is never sent as an Authorization header -- RUM beacons
+ * are browser fetch()/sendBeacon() calls that can't reliably set custom
+ * headers cross-origin, so the app key travels in the request body instead
+ * (see rum-ingestion.controller.ts). It's still the same signed,
+ * self-describing shape; only the transport differs.
+ */
+export interface RumAppJwtClaims {
+  sub: string;
+  tenantId: string;
+  kind: 'rum_app';
+}
+
+export function signRumAppJwt(claims: RumAppJwtClaims): string {
+  const expiresIn = process.env.DEVICE_JWT_EXPIRES_IN ?? '3650d';
+  return jwt.sign(claims, secret(), { expiresIn } as jwt.SignOptions);
+}
+
+export function verifyRumAppJwt(token: string): RumAppJwtClaims | null {
+  try {
+    const claims = jwt.verify(token, secret()) as RumAppJwtClaims;
+    return claims.kind === 'rum_app' ? claims : null;
+  } catch {
+    return null;
+  }
+}

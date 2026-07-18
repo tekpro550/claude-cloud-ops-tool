@@ -84,6 +84,7 @@
     "multi-location:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-multi-location.ts",
     "synthetic:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-synthetic.ts",
     "logs:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-logs.ts",
+    "apm-rum:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-apm-rum.ts",
     "metric-alert-rules:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-metric-alert-rules.ts",
     "agent:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-agent.ts",
     "cloud-polling:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-cloud-polling.ts",

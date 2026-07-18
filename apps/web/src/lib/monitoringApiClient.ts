@@ -5,6 +5,11 @@ import type {
   AlertMetric,
   AlertRule,
   AlertRuleKind,
+  ApmIngestKey,
+  ApmServiceStats,
+  ApmServiceSummary,
+  ApmSpan,
+  ApmTrace,
   CloudCredential,
   DowntimeEvent,
   EscalationPolicy,
@@ -16,6 +21,9 @@ import type {
   Monitor,
   MonitoringDashboardSummary,
   MonitorStatus,
+  RumAppKey,
+  RumPageStats,
+  RumPageSummary,
   NotificationTemplate,
   OnCallSchedule,
   PublicStatus,
@@ -399,4 +407,56 @@ export function updateLogAlertRule(
 
 export function deleteLogAlertRule(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "DELETE", `/logs/alert-rules/${id}`);
+}
+
+// ---- APM ----
+
+export function listApmIngestKeys(tenantId: string): Promise<ApmIngestKey[]> {
+  return request(tenantId, "GET", "/apm/ingest-keys");
+}
+
+export function createApmIngestKey(tenantId: string, service: string): Promise<ApmIngestKey> {
+  return request(tenantId, "POST", "/apm/ingest-keys", { service });
+}
+
+export function deleteApmIngestKey(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/apm/ingest-keys/${id}`);
+}
+
+export function listApmServices(tenantId: string): Promise<ApmServiceSummary[]> {
+  return request(tenantId, "GET", "/apm/services");
+}
+
+export function getApmServiceStats(tenantId: string, service: string): Promise<ApmServiceStats> {
+  return request(tenantId, "GET", `/apm/services/${encodeURIComponent(service)}/stats`);
+}
+
+export function getApmSlowestTraces(tenantId: string, service: string, limit = 10): Promise<ApmTrace[]> {
+  return request(tenantId, "GET", `/apm/services/${encodeURIComponent(service)}/slowest-traces?limit=${limit}`);
+}
+
+export function getApmTrace(tenantId: string, id: string): Promise<{ trace: ApmTrace; spans: ApmSpan[] }> {
+  return request(tenantId, "GET", `/apm/traces/${id}`);
+}
+
+// ---- RUM ----
+
+export function listRumAppKeys(tenantId: string): Promise<RumAppKey[]> {
+  return request(tenantId, "GET", "/rum/app-keys");
+}
+
+export function createRumAppKey(tenantId: string, appName: string): Promise<RumAppKey> {
+  return request(tenantId, "POST", "/rum/app-keys", { appName });
+}
+
+export function deleteRumAppKey(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/rum/app-keys/${id}`);
+}
+
+export function listRumPages(tenantId: string): Promise<RumPageSummary[]> {
+  return request(tenantId, "GET", "/rum/pages");
+}
+
+export function getRumPageStats(tenantId: string, page: string): Promise<RumPageStats> {
+  return request(tenantId, "GET", `/rum/pages/${encodeURIComponent(page)}/stats`);
 }

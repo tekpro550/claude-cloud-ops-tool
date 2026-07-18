@@ -12,6 +12,10 @@ import { AlertRulesController } from './alert-rules.controller';
 import { AlertRulesService } from './alert-rules.service';
 import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
+import { ApmController } from './apm/apm.controller';
+import { ApmService } from './apm/apm.service';
+import { ApmIngestionController } from './apm/apm-ingestion.controller';
+import { ApmIngestTokenGuard } from './apm/apm-ingest-token.guard';
 import { AwsCloudProviderClient } from './cloud/aws-provider-client';
 import { AzureCloudProviderClient } from './cloud/azure-provider-client';
 import {
@@ -54,6 +58,9 @@ import { OnCallSchedulesController } from './on-call-schedules.controller';
 import { OnCallSchedulesService } from './on-call-schedules.service';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
+import { RumController } from './rum/rum.controller';
+import { RumService } from './rum/rum.service';
+import { RumIngestionController } from './rum/rum-ingestion.controller';
 import { StatusPagePublicController } from './status-pages/status-page-public.controller';
 import { StatusPagesController } from './status-pages/status-pages.controller';
 import { StatusPagesService } from './status-pages/status-pages.service';
@@ -91,6 +98,10 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     DiskForecastsController,
     LogsController,
     LogIngestionController,
+    ApmController,
+    ApmIngestionController,
+    RumController,
+    RumIngestionController,
   ],
   providers: [
     ResourcesService,
@@ -122,6 +133,9 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     LogIngestionService,
     LogSourceTokenGuard,
     LogAlertSweepService,
+    ApmService,
+    ApmIngestTokenGuard,
+    RumService,
     {
       // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,
