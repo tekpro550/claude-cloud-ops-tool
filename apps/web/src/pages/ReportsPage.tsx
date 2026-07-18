@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getReportsSummary, type ReportsSummary } from "../lib/apiClient";
+import CustomReportBuilder from "../components/CustomReportBuilder";
 import { useTenant } from "../lib/tenant";
 
 function fmtMinutes(m: number | null): string {
@@ -117,6 +118,8 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+
+          <CustomReportBuilder tenantId={tenantId} />
         </>
       )}
     </div>

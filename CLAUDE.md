@@ -435,6 +435,32 @@ below is **verified against the code now in `main`**, not just commit messages.
   re-run clean as regressions). Web: a Scheduled reports admin card
   (create/run-now/delete); `run-now` downloads via a blob fetch, the
   documented apiClient exception for non-JSON responses.
+- **Custom report builder (competitive-parity plan, task 7).**
+  `CreateReportDefinitions` adds `report_definitions` (RLS-scoped; one jsonb
+  `config` column -- the shape is owned by `report-builder.ts`'s allowlist,
+  not the schema). `report-builder.ts` is a pure, security-critical
+  allowlist query builder: every metric (`ticket_count`,
+  `avg_first_response_minutes`, `avg_resolution_minutes`,
+  `sla_attainment_pct`, `avg_csat` -- same happy=1/neutral=0.5/unhappy=0
+  weighting as `reports.service.ts`'s `csat()`), group-by dimension
+  (status/priority/ticket_type_id/group_id/assignee_id/source/day/week/month),
+  and filter field the caller can name is a token that must exist in a fixed
+  `Record<Token, string>` map; the SQL fragment it maps to is fixed at
+  compile time, every value is a bind parameter, and an unrecognized token
+  throws `BadRequestException` before any query runs -- not application-layer
+  sanitization, the rejection itself is what keeps this off being a SQL
+  injection surface. `ReportDefinitionsService` (CRUD + `preview()` for an
+  unsaved config + `run()` for a saved one, both executing the same
+  `buildReportQuery()` path) sits behind `ReportDefinitionsController`
+  (`@Controller('reports/custom')`, `TenantHeaderGuard`, same as the existing
+  `ReportsController`). Web: a "Custom report builder" section on the Reports
+  page (`CustomReportBuilder.tsx`) -- metric/group-by/filter pickers, a
+  preview table, save-as-named-definition, and a saved-reports list with
+  run/delete (`verify-report-builder.ts`, 12 checks incl. hand-counted
+  ticket_count-by-status, a month-bucketed avg_resolution_minutes, a filter
+  narrowing results, three separate out-of-allowlist rejections that leave
+  the `tickets` table intact, and a saved definition re-running identically
+  to its original preview; `reports:verify` re-runs clean as a regression).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

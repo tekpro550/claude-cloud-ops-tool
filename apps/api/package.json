@@ -53,6 +53,7 @@
     "ticket-links:verify": "ts-node -r dotenv/config src/modules/ticketing/ticket-links/scripts/verify-ticket-links.ts",
     "ticket-watchers:verify": "ts-node -r dotenv/config src/modules/ticketing/ticket-watchers/scripts/verify-ticket-watchers.ts",
     "reports:verify": "ts-node -r dotenv/config src/modules/ticketing/reports/scripts/verify-reports.ts",
+    "report-builder:verify": "ts-node -r dotenv/config src/modules/ticketing/reports/scripts/verify-report-builder.ts",
     "ticket-ai:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ticket-ai.ts",
     "audit-log:verify": "ts-node -r dotenv/config src/modules/platform/audit/scripts/verify-audit-log.ts",
     "credentials-encryption:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-credentials-encryption.ts",
