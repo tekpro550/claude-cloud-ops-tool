@@ -72,6 +72,13 @@ const templates: Record<string, TemplateRenderer> = {
     subject: String(payload.subject ?? 'Cost alert'),
     body: String(payload.body ?? ''),
   }),
+  // ScheduledReportSweepService (Module 3) attaches the rendered CSV/PDF via
+  // payload.attachment (see notification-channel.interface.ts); this
+  // renderer is just the surrounding email text.
+  'cost.scheduled_report': (payload) => ({
+    subject: `Scheduled report: ${payload.reportName ?? 'Cost report'}`,
+    body: `Your scheduled report "${payload.reportName}" is attached (${String(payload.format ?? '').toUpperCase()}).`,
+  }),
 };
 
 function escapeHtml(value: string): string {

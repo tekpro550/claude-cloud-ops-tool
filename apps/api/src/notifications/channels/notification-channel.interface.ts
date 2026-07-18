@@ -5,10 +5,24 @@ export interface RenderedMessage {
   html?: string;
 }
 
+export interface NotificationAttachment {
+  filename: string;
+  contentType: string;
+  /**
+   * base64-encoded file content. Kept inline in the notifications.payload
+   * jsonb column rather than a separate bytea column/object-storage row --
+   * these are on-demand report exports (see cost/reporting/), generated
+   * fresh each send, not long-lived files that need their own storage
+   * lifecycle the way ticket attachments do.
+   */
+  base64: string;
+}
+
 export interface SendInput {
   recipient: string;
   message: RenderedMessage;
   payload: Record<string, unknown>;
+  attachment?: NotificationAttachment;
 }
 
 export interface NotificationChannel {

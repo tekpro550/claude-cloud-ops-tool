@@ -1,4 +1,4 @@
-import { request } from "./apiClient";
+import { downloadScheduledReport, request } from "./apiClient";
 import type {
   AccountCostSummary,
   Commitment,
@@ -9,6 +9,10 @@ import type {
   CostBudget,
   CostDashboardSummary,
   CostForecastResult,
+  ScheduledReport,
+  ScheduledReportCadence,
+  ScheduledReportFormat,
+  ScheduledReportKind,
   CostLineItem,
   CostSavingsLogEntry,
   CostTrendPoint,
@@ -257,4 +261,33 @@ export function listCommitmentRecommendations(tenantId: string): Promise<Commitm
 
 export function dismissCommitmentRecommendation(tenantId: string, id: string): Promise<CommitmentRecommendation> {
   return request(tenantId, "PATCH", `/cost/commitments/recommendations/${id}/dismiss`);
+}
+
+// ---- Scheduled + exported reports ----
+
+export function listScheduledReports(tenantId: string): Promise<ScheduledReport[]> {
+  return request(tenantId, "GET", "/cost/scheduled-reports");
+}
+
+export interface CreateScheduledReportInput {
+  name: string;
+  reportKind: ScheduledReportKind;
+  params?: Record<string, unknown>;
+  format: ScheduledReportFormat;
+  cadence: ScheduledReportCadence;
+  recipients: string[];
+}
+
+export function createScheduledReport(tenantId: string, input: CreateScheduledReportInput): Promise<ScheduledReport> {
+  return request(tenantId, "POST", "/cost/scheduled-reports", input);
+}
+
+export function deleteScheduledReport(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/cost/scheduled-reports/${id}`);
+}
+
+// Streams the rendered file straight to a browser download.
+export function runScheduledReportNow(tenantId: string, report: ScheduledReport): Promise<void> {
+  const safeName = report.name.replace(/[^\w.-]+/g, "_");
+  return downloadScheduledReport(tenantId, report.id, `${safeName}.${report.format}`);
 }

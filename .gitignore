@@ -8,3 +8,4 @@ build/
 coverage/
 .turbo/
 apps/api/storage/
+*.rdb

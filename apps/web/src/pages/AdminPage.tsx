@@ -25,6 +25,7 @@ import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
 import SolutionsAdmin from "../components/admin/SolutionsAdmin";
 import SsoConfigAdmin from "../components/admin/SsoConfigAdmin";
 import TwoFactorAdmin from "../components/admin/TwoFactorAdmin";
+import ScheduledReportsAdmin from "../components/admin/ScheduledReportsAdmin";
 import TenantCostSettingsAdmin from "../components/admin/TenantCostSettingsAdmin";
 import TicketTypesAdmin from "../components/admin/TicketTypesAdmin";
 import { getSetupStatus } from "../lib/apiClient";
@@ -124,6 +125,7 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
       items: [
         { key: "budgets", label: "Budgets", description: "Spend limits and pace alerting", icon: "💵", render: (p) => <CostBudgetsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "cost-settings", label: "Cost settings", description: "Currency and tracking preferences", icon: "🧾", render: (p) => <TenantCostSettingsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "scheduled-reports", label: "Scheduled reports", description: "Emailed CSV/PDF cost reports on a cadence", icon: "🗓️", render: (p) => <ScheduledReportsAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],

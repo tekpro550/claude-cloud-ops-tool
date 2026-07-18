@@ -97,6 +97,7 @@ export class NotificationDispatcherService implements OnModuleInit {
             recipient: notification.recipient,
             message,
             payload: notification.payload,
+            attachment: notification.payload?.attachment,
           });
           await queryRunner.query(
             `UPDATE notifications SET status = 'sent', sent_at = now() WHERE id = $1`,

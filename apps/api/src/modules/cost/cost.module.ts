@@ -21,6 +21,10 @@ import { CommitmentsService } from './commitments/commitments.service';
 import { CostSavingsSweepService } from './cost-savings-sweep.service';
 import { RecommendationsController } from './recommendations.controller';
 import { RecommendationsService } from './recommendations.service';
+import { ReportGeneratorService } from './reporting/report-generator.service';
+import { ScheduledReportSweepService } from './reporting/scheduled-report-sweep.service';
+import { ScheduledReportsController } from './reporting/scheduled-reports.controller';
+import { ScheduledReportsService } from './reporting/scheduled-reports.service';
 import { RightsizingSweepService } from './rightsizing-sweep.service';
 import { SavingsLogController } from './savings-log.controller';
 import { SavingsLogService } from './savings-log.service';
@@ -48,6 +52,7 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     CostAnomaliesController,
     CostAllocationController,
     CommitmentsController,
+    ScheduledReportsController,
   ],
   providers: [
     CostBudgetsService,
@@ -65,6 +70,9 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     CostAllocationService,
     CommitmentsService,
     CommitmentSweepService,
+    ReportGeneratorService,
+    ScheduledReportsService,
+    ScheduledReportSweepService,
   ],
 })
 export class CostModule {}

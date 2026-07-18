@@ -444,6 +444,27 @@ export async function downloadTicketAttachment(tenantId: string, ticketId: strin
   URL.revokeObjectURL(url);
 }
 
+// Same reasoning as downloadTicketAttachment: POST to run-now returns the
+// rendered file (not JSON), so the auth headers + blob dance happens here
+// rather than through request<T>().
+export async function downloadScheduledReport(tenantId: string, id: string, filename: string): Promise<void> {
+  const headers: Record<string, string> = { "X-Tenant-Id": tenantId };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  const res = await fetch(`${API_BASE_URL}/cost/scheduled-reports/${id}/run-now`, { method: "POST", headers });
+  if (!res.ok) {
+    throw new ApiError("Failed to run report", res.status);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export interface AddTicketMessageInput {
   type: TicketMessageType;
   authorType: TicketMessageAuthorType;

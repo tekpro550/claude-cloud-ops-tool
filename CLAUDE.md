@@ -408,6 +408,33 @@ below is **verified against the code now in `main`**, not just commit messages.
   a synthetic case proving the weekday-weighted method beats a naive flat-rate
   projection; `cost-pace:verify`/`cost-anomaly:verify` re-run clean as
   regressions).
+- **Scheduled + exported reports (competitive-parity plan, task 6).**
+  `CreateScheduledReports` adds `scheduled_reports` (RLS-scoped; `report_kind`
+  is an open CHECK list so a later report source can extend it without
+  reshaping the table). `ReportGeneratorService` turns a `report_kind` into a
+  `ReportTable` by reusing the same tested services the dashboards call
+  (`CostDashboardService`, `CostAllocationService`, `CommitmentsService`) --
+  cost_dashboard, cost_by_service, cost_by_tag, commitment_coverage. Cost
+  module only for now; a ticket-sourced kind (report builder, task 7) would
+  need the internal HTTP contract like every other cross-module call here,
+  documented on the generator and the migration. `report-export.ts` (pure)
+  serializes to RFC 4180 CSV or a simple pdfkit-rendered PDF (pure-JS, no
+  Chromium dependency -- `pdfkit`/`@types/pdfkit` added).
+  `ScheduledReportSweepService` finds due reports, renders, and emails each
+  recipient via the normal `NotificationsService.enqueue` → event-bus →
+  `NotificationDispatcherService` path, then advances `next_run_at` per
+  cadence (`report-schedule.ts`, pure). Email attachments are new plumbing:
+  `NotificationAttachment` (base64 in the notification's jsonb `payload`,
+  not a new column) flows through `SendInput.attachment` into
+  `EmailChannel.send`'s nodemailer call. Admin-only
+  `POST /cost/scheduled-reports/:id/run-now` streams the rendered file for
+  immediate download, independent of the schedule
+  (`verify-scheduled-reports.ts`, 18 checks incl. the attachment actually
+  being sent through the real dispatch pipeline, not a mock;
+  `notifications:verify`/`notification-channels:verify`/`slack-webhook:verify`
+  re-run clean as regressions). Web: a Scheduled reports admin card
+  (create/run-now/delete); `run-now` downloads via a blob fetch, the
+  documented apiClient exception for non-JSON responses.
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

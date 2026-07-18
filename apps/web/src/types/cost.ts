@@ -174,3 +174,21 @@ export interface CostForecastResult {
   monthEnd: MonthEndForecast | null;
   multiMonth: MultiMonthForecast | null;
 }
+
+export type ScheduledReportKind = "cost_dashboard" | "cost_by_service" | "cost_by_tag" | "commitment_coverage";
+export type ScheduledReportFormat = "csv" | "pdf";
+export type ScheduledReportCadence = "daily" | "weekly" | "monthly";
+
+export interface ScheduledReport {
+  id: string;
+  name: string;
+  report_kind: ScheduledReportKind;
+  params: Record<string, unknown>;
+  format: ScheduledReportFormat;
+  cadence: ScheduledReportCadence;
+  recipients: string[];
+  last_run_at: string | null;
+  next_run_at: string;
+  is_active: boolean;
+  created_at: string;
+}
