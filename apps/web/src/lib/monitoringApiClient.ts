@@ -9,6 +9,9 @@ import type {
   DowntimeEvent,
   EscalationPolicy,
   FleetSummaryItem,
+  LogAlertRule,
+  LogEntry,
+  LogSource,
   MetricComparator,
   Monitor,
   MonitoringDashboardSummary,
@@ -330,4 +333,70 @@ export function removeStatusPageMonitor(tenantId: string, statusPageId: string, 
 // Unauthenticated -- no X-Tenant-Id, matches the public/no-guard backend route.
 export function getPublicStatus(slug: string): Promise<PublicStatus> {
   return publicRequest(`/public/status/${slug}`);
+}
+
+// ---- Log management ----
+
+export function searchLogs(
+  tenantId: string,
+  query: { sourceId?: string; level?: string; q?: string; from?: string; to?: string; limit?: number },
+): Promise<LogEntry[]> {
+  const params = new URLSearchParams();
+  if (query.sourceId) params.set("sourceId", query.sourceId);
+  if (query.level) params.set("level", query.level);
+  if (query.q) params.set("q", query.q);
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return request(tenantId, "GET", `/logs/search${qs ? `?${qs}` : ""}`);
+}
+
+export function listLogSources(tenantId: string): Promise<LogSource[]> {
+  return request(tenantId, "GET", "/logs/sources");
+}
+
+export function createLogSource(tenantId: string, name: string): Promise<LogSource> {
+  return request(tenantId, "POST", "/logs/sources", { name });
+}
+
+export function updateLogSource(
+  tenantId: string,
+  id: string,
+  input: { name?: string; isActive?: boolean },
+): Promise<LogSource> {
+  return request(tenantId, "PATCH", `/logs/sources/${id}`, input);
+}
+
+export function deleteLogSource(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/logs/sources/${id}`);
+}
+
+export function listLogAlertRules(tenantId: string): Promise<LogAlertRule[]> {
+  return request(tenantId, "GET", "/logs/alert-rules");
+}
+
+export interface CreateLogAlertRuleInput {
+  logSourceId: string;
+  name: string;
+  matchQuery?: string;
+  levelAtLeast?: string;
+  windowSeconds?: number;
+  threshold?: number;
+}
+
+export function createLogAlertRule(tenantId: string, input: CreateLogAlertRuleInput): Promise<LogAlertRule> {
+  return request(tenantId, "POST", "/logs/alert-rules", input);
+}
+
+export function updateLogAlertRule(
+  tenantId: string,
+  id: string,
+  input: Partial<CreateLogAlertRuleInput & { isEnabled: boolean }>,
+): Promise<LogAlertRule> {
+  return request(tenantId, "PATCH", `/logs/alert-rules/${id}`, input);
+}
+
+export function deleteLogAlertRule(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/logs/alert-rules/${id}`);
 }

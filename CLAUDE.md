@@ -495,6 +495,41 @@ below is **verified against the code now in `main`**, not just commit messages.
   consecutive failures opening a real alert through the unmodified alerting
   pipeline; `monitor-engine:verify`/`alerting:verify`/`multi-location:verify`
   re-run clean as regressions).
+- **Log management (competitive-parity plan, task 9).** `CreateLogManagement`
+  adds `log_sources`, `log_entries` (indexed on `(tenant_id, log_source_id, ts
+  DESC)` plus a GIN index on `to_tsvector('english', message)` for search),
+  and `log_alert_rules` (all RLS-scoped). `log_sources` deliberately has no
+  `token_hash` column despite the plan text -- the ingest credential is a
+  self-describing signed JWT (`kind: 'log_source'`, `jwt.ts`), the same
+  pattern `agent_tokens`/`AgentTokenGuard` already use, so
+  `LogSourceTokenGuard` resolves `tenantId` from the token itself instead of
+  needing an RLS-gated cross-tenant lookup before the tenant is even known.
+  `log_alert_rules.escalation_policy_id` is schema-only for now (same
+  "column exists for later wiring" precedent as
+  `AddContactAuthAndSourceDetail`'s `password_hash`/`oauth_provider`) --
+  `LogAlertSweepService` always fires by opening a ticket via the internal
+  `/internal/tickets/from_alert` contract (ticket priority derived from
+  `level_at_least`), the simpler of the two options the plan allows, not by
+  walking the policy's steps. `LogIngestionController`
+  (`POST /logs/ingest`, `LogSourceTokenGuard`) mirrors
+  `AgentIngestionController` structurally; `LogsController` (`TenantHeaderGuard`)
+  covers search (`plainto_tsquery` over the FTS index, plus source_id/level/
+  time-range filters) and source + alert-rule CRUD, all via `LogsService`.
+  `LogAlertSweepService` mirrors `EscalationSweepService`'s timer shape:
+  for each enabled rule whose `window_seconds` have elapsed since
+  `last_fired_at` (debounce), counts matching `log_entries` (level >=
+  `level_at_least`, optional `match_query` full-text match) in the trailing
+  window and fires once `threshold` is crossed. Web: a `/monitoring/logs`
+  `LogsPage` (source/level filters, full-text search box, a flat
+  timestamp/level/message list with level-tinted rows), plus `LogSourcesAdmin`
+  (create a source, see its ingest token exactly once, disable/delete) and
+  `LogAlertRulesAdmin` admin cards (`verify-logs.ts`, 18 checks incl. a
+  disabled source's token being rejected, full-text search matching by
+  keyword, level and time-range filters, RLS hiding one tenant's logs/sources
+  from another, a rule not firing below threshold then firing and opening a
+  ticket once it's crossed, and the fire being debounced on the very next
+  sweep; `monitor-engine:verify`/`alerting:verify`/`synthetic:verify`/
+  `auth:verify` re-run clean as regressions).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

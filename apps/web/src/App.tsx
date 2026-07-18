@@ -24,6 +24,7 @@ import ReportsPage from "./pages/ReportsPage";
 import CommitmentsPage from "./pages/CommitmentsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import SavingsLogPage from "./pages/SavingsLogPage";
+import LogsPage from "./pages/LogsPage";
 import MonitoringDashboardPage from "./pages/MonitoringDashboardPage";
 import MonitoringFleetPage from "./pages/MonitoringFleetPage";
 import NewTicketPage from "./pages/NewTicketPage";
@@ -191,6 +192,7 @@ const MONITORING_NAV_ITEMS: NavItem[] = [
   { i18nKey: "nav.dashboard", to: "/monitoring/dashboard", icon: "📊" },
   { i18nKey: "nav.fleet", to: "/monitoring", icon: "🖥️", end: true },
   { i18nKey: "nav.alerts", to: "/alerts", icon: "🔔" },
+  { i18nKey: "nav.logs", to: "/monitoring/logs", icon: "📜" },
 ];
 
 const COST_NAV_ITEMS: NavItem[] = [
@@ -317,6 +319,7 @@ function App() {
           <Route path="/monitoring" element={<MonitoringFleetPage />} />
           <Route path="/monitoring/dashboard" element={<MonitoringDashboardPage />} />
           <Route path="/monitoring/resources/:id" element={<ResourceDashboardPage />} />
+          <Route path="/monitoring/logs" element={<LogsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/cost" element={<CostRollupPage />} />
           <Route path="/cost/dashboard" element={<CostDashboardPage />} />

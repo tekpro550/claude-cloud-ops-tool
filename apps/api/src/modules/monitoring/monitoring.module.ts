@@ -37,6 +37,12 @@ import { EscalationPoliciesController } from './escalation-policies.controller';
 import { EscalationPoliciesService } from './escalation-policies.service';
 import { EscalationSweepService } from './escalation-sweep.service';
 import { FleetSummaryController } from './fleet-summary.controller';
+import { LogAlertSweepService } from './logs/log-alert-sweep.service';
+import { LogIngestionController } from './logs/log-ingestion.controller';
+import { LogIngestionService } from './logs/log-ingestion.service';
+import { LogSourceTokenGuard } from './logs/log-source-token.guard';
+import { LogsController } from './logs/logs.controller';
+import { LogsService } from './logs/logs.service';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
 import { MonitoringDashboardController } from './monitoring-dashboard.controller';
 import { MonitoringDashboardService } from './monitoring-dashboard.service';
@@ -83,6 +89,8 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     FleetSummaryController,
     MonitoringDashboardController,
     DiskForecastsController,
+    LogsController,
+    LogIngestionController,
   ],
   providers: [
     ResourcesService,
@@ -110,6 +118,10 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
       provide: SYNTHETIC_RUNNER,
       useClass: PlaywrightSyntheticRunner,
     },
+    LogsService,
+    LogIngestionService,
+    LogSourceTokenGuard,
+    LogAlertSweepService,
     {
       // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,

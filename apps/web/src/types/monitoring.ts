@@ -241,3 +241,39 @@ export interface PublicStatus {
   description?: string | null;
   components: PublicStatusComponent[];
 }
+
+export type LogLevel = "debug" | "info" | "warn" | "error" | "critical";
+export const LOG_LEVELS: LogLevel[] = ["debug", "info", "warn", "error", "critical"];
+
+export interface LogSource {
+  id: string;
+  tenant_id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  /** Present only in the create() response -- the signed ingest token is never re-displayed. */
+  token?: string;
+}
+
+export interface LogEntry {
+  id: string;
+  log_source_id: string;
+  ts: string;
+  level: LogLevel;
+  message: string;
+  attributes: Record<string, unknown>;
+}
+
+export interface LogAlertRule {
+  id: string;
+  log_source_id: string;
+  name: string;
+  match_query: string | null;
+  level_at_least: LogLevel;
+  window_seconds: number;
+  threshold: number;
+  is_enabled: boolean;
+  last_fired_at: string | null;
+  created_at: string;
+}

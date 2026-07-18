@@ -60,3 +60,30 @@ export function verifyDeviceJwt(token: string): DeviceJwtClaims | null {
     return null;
   }
 }
+
+/**
+ * A fifth `kind`, for a log source's ingest credential (Module 2 log
+ * management) -- self-describing exactly like DeviceJwtClaims, so
+ * LogSourceTokenGuard can resolve tenantId from the token itself rather
+ * than needing an RLS-gated cross-tenant lookup by a stored hash before the
+ * tenant is even known.
+ */
+export interface LogSourceJwtClaims {
+  sub: string;
+  tenantId: string;
+  kind: 'log_source';
+}
+
+export function signLogSourceJwt(claims: LogSourceJwtClaims): string {
+  const expiresIn = process.env.DEVICE_JWT_EXPIRES_IN ?? '3650d';
+  return jwt.sign(claims, secret(), { expiresIn } as jwt.SignOptions);
+}
+
+export function verifyLogSourceJwt(token: string): LogSourceJwtClaims | null {
+  try {
+    const claims = jwt.verify(token, secret()) as LogSourceJwtClaims;
+    return claims.kind === 'log_source' ? claims : null;
+  } catch {
+    return null;
+  }
+}

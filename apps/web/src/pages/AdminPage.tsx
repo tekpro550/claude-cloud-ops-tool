@@ -16,6 +16,8 @@ import CostBudgetsAdmin from "../components/admin/CostBudgetsAdmin";
 import CustomFieldsAdmin from "../components/admin/CustomFieldsAdmin";
 import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
+import LogAlertRulesAdmin from "../components/admin/LogAlertRulesAdmin";
+import LogSourcesAdmin from "../components/admin/LogSourcesAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
 import OnCallSchedulesAdmin from "../components/admin/OnCallSchedulesAdmin";
 import ResourcesAdmin from "../components/admin/ResourcesAdmin";
@@ -116,6 +118,8 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
         { key: "on-call", label: "On-call schedules", description: "Rotations for escalation targets", icon: "📅", render: (p) => <OnCallSchedulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "notification-templates", label: "Notification templates", description: "Message bodies for alert channels", icon: "✉️", render: (p) => <NotificationTemplatesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "status-pages", label: "Status pages", description: "Public, unauthenticated uptime pages", icon: "🟢", render: (p) => <StatusPagesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "log-sources", label: "Log sources", description: "Ingest tokens for shipping logs in", icon: "📜", render: (p) => <LogSourcesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "log-alert-rules", label: "Log alert rules", description: "Open a ticket when matching log entries cross a threshold", icon: "🚨", render: (p) => <LogAlertRulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],
