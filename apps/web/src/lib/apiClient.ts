@@ -88,6 +88,19 @@ export async function request<T>(tenantId: string, method: string, path: string,
   return res.json();
 }
 
+// For genuinely unauthenticated endpoints (e.g. a public status page) that
+// carry no X-Tenant-Id/Bearer at all -- the API resolves identity from the
+// URL itself (a slug), not from headers.
+export async function publicRequest<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`);
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    const message = payload?.message ?? res.statusText;
+    throw new ApiError(Array.isArray(message) ? message.join(", ") : message, res.status);
+  }
+  return res.json();
+}
+
 export interface ListTicketsFilters {
   status?: TicketStatus;
   priority?: TicketPriority;

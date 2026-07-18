@@ -343,6 +343,21 @@ below is **verified against the code now in `main`**, not just commit messages.
   next assignee inside `TicketsService.create`'s transaction; an explicit
   `agentId` always wins. Admin UI: assignment-strategy picker on Groups, new
   Agent skills card (`verify-assignment.ts`).
+- **Public status pages (competitive-parity plan, task 2).**
+  `CreateStatusPages` adds `status_pages` + `status_page_monitors` (RLS), plus
+  one deliberate, narrowly-scoped widening: a second PERMISSIVE SELECT policy
+  on `status_pages` gated on `is_public = true AND
+  current_setting('app.public_status_read', true) = 'true'` -- that second
+  transaction-local flag (SET LOCAL, same as `app.current_tenant`) is what
+  keeps a tenant's public pages from leaking into every *other* tenant's own
+  admin list, which the first draft of this policy got wrong and
+  `verify-status-pages.ts` caught. `StatusPagesService.getPublicStatus`
+  resolves slug → tenant_id with that flag set, then re-enters normal
+  `withTenantContext` to load monitors and return only whitelisted display
+  fields (name/status/90-day uptime %) -- never tenant_id or monitor
+  internals. `StatusPagePublicController` (`GET /public/status/:slug`) has NO
+  guard at all. The web route `/status/:slug` renders standalone, without the
+  admin header/nav chrome (`App.tsx`'s `isPublicStatusRoute` check).
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

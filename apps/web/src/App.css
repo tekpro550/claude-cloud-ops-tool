@@ -2625,3 +2625,122 @@ td {
   font-family: var(--font-mono, monospace);
   font-size: 0.75rem;
 }
+
+/* Admin list rows that expand to show nested content (e.g. status page monitors). */
+.admin-list-item-expanded {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.admin-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.admin-nested {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--color-border);
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------
+   Public status page -- standalone, no admin chrome (see App.tsx's
+   isPublicStatusRoute check).
+   --------------------------------------------------------------------- */
+.status-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.status-page-card {
+  width: 100%;
+  max-width: 640px;
+}
+
+.status-page-card h1 {
+  margin-bottom: 0.25rem;
+}
+
+.status-page-overall {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.status-page-overall-up {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-page-overall-down {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.status-page-components {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.status-page-components li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.status-page-components li:last-child {
+  border-bottom: none;
+}
+
+.status-page-components li > span:first-child {
+  flex: 1 1 auto;
+  font-weight: 500;
+}
+
+.status-page-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-page-badge-up {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-page-badge-down,
+.status-page-badge-critical {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.status-page-badge-trouble {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-page-badge-unknown {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+}
+
+.status-page-uptime {
+  white-space: nowrap;
+}

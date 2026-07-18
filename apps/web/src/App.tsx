@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 import NeedsAttentionBanner from "./components/NeedsAttentionBanner";
 import { ApiError, beginSsoLogin } from "./lib/apiClient";
@@ -28,6 +28,7 @@ import MonitoringFleetPage from "./pages/MonitoringFleetPage";
 import NewTicketPage from "./pages/NewTicketPage";
 import ResourceDashboardPage from "./pages/ResourceDashboardPage";
 import SearchPage from "./pages/SearchPage";
+import StatusPage from "./pages/StatusPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import TicketListPage from "./pages/TicketListPage";
 
@@ -258,6 +259,19 @@ function App() {
   const { tenantId, setTenantId } = useTenant();
   const { user } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
+  const location = useLocation();
+
+  // A public status page is meant to be shared with people outside the
+  // organization -- render it standalone, without the internal admin
+  // header/nav/tenant-id chrome that surrounds every other route.
+  const isPublicStatusRoute = /^\/status\/[^/]+$/.test(location.pathname);
+  if (isPublicStatusRoute) {
+    return (
+      <Routes>
+        <Route path="/status/:slug" element={<StatusPage />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="app">

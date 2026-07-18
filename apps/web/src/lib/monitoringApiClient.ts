@@ -1,4 +1,4 @@
-import { request } from "./apiClient";
+import { publicRequest, request } from "./apiClient";
 import type {
   AgentToken,
   Alert,
@@ -12,8 +12,11 @@ import type {
   MonitorStatus,
   NotificationTemplate,
   OnCallSchedule,
+  PublicStatus,
   Resource,
   ResourceDashboard,
+  StatusPage,
+  StatusPageDetail,
 } from "../types/monitoring";
 import type { DashboardTrendPoint } from "../types/ticket";
 
@@ -261,4 +264,50 @@ export function listDiskForecasts(tenantId: string): Promise<DiskForecast[]> {
 
 export function dismissDiskForecast(tenantId: string, id: string): Promise<void> {
   return request(tenantId, "PATCH", `/monitoring/disk-forecasts/${id}/dismiss`);
+}
+
+// ---- Status pages ----
+
+export function listStatusPages(tenantId: string): Promise<StatusPage[]> {
+  return request(tenantId, "GET", "/status-pages");
+}
+
+export function getStatusPage(tenantId: string, id: string): Promise<StatusPageDetail> {
+  return request(tenantId, "GET", `/status-pages/${id}`);
+}
+
+export function createStatusPage(
+  tenantId: string,
+  input: { slug: string; title: string; description?: string; isPublic?: boolean },
+): Promise<StatusPage> {
+  return request(tenantId, "POST", "/status-pages", input);
+}
+
+export function updateStatusPage(
+  tenantId: string,
+  id: string,
+  input: { title?: string; description?: string; isPublic?: boolean },
+): Promise<StatusPage> {
+  return request(tenantId, "PATCH", `/status-pages/${id}`, input);
+}
+
+export function deleteStatusPage(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/status-pages/${id}`);
+}
+
+export function addStatusPageMonitor(
+  tenantId: string,
+  statusPageId: string,
+  input: { monitorId: string; displayName?: string; sortOrder?: number },
+): Promise<void> {
+  return request(tenantId, "POST", `/status-pages/${statusPageId}/monitors`, input);
+}
+
+export function removeStatusPageMonitor(tenantId: string, statusPageId: string, linkId: string): Promise<void> {
+  return request(tenantId, "DELETE", `/status-pages/${statusPageId}/monitors/${linkId}`);
+}
+
+// Unauthenticated -- no X-Tenant-Id, matches the public/no-guard backend route.
+export function getPublicStatus(slug: string): Promise<PublicStatus> {
+  return publicRequest(`/public/status/${slug}`);
 }

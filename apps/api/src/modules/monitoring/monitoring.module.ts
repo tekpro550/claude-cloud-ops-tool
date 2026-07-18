@@ -48,6 +48,9 @@ import { OnCallSchedulesController } from './on-call-schedules.controller';
 import { OnCallSchedulesService } from './on-call-schedules.service';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
+import { StatusPagePublicController } from './status-pages/status-page-public.controller';
+import { StatusPagesController } from './status-pages/status-pages.controller';
+import { StatusPagesService } from './status-pages/status-pages.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -72,12 +75,15 @@ import { ResourcesService } from './resources.service';
     NotificationTemplatesController,
     DowntimeEventsController,
     ResourcesController,
+    StatusPagesController,
+    StatusPagePublicController,
     FleetSummaryController,
     MonitoringDashboardController,
     DiskForecastsController,
   ],
   providers: [
     ResourcesService,
+    StatusPagesService,
     MonitorsService,
     MonitoringDashboardService,
     MonitorSchedulerService,

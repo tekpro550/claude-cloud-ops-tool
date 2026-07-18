@@ -180,3 +180,38 @@ export interface MonitoringDashboardSummary {
     info: number;
   };
 }
+
+export interface StatusPage {
+  id: string;
+  tenant_id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  is_public: boolean;
+  created_at: string;
+}
+
+export interface StatusPageMonitorLink {
+  id: string;
+  status_page_id: string;
+  monitor_id: string;
+  monitor_name: string;
+  display_name?: string | null;
+  sort_order: number;
+}
+
+export interface StatusPageDetail extends StatusPage {
+  monitors: StatusPageMonitorLink[];
+}
+
+export interface PublicStatusComponent {
+  name: string;
+  status: MonitorStatus | "unknown";
+  uptimePct: number | null;
+}
+
+export interface PublicStatus {
+  title: string;
+  description?: string | null;
+  components: PublicStatusComponent[];
+}

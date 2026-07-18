@@ -19,6 +19,7 @@ import GroupsAdmin from "../components/admin/GroupsAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
 import OnCallSchedulesAdmin from "../components/admin/OnCallSchedulesAdmin";
 import ResourcesAdmin from "../components/admin/ResourcesAdmin";
+import StatusPagesAdmin from "../components/admin/StatusPagesAdmin";
 import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
 import SolutionsAdmin from "../components/admin/SolutionsAdmin";
@@ -113,6 +114,7 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
         { key: "escalation-policies", label: "Escalation policies", description: "Who gets paged and when", icon: "📣", render: (p) => <EscalationPoliciesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "on-call", label: "On-call schedules", description: "Rotations for escalation targets", icon: "📅", render: (p) => <OnCallSchedulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "notification-templates", label: "Notification templates", description: "Message bodies for alert channels", icon: "✉️", render: (p) => <NotificationTemplatesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "status-pages", label: "Status pages", description: "Public, unauthenticated uptime pages", icon: "🟢", render: (p) => <StatusPagesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],
