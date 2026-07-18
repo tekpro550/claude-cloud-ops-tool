@@ -6,6 +6,7 @@ import AgentSkillsAdmin from "../components/admin/AgentSkillsAdmin";
 import AiSettingsAdmin from "../components/admin/AiSettingsAdmin";
 import AgentTokensAdmin from "../components/admin/AgentTokensAdmin";
 import AlertRulesAdmin from "../components/admin/AlertRulesAdmin";
+import ApmIngestKeysAdmin from "../components/admin/ApmIngestKeysAdmin";
 import AuditLogAdmin from "../components/admin/AuditLogAdmin";
 import AutomationRulesAdmin from "../components/admin/AutomationRulesAdmin";
 import BusinessHoursAdmin from "../components/admin/BusinessHoursAdmin";
@@ -16,9 +17,13 @@ import CostBudgetsAdmin from "../components/admin/CostBudgetsAdmin";
 import CustomFieldsAdmin from "../components/admin/CustomFieldsAdmin";
 import EscalationPoliciesAdmin from "../components/admin/EscalationPoliciesAdmin";
 import GroupsAdmin from "../components/admin/GroupsAdmin";
+import LogAlertRulesAdmin from "../components/admin/LogAlertRulesAdmin";
+import LogSourcesAdmin from "../components/admin/LogSourcesAdmin";
+import NetworkDevicesAdmin from "../components/admin/NetworkDevicesAdmin";
 import NotificationTemplatesAdmin from "../components/admin/NotificationTemplatesAdmin";
 import OnCallSchedulesAdmin from "../components/admin/OnCallSchedulesAdmin";
 import ResourcesAdmin from "../components/admin/ResourcesAdmin";
+import RumAppKeysAdmin from "../components/admin/RumAppKeysAdmin";
 import StatusPagesAdmin from "../components/admin/StatusPagesAdmin";
 import ScenariosAdmin from "../components/admin/ScenariosAdmin";
 import SlaPoliciesAdmin from "../components/admin/SlaPoliciesAdmin";
@@ -116,6 +121,11 @@ const SETTINGS: Record<AdminModule, SettingGroup[]> = {
         { key: "on-call", label: "On-call schedules", description: "Rotations for escalation targets", icon: "📅", render: (p) => <OnCallSchedulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "notification-templates", label: "Notification templates", description: "Message bodies for alert channels", icon: "✉️", render: (p) => <NotificationTemplatesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
         { key: "status-pages", label: "Status pages", description: "Public, unauthenticated uptime pages", icon: "🟢", render: (p) => <StatusPagesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "log-sources", label: "Log sources", description: "Ingest tokens for shipping logs in", icon: "📜", render: (p) => <LogSourcesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "log-alert-rules", label: "Log alert rules", description: "Open a ticket when matching log entries cross a threshold", icon: "🚨", render: (p) => <LogAlertRulesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "apm-ingest-keys", label: "APM ingest keys", description: "Keys for sending server-side traces in", icon: "🧵", render: (p) => <ApmIngestKeysAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "rum-app-keys", label: "RUM app keys", description: "Keys for browser real-user monitoring beacons", icon: "🌐", render: (p) => <RumAppKeysAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
+        { key: "network-devices", label: "Network devices", description: "SNMP-polled routers/switches", icon: "🔀", render: (p) => <NetworkDevicesAdmin tenantId={p.tenantId} onChange={p.onChange} /> },
       ],
     },
   ],

@@ -73,6 +73,9 @@ importers:
       multer:
         specifier: ^2.2.0
         version: 2.2.0
+      net-snmp:
+        specifier: ^3.26.3
+        version: 3.26.3
       nodemailer:
         specifier: ^9.0.3
         version: 9.0.3
@@ -82,6 +85,9 @@ importers:
       pg:
         specifier: ^8.22.0
         version: 8.22.0
+      playwright:
+        specifier: ^1.61.1
+        version: 1.61.1
       reflect-metadata:
         specifier: ^0.2.0
         version: 0.2.2
@@ -119,6 +125,9 @@ importers:
       '@types/multer':
         specifier: ^2.2.0
         version: 2.2.0
+      '@types/net-snmp':
+        specifier: ^3.23.0
+        version: 3.23.0
       '@types/node':
         specifier: ^20.3.1
         version: 20.19.43
@@ -1298,6 +1307,9 @@ packages:
   '@types/multer@2.2.0':
     resolution: {integrity: sha512-3U1troeqGV8Ntp7Q3klwf4zr23VEoqYVocYXaswm9+8z3O9UHDYAqLxjJ/h550iRADTjKdOdhhasXw6gD6kYtg==}
 
+  '@types/net-snmp@3.23.0':
+    resolution: {integrity: sha512-54Y5NLlQ8isegHTUZdEaIFhR1iz/qlRkQlpkuXfsWjWDVLNfStLmvraaj9ZS7tmcZEltFkb4ZeDBjnSYeFc3+w==}
+
   '@types/node-fetch@2.6.13':
     resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
 
@@ -1600,6 +1612,9 @@ packages:
 
   asap@2.0.6:
     resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
+
+  asn1-ber@1.2.2:
+    resolution: {integrity: sha512-CbNem/7hxrjSiOAOOTX4iZxu+0m3jiLqlsERQwwPM1IDR/22M8IPpA1VVndCLw5KtjRYyRODbvAEIfuTogNDng==}
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -2391,6 +2406,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3173,6 +3193,9 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
+  net-snmp@3.26.3:
+    resolution: {integrity: sha512-DTnzoz8Bk5Vz+7WWflo2VgSXMguadFMvsPmSOrknv+YTdA65lLUL1WZhYj6ZA/7pJvKscLJPOeU4LoEd6A1EZg==}
+
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
 
@@ -3412,6 +3435,16 @@ packages:
   pkg-dir@4.2.0:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
+
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.61.1:
+    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -5787,6 +5820,10 @@ snapshots:
     dependencies:
       '@types/express': 5.0.6
 
+  '@types/net-snmp@3.23.0':
+    dependencies:
+      '@types/node': 24.13.3
+
   '@types/node-fetch@2.6.13':
     dependencies:
       '@types/node': 24.13.3
@@ -6154,6 +6191,8 @@ snapshots:
   array-timsort@1.0.3: {}
 
   asap@2.0.6: {}
+
+  asn1-ber@1.2.2: {}
 
   asynckit@0.4.0: {}
 
@@ -7000,6 +7039,9 @@ snapshots:
   fs-monkey@1.1.0: {}
 
   fs.realpath@1.0.0: {}
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -7999,6 +8041,11 @@ snapshots:
 
   neo-async@2.6.2: {}
 
+  net-snmp@3.26.3:
+    dependencies:
+      asn1-ber: 1.2.2
+      smart-buffer: 4.2.0
+
   node-abort-controller@3.1.1: {}
 
   node-domexception@1.0.0:
@@ -8236,6 +8283,14 @@ snapshots:
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
+
+  playwright-core@1.61.1: {}
+
+  playwright@1.61.1:
+    dependencies:
+      playwright-core: 1.61.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   pluralize@8.0.0: {}
 

@@ -1897,6 +1897,65 @@ td {
   background: var(--color-warning);
 }
 
+.synthetic-waterfall {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 26rem;
+}
+
+.synthetic-waterfall-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.synthetic-waterfall-label {
+  flex: 0 0 8rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.synthetic-waterfall-track {
+  flex: 1 1 auto;
+  height: 8px;
+  background: var(--color-neutral-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.synthetic-waterfall-bar {
+  display: block;
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 2px;
+}
+
+.synthetic-waterfall-bar-failed {
+  background: var(--color-danger);
+}
+
+.synthetic-step-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.synthetic-step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .alert-card {
   padding: 0.7rem 1rem;
   background: var(--color-surface);
@@ -2778,4 +2837,74 @@ td {
   font-size: 0.78rem;
   color: var(--color-text-secondary);
   font-weight: 500;
+}
+
+.log-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+}
+
+.log-entry-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.log-entry-row-error,
+.log-entry-row-critical {
+  background: var(--color-danger-bg);
+}
+
+.log-entry-row-warn {
+  background: var(--color-warning-bg);
+}
+
+.log-entry-ts {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.log-entry-message {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.log-level-badge-debug,
+.log-level-badge-info {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral);
+}
+
+.log-level-badge-warn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.log-level-badge-error,
+.log-level-badge-critical {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.network-sparkline {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 20px;
+  width: 60px;
+}
+
+.network-sparkline-bar {
+  flex: 1 1 auto;
+  min-width: 2px;
+  background: var(--color-info);
+  border-radius: 1px;
 }

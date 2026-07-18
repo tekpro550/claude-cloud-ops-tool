@@ -435,6 +435,189 @@ below is **verified against the code now in `main`**, not just commit messages.
   re-run clean as regressions). Web: a Scheduled reports admin card
   (create/run-now/delete); `run-now` downloads via a blob fetch, the
   documented apiClient exception for non-JSON responses.
+- **Custom report builder (competitive-parity plan, task 7).**
+  `CreateReportDefinitions` adds `report_definitions` (RLS-scoped; one jsonb
+  `config` column -- the shape is owned by `report-builder.ts`'s allowlist,
+  not the schema). `report-builder.ts` is a pure, security-critical
+  allowlist query builder: every metric (`ticket_count`,
+  `avg_first_response_minutes`, `avg_resolution_minutes`,
+  `sla_attainment_pct`, `avg_csat` -- same happy=1/neutral=0.5/unhappy=0
+  weighting as `reports.service.ts`'s `csat()`), group-by dimension
+  (status/priority/ticket_type_id/group_id/assignee_id/source/day/week/month),
+  and filter field the caller can name is a token that must exist in a fixed
+  `Record<Token, string>` map; the SQL fragment it maps to is fixed at
+  compile time, every value is a bind parameter, and an unrecognized token
+  throws `BadRequestException` before any query runs -- not application-layer
+  sanitization, the rejection itself is what keeps this off being a SQL
+  injection surface. `ReportDefinitionsService` (CRUD + `preview()` for an
+  unsaved config + `run()` for a saved one, both executing the same
+  `buildReportQuery()` path) sits behind `ReportDefinitionsController`
+  (`@Controller('reports/custom')`, `TenantHeaderGuard`, same as the existing
+  `ReportsController`). Web: a "Custom report builder" section on the Reports
+  page (`CustomReportBuilder.tsx`) -- metric/group-by/filter pickers, a
+  preview table, save-as-named-definition, and a saved-reports list with
+  run/delete (`verify-report-builder.ts`, 12 checks incl. hand-counted
+  ticket_count-by-status, a month-bucketed avg_resolution_minutes, a filter
+  narrowing results, three separate out-of-allowlist rejections that leave
+  the `tickets` table intact, and a saved definition re-running identically
+  to its original preview; `reports:verify` re-runs clean as a regression).
+- **Synthetic browser / transaction monitoring (competitive-parity plan, task
+  8).** `AddSyntheticMonitors` widens `monitor_type_enum` with `'synthetic'`
+  and adds `synthetic_run_steps` (RLS-scoped; one row per step of a run,
+  `monitor_check_id` FK back to the `monitor_checks` row that run produced)
+  -- the per-step timing data a waterfall UI needs that `monitor_checks`
+  alone can't hold. `monitoring/synthetic/synthetic-script.ts` is a pure
+  allowlist validator (same reject-before-save contract as
+  `reports/report-builder.ts`): a monitor's `config.steps` must each name an
+  allowlisted action (`goto`/`click`/`fill`/`expectText`) with the right
+  shape for that action, or `MonitorsService.create`/`update` throws
+  `BadRequestException` before saving. `SYNTHETIC_RUNNER` (a `Symbol` DI
+  token, same pattern as `CLOUD_PROVIDER_CLIENT_FACTORY`) abstracts *running*
+  a script; `PlaywrightSyntheticRunner` is the real implementation (headless
+  Chromium via the `playwright` package, now an `apps/api` dependency --
+  Chromium itself was already pre-installed in this environment). A new
+  `SyntheticSchedulerService` (mirrors `MonitorSchedulerService`'s
+  per-tenant-transaction-plus-timer shape, but its own timer/interval since
+  `'synthetic'` isn't in `MonitorSchedulerService`'s actively-polled types)
+  polls due synthetic monitors, runs the script, writes the usual
+  `monitor_checks` row (status up/down, `response_time_ms` = total run time)
+  plus one `synthetic_run_steps` row per step, and feeds the result through
+  the existing `AlertEvaluationService.evaluate()` -- a synthetic monitor
+  alerts exactly like an http/ping one. Web: a script builder (add/remove
+  step rows, per-action fields, `maxStepMs`) on the resource dashboard's
+  "add monitor" form, and a `SyntheticWaterfall` component rendering each
+  monitor's last run as per-step timing bars with the failing step called
+  out in red (`verify-synthetic.ts`, 15 checks against a **fake**
+  `SYNTHETIC_RUNNER` -- no real browser in CI -- incl. a passing run writing
+  "up" plus 4 step rows, a failing step writing "down" with the error on the
+  right step index, a step exceeding `maxStepMs` marking the run down via
+  the same timeout path the real runner's `withTimeout` would hit, and two
+  consecutive failures opening a real alert through the unmodified alerting
+  pipeline; `monitor-engine:verify`/`alerting:verify`/`multi-location:verify`
+  re-run clean as regressions).
+- **Log management (competitive-parity plan, task 9).** `CreateLogManagement`
+  adds `log_sources`, `log_entries` (indexed on `(tenant_id, log_source_id, ts
+  DESC)` plus a GIN index on `to_tsvector('english', message)` for search),
+  and `log_alert_rules` (all RLS-scoped). `log_sources` deliberately has no
+  `token_hash` column despite the plan text -- the ingest credential is a
+  self-describing signed JWT (`kind: 'log_source'`, `jwt.ts`), the same
+  pattern `agent_tokens`/`AgentTokenGuard` already use, so
+  `LogSourceTokenGuard` resolves `tenantId` from the token itself instead of
+  needing an RLS-gated cross-tenant lookup before the tenant is even known.
+  `log_alert_rules.escalation_policy_id` is schema-only for now (same
+  "column exists for later wiring" precedent as
+  `AddContactAuthAndSourceDetail`'s `password_hash`/`oauth_provider`) --
+  `LogAlertSweepService` always fires by opening a ticket via the internal
+  `/internal/tickets/from_alert` contract (ticket priority derived from
+  `level_at_least`), the simpler of the two options the plan allows, not by
+  walking the policy's steps. `LogIngestionController`
+  (`POST /logs/ingest`, `LogSourceTokenGuard`) mirrors
+  `AgentIngestionController` structurally; `LogsController` (`TenantHeaderGuard`)
+  covers search (`plainto_tsquery` over the FTS index, plus source_id/level/
+  time-range filters) and source + alert-rule CRUD, all via `LogsService`.
+  `LogAlertSweepService` mirrors `EscalationSweepService`'s timer shape:
+  for each enabled rule whose `window_seconds` have elapsed since
+  `last_fired_at` (debounce), counts matching `log_entries` (level >=
+  `level_at_least`, optional `match_query` full-text match) in the trailing
+  window and fires once `threshold` is crossed. Web: a `/monitoring/logs`
+  `LogsPage` (source/level filters, full-text search box, a flat
+  timestamp/level/message list with level-tinted rows), plus `LogSourcesAdmin`
+  (create a source, see its ingest token exactly once, disable/delete) and
+  `LogAlertRulesAdmin` admin cards (`verify-logs.ts`, 18 checks incl. a
+  disabled source's token being rejected, full-text search matching by
+  keyword, level and time-range filters, RLS hiding one tenant's logs/sources
+  from another, a rule not firing below threshold then firing and opening a
+  ticket once it's crossed, and the fire being debounced on the very next
+  sweep; `monitor-engine:verify`/`alerting:verify`/`synthetic:verify`/
+  `auth:verify` re-run clean as regressions).
+- **APM + RUM ingestion (competitive-parity plan, task 10).** `CreateApmRum`
+  adds `apm_ingest_keys`/`apm_traces`/`apm_spans` and
+  `rum_app_keys`/`rum_events` (all RLS-scoped) -- ingestion + storage +
+  aggregation only, deliberately **not** a language-specific
+  auto-instrumentation agent, distributed trace-context propagation, or
+  sampling controls (see `docs/apm-rum-integration.md`, which ships instead
+  a copy-paste Express middleware and browser beacon snippet).
+  `apm_ingest_keys`/`rum_app_keys` follow `log_sources`' no-token-hash-column
+  precedent (self-describing signed JWTs, `kind: 'apm_ingest'` /
+  `'rum_app'`). `apm_spans.parent_span_id` has no FK -- a trace's spans
+  arrive with client-assigned `spanId`s unique only within that trace;
+  `ApmService.ingestTraces` resolves them to real uuids in one pass before
+  any insert (`crypto.randomUUID()`), so a child can reference a parent
+  that's about to be inserted in the same transaction without a two-pass or
+  deferred-constraint dance. `apm-percentile.ts` is a small pure module
+  (nearest-rank percentiles + the standard Apdex formula
+  `(satisfied + tolerating/2) / total`, T defaults to 500ms) reused by both
+  `ApmService.serviceStats` (per-transaction p50/p95/p99/apdex/error-rate)
+  and `RumService.pageStats` (per-page LCP/FCP/TTFB percentiles + JS-error
+  rate, with a disclosed simplification: there's no dedicated "page view"
+  event, so the error-rate denominator is the max sample count across the
+  three timing metrics). RUM's `POST /rum/collect` is the one deliberate
+  CORS-widening exception in the app -- RUM beacons come from arbitrary
+  customer websites, not the agent app or portal, so `main.ts` answers that
+  one path's CORS (incl. the OPTIONS preflight) with `Access-Control-Allow-
+  Origin: *` via middleware registered before the global `cors()`
+  middleware, same "narrowly-scoped, disclosed" spirit as status-pages' RLS
+  widening; tenant scoping for that route comes entirely from the signed
+  `appKey` in the request body (verified in `RumService.collect`), not from
+  origin, so the open CORS policy doesn't widen who can write data, only who
+  can attempt to. Web: an APM dashboard (`/monitoring/apm` -- service picker,
+  apdex/percentile stat tiles, a per-transaction table, slowest traces, and
+  an `ApmSpanWaterfall` reconstructing the span tree from `parent_span_id`)
+  and a RUM dashboard (`/monitoring/rum` -- page picker, LCP/FCP/TTFB
+  percentile tiles, JS error rate), plus `ApmIngestKeysAdmin`/
+  `RumAppKeysAdmin` admin cards (`verify-apm-rum.ts`, 22 checks incl.
+  hand-computed p50/p95/avg/apdex/error-rate over 10 traces, a 3-level span
+  tree reconstructing correctly by parent id, a removed ingest key's token
+  being rejected, an invalid RUM app key being rejected, hand-computed RUM
+  percentiles + error rate, and RLS isolation for both APM and RUM;
+  `monitor-engine:verify`/`logs:verify`/`synthetic:verify`/`alerting:verify`/
+  `auth:verify`/`status-pages:verify` re-run clean as regressions). All three
+  token-authed ingest paths (`/apm/traces`, `/rum/collect`, `/logs/ingest`)
+  share a Redis fixed-window rate limiter (`ingest-rate-limit.ts`, keyed per
+  ingest key/source, fail-open on a Redis outage, `INGEST_MAX_REQUESTS_PER_
+  WINDOW`/`INGEST_RATE_WINDOW_SECONDS`) and an `@ArrayMaxSize(1000)` batch cap;
+  ingest `ts` fields validate as `@IsDateString()` so a malformed timestamp
+  is a 400, not a Postgres cast 500. `serviceStats`/`pageStats` default to a
+  trailing 24h window when the caller doesn't bound it, so the in-Node
+  percentile aggregation never scans the full history unbounded.
+- **SNMP / network monitoring (competitive-parity plan, task 11).**
+  `CreateNetworkMonitoring` adds `network_devices` and
+  `network_interface_samples` (both RLS-scoped). `network_devices` follows
+  `cloud_credentials`' encryption pattern exactly -- `community_encrypted`
+  via pgcrypto `pgp_sym_encrypt`/`pgp_sym_decrypt` with the same
+  `CREDENTIALS_ENCRYPTION_KEY` (`credentials-crypto.ts`, no new key), and
+  `NetworkDevicesService`'s `SAFE_COLUMNS` never selects it -- the community
+  string is never returned by the API, same as a cloud credential's config.
+  `SNMP_CLIENT` (a `Symbol` DI token, same pattern as
+  `CLOUD_PROVIDER_CLIENT_FACTORY`/`SYNTHETIC_RUNNER`) abstracts walking a
+  device's IF-MIB `ifTable`; `NetSnmpClient` is the real implementation
+  (`net-snmp`, now an `apps/api` dependency, GET/WALKs `ifDescr`/
+  `ifOperStatus`/`ifInOctets`/`ifOutOctets`). `NetworkPollerService` mirrors
+  `CloudResourcePollerService`'s per-tenant-transaction-plus-timer shape but
+  deliberately doesn't route through monitors/monitor_checks/
+  `AlertEvaluationService` the way `cloud_metric` monitors do -- an
+  interface is auto-discovered by walking the ifTable, not something a
+  tenant explicitly provisions a monitor for, so an up→down *transition*
+  (not "is currently down", which would re-fire every poll while it stays
+  down) opens a ticket directly via the internal contract, the same simpler
+  pattern `LogAlertSweepService` uses for a log-alert breach. Throughput
+  (`network-throughput.ts`, pure) is delta-octets/delta-time computed from
+  consecutive samples at read time, not stored -- a documented limitation
+  for 32-bit (non-`ifHC*`) counter wraparound reports "unknown" rather than
+  a negative rate. Web: `NetworkDevicesAdmin` (create a device, community
+  string write-only, delete) and a `/monitoring/network` dashboard (device
+  picker → interface table with status badges + a `NetworkThroughputSparkline`
+  per interface) (`verify-network.ts`, 15 checks incl. the community string
+  round-tripping through encryption and never being returned by the API,
+  hand-computed throughput from two consecutive polls, an up→down
+  transition opening exactly one ticket while staying down opens no second
+  one, and RLS isolation; `monitor-engine:verify`/`alerting:verify`/
+  `logs:verify`/`apm-rum:verify`/`synthetic:verify`/`auth:verify`/
+  `credentials-encryption:verify`/`rbac:verify`/`status-pages:verify`
+  re-run clean as regressions).
+
+All 11 tasks of the competitive-parity plan (`docs/implementation-plan-competitive-parity.md`)
+are now complete.
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

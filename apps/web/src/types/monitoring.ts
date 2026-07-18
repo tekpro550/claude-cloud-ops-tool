@@ -24,8 +24,25 @@ export interface FleetSummaryItem {
   worst_status: MonitorStatus | null;
 }
 
-export type MonitorType = "http" | "ping" | "port" | "dns" | "ssl" | "server_agent" | "cloud_metric";
+export type MonitorType = "http" | "ping" | "port" | "dns" | "ssl" | "server_agent" | "cloud_metric" | "synthetic";
 export type MonitorStatus = "up" | "down" | "critical" | "trouble";
+
+export type SyntheticAction = "goto" | "click" | "fill" | "expectText";
+
+export interface SyntheticStep {
+  action: SyntheticAction;
+  selector?: string;
+  url?: string;
+  value?: string;
+}
+
+export interface SyntheticStepResult {
+  index: number;
+  action: string;
+  status: "ok" | "failed";
+  durationMs: number;
+  error?: string;
+}
 
 export interface Monitor {
   id: string;
@@ -223,4 +240,149 @@ export interface PublicStatus {
   title: string;
   description?: string | null;
   components: PublicStatusComponent[];
+}
+
+export type LogLevel = "debug" | "info" | "warn" | "error" | "critical";
+export const LOG_LEVELS: LogLevel[] = ["debug", "info", "warn", "error", "critical"];
+
+export interface LogSource {
+  id: string;
+  tenant_id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  /** Present only in the create() response -- the signed ingest token is never re-displayed. */
+  token?: string;
+}
+
+export interface LogEntry {
+  id: string;
+  log_source_id: string;
+  ts: string;
+  level: LogLevel;
+  message: string;
+  attributes: Record<string, unknown>;
+}
+
+export interface LogAlertRule {
+  id: string;
+  log_source_id: string;
+  name: string;
+  match_query: string | null;
+  level_at_least: LogLevel;
+  window_seconds: number;
+  threshold: number;
+  is_enabled: boolean;
+  last_fired_at: string | null;
+  created_at: string;
+}
+
+export interface ApmIngestKey {
+  id: string;
+  tenant_id: string;
+  service: string;
+  is_active: boolean;
+  created_at: string;
+  token?: string;
+}
+
+export interface ApmServiceSummary {
+  service: string;
+  trace_count: number;
+  last_seen_at: string;
+}
+
+export interface ApmTransactionStats {
+  transaction: string;
+  count: number;
+  errorCount: number;
+  errorRatePct: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  avg: number;
+  apdex: number | null;
+}
+
+export interface ApmServiceStats {
+  service: string;
+  overall: Omit<ApmTransactionStats, "transaction">;
+  transactions: ApmTransactionStats[];
+}
+
+export interface ApmTrace {
+  id: string;
+  service: string;
+  transaction: string;
+  ts: string;
+  duration_ms: number;
+  status: "ok" | "error";
+  root: boolean;
+}
+
+export interface ApmSpan {
+  id: string;
+  trace_id: string;
+  parent_span_id: string | null;
+  name: string;
+  kind: string;
+  duration_ms: number;
+  attributes: Record<string, unknown>;
+}
+
+export interface RumAppKey {
+  id: string;
+  tenant_id: string;
+  app_name: string;
+  is_active: boolean;
+  created_at: string;
+  token?: string;
+}
+
+export interface RumPageSummary {
+  page: string;
+  event_count: number;
+  last_seen_at: string;
+}
+
+export interface RumTimingStats {
+  metric: "lcp" | "fcp" | "ttfb";
+  count: number;
+  p50: number;
+  p95: number;
+}
+
+export interface RumPageStats {
+  page: string;
+  timings: RumTimingStats[];
+  errorCount: number;
+  errorRatePct: number;
+}
+
+export type SnmpVersion = "1" | "2c" | "3";
+
+export interface NetworkDevice {
+  id: string;
+  tenant_id: string;
+  name: string;
+  host: string;
+  snmp_version: SnmpVersion;
+  port: number;
+  is_active: boolean;
+  last_polled_at: string | null;
+  created_at: string;
+}
+
+export type InterfaceOperStatus = "up" | "down" | "unknown";
+
+export interface NetworkInterfaceSample {
+  id: string;
+  network_device_id: string;
+  if_index: number;
+  if_name: string | null;
+  oper_status: InterfaceOperStatus;
+  in_octets: number;
+  out_octets: number;
+  ts: string;
 }

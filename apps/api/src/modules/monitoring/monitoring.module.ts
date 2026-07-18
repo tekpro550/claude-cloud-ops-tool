@@ -12,6 +12,10 @@ import { AlertRulesController } from './alert-rules.controller';
 import { AlertRulesService } from './alert-rules.service';
 import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
+import { ApmController } from './apm/apm.controller';
+import { ApmService } from './apm/apm.service';
+import { ApmIngestionController } from './apm/apm-ingestion.controller';
+import { ApmIngestTokenGuard } from './apm/apm-ingest-token.guard';
 import { AwsCloudProviderClient } from './cloud/aws-provider-client';
 import { AzureCloudProviderClient } from './cloud/azure-provider-client';
 import {
@@ -37,6 +41,12 @@ import { EscalationPoliciesController } from './escalation-policies.controller';
 import { EscalationPoliciesService } from './escalation-policies.service';
 import { EscalationSweepService } from './escalation-sweep.service';
 import { FleetSummaryController } from './fleet-summary.controller';
+import { LogAlertSweepService } from './logs/log-alert-sweep.service';
+import { LogIngestionController } from './logs/log-ingestion.controller';
+import { LogIngestionService } from './logs/log-ingestion.service';
+import { LogSourceTokenGuard } from './logs/log-source-token.guard';
+import { LogsController } from './logs/logs.controller';
+import { LogsService } from './logs/logs.service';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
 import { MonitoringDashboardController } from './monitoring-dashboard.controller';
 import { MonitoringDashboardService } from './monitoring-dashboard.service';
@@ -46,11 +56,22 @@ import { NotificationTemplatesController } from './notification-templates.contro
 import { NotificationTemplatesService } from './notification-templates.service';
 import { OnCallSchedulesController } from './on-call-schedules.controller';
 import { OnCallSchedulesService } from './on-call-schedules.service';
+import { NetSnmpClient } from './network/net-snmp-client';
+import { NetworkDevicesController } from './network/network-devices.controller';
+import { NetworkDevicesService } from './network/network-devices.service';
+import { NetworkPollerService } from './network/network-poller.service';
+import { SNMP_CLIENT } from './network/snmp-client';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
+import { RumController } from './rum/rum.controller';
+import { RumService } from './rum/rum.service';
+import { RumIngestionController } from './rum/rum-ingestion.controller';
 import { StatusPagePublicController } from './status-pages/status-page-public.controller';
 import { StatusPagesController } from './status-pages/status-pages.controller';
 import { StatusPagesService } from './status-pages/status-pages.service';
+import { PlaywrightSyntheticRunner } from './synthetic/playwright-synthetic-runner';
+import { SYNTHETIC_RUNNER } from './synthetic/synthetic-runner';
+import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -80,6 +101,13 @@ import { StatusPagesService } from './status-pages/status-pages.service';
     FleetSummaryController,
     MonitoringDashboardController,
     DiskForecastsController,
+    LogsController,
+    LogIngestionController,
+    ApmController,
+    ApmIngestionController,
+    RumController,
+    RumIngestionController,
+    NetworkDevicesController,
   ],
   providers: [
     ResourcesService,
@@ -102,6 +130,24 @@ import { StatusPagesService } from './status-pages/status-pages.service';
     DowntimeEventsService,
     DiskForecastsService,
     DiskForecastSweepService,
+    SyntheticSchedulerService,
+    {
+      provide: SYNTHETIC_RUNNER,
+      useClass: PlaywrightSyntheticRunner,
+    },
+    LogsService,
+    LogIngestionService,
+    LogSourceTokenGuard,
+    LogAlertSweepService,
+    ApmService,
+    ApmIngestTokenGuard,
+    RumService,
+    NetworkDevicesService,
+    NetworkPollerService,
+    {
+      provide: SNMP_CLIENT,
+      useClass: NetSnmpClient,
+    },
     {
       // The real per-provider clients by default; verify-cloud-polling.ts
       // overrides this token with a factory that returns an in-memory fake,

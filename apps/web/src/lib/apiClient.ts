@@ -250,6 +250,85 @@ export function getReportsSummary(tenantId: string, from?: string, to?: string):
   return request(tenantId, "GET", `/reports/summary${qs ? `?${qs}` : ""}`);
 }
 
+export const REPORT_METRICS = [
+  "ticket_count",
+  "avg_first_response_minutes",
+  "avg_resolution_minutes",
+  "sla_attainment_pct",
+  "avg_csat",
+] as const;
+export type ReportMetric = (typeof REPORT_METRICS)[number];
+
+export const REPORT_DIMENSIONS = [
+  "status",
+  "priority",
+  "ticket_type_id",
+  "group_id",
+  "assignee_id",
+  "source",
+  "day",
+  "week",
+  "month",
+] as const;
+export type ReportDimension = (typeof REPORT_DIMENSIONS)[number];
+
+export const REPORT_DATE_FIELDS = ["created_at", "resolved_at"] as const;
+export type ReportDateField = (typeof REPORT_DATE_FIELDS)[number];
+
+export interface ReportFilter {
+  field: ReportDimension;
+  value: string;
+}
+
+export interface ReportConfig {
+  metric: ReportMetric;
+  groupBy: ReportDimension;
+  dateField?: ReportDateField;
+  dateRange?: { from: string; to: string };
+  filters?: ReportFilter[];
+}
+
+export interface ReportDefinition {
+  id: string;
+  tenant_id: string;
+  name: string;
+  config: ReportConfig;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportRow {
+  bucket: string;
+  value: string | number | null;
+}
+
+export function listReportDefinitions(tenantId: string): Promise<ReportDefinition[]> {
+  return request(tenantId, "GET", "/reports/custom");
+}
+
+export function createReportDefinition(
+  tenantId: string,
+  input: { name: string; config: ReportConfig },
+): Promise<ReportDefinition> {
+  return request(tenantId, "POST", "/reports/custom", input);
+}
+
+export function deleteReportDefinition(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/reports/custom/${id}`);
+}
+
+export function previewReportDefinition(tenantId: string, config: ReportConfig): Promise<ReportRow[]> {
+  return request(tenantId, "POST", "/reports/custom/preview", config);
+}
+
+export function runReportDefinition(
+  tenantId: string,
+  id: string,
+): Promise<{ definition: ReportDefinition; rows: ReportRow[] }> {
+  return request(tenantId, "POST", `/reports/custom/${id}/run`);
+}
+
 export function getTicketByNumber(tenantId: string, ticketNumber: number): Promise<Ticket> {
   return request(tenantId, "GET", `/tickets/by-number/${ticketNumber}`);
 }

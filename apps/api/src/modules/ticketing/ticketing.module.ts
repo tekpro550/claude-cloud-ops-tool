@@ -54,6 +54,8 @@ import { SearchController } from './search/search.controller';
 import { SearchService } from './search/search.service';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
+import { ReportDefinitionsController } from './reports/report-definitions.controller';
+import { ReportDefinitionsService } from './reports/report-definitions.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
@@ -117,6 +119,7 @@ import { TicketsService } from './tickets.service';
     TicketLinksController,
     TicketWatchersController,
     ReportsController,
+    ReportDefinitionsController,
     TicketAiController,
     TenantAiSettingsController,
   ],
@@ -157,6 +160,7 @@ import { TicketsService } from './tickets.service';
     TicketLinksService,
     TicketWatchersService,
     ReportsService,
+    ReportDefinitionsService,
     TicketAiService,
     TenantAiSettingsService,
     {

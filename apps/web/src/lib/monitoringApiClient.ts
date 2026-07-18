@@ -5,14 +5,27 @@ import type {
   AlertMetric,
   AlertRule,
   AlertRuleKind,
+  ApmIngestKey,
+  ApmServiceStats,
+  ApmServiceSummary,
+  ApmSpan,
+  ApmTrace,
   CloudCredential,
   DowntimeEvent,
   EscalationPolicy,
   FleetSummaryItem,
+  LogAlertRule,
+  LogEntry,
+  LogSource,
   MetricComparator,
   Monitor,
   MonitoringDashboardSummary,
   MonitorStatus,
+  NetworkDevice,
+  NetworkInterfaceSample,
+  RumAppKey,
+  RumPageStats,
+  RumPageSummary,
   NotificationTemplate,
   OnCallSchedule,
   PublicStatus,
@@ -330,4 +343,165 @@ export function removeStatusPageMonitor(tenantId: string, statusPageId: string, 
 // Unauthenticated -- no X-Tenant-Id, matches the public/no-guard backend route.
 export function getPublicStatus(slug: string): Promise<PublicStatus> {
   return publicRequest(`/public/status/${slug}`);
+}
+
+// ---- Log management ----
+
+export function searchLogs(
+  tenantId: string,
+  query: { sourceId?: string; level?: string; q?: string; from?: string; to?: string; limit?: number },
+): Promise<LogEntry[]> {
+  const params = new URLSearchParams();
+  if (query.sourceId) params.set("sourceId", query.sourceId);
+  if (query.level) params.set("level", query.level);
+  if (query.q) params.set("q", query.q);
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return request(tenantId, "GET", `/logs/search${qs ? `?${qs}` : ""}`);
+}
+
+export function listLogSources(tenantId: string): Promise<LogSource[]> {
+  return request(tenantId, "GET", "/logs/sources");
+}
+
+export function createLogSource(tenantId: string, name: string): Promise<LogSource> {
+  return request(tenantId, "POST", "/logs/sources", { name });
+}
+
+export function updateLogSource(
+  tenantId: string,
+  id: string,
+  input: { name?: string; isActive?: boolean },
+): Promise<LogSource> {
+  return request(tenantId, "PATCH", `/logs/sources/${id}`, input);
+}
+
+export function deleteLogSource(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/logs/sources/${id}`);
+}
+
+export function listLogAlertRules(tenantId: string): Promise<LogAlertRule[]> {
+  return request(tenantId, "GET", "/logs/alert-rules");
+}
+
+export interface CreateLogAlertRuleInput {
+  logSourceId: string;
+  name: string;
+  matchQuery?: string;
+  levelAtLeast?: string;
+  windowSeconds?: number;
+  threshold?: number;
+}
+
+export function createLogAlertRule(tenantId: string, input: CreateLogAlertRuleInput): Promise<LogAlertRule> {
+  return request(tenantId, "POST", "/logs/alert-rules", input);
+}
+
+export function updateLogAlertRule(
+  tenantId: string,
+  id: string,
+  input: Partial<CreateLogAlertRuleInput & { isEnabled: boolean }>,
+): Promise<LogAlertRule> {
+  return request(tenantId, "PATCH", `/logs/alert-rules/${id}`, input);
+}
+
+export function deleteLogAlertRule(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/logs/alert-rules/${id}`);
+}
+
+// ---- APM ----
+
+export function listApmIngestKeys(tenantId: string): Promise<ApmIngestKey[]> {
+  return request(tenantId, "GET", "/apm/ingest-keys");
+}
+
+export function createApmIngestKey(tenantId: string, service: string): Promise<ApmIngestKey> {
+  return request(tenantId, "POST", "/apm/ingest-keys", { service });
+}
+
+export function deleteApmIngestKey(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/apm/ingest-keys/${id}`);
+}
+
+export function listApmServices(tenantId: string): Promise<ApmServiceSummary[]> {
+  return request(tenantId, "GET", "/apm/services");
+}
+
+export function getApmServiceStats(tenantId: string, service: string): Promise<ApmServiceStats> {
+  return request(tenantId, "GET", `/apm/services/${encodeURIComponent(service)}/stats`);
+}
+
+export function getApmSlowestTraces(tenantId: string, service: string, limit = 10): Promise<ApmTrace[]> {
+  return request(tenantId, "GET", `/apm/services/${encodeURIComponent(service)}/slowest-traces?limit=${limit}`);
+}
+
+export function getApmTrace(tenantId: string, id: string): Promise<{ trace: ApmTrace; spans: ApmSpan[] }> {
+  return request(tenantId, "GET", `/apm/traces/${id}`);
+}
+
+// ---- RUM ----
+
+export function listRumAppKeys(tenantId: string): Promise<RumAppKey[]> {
+  return request(tenantId, "GET", "/rum/app-keys");
+}
+
+export function createRumAppKey(tenantId: string, appName: string): Promise<RumAppKey> {
+  return request(tenantId, "POST", "/rum/app-keys", { appName });
+}
+
+export function deleteRumAppKey(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/rum/app-keys/${id}`);
+}
+
+export function listRumPages(tenantId: string): Promise<RumPageSummary[]> {
+  return request(tenantId, "GET", "/rum/pages");
+}
+
+export function getRumPageStats(tenantId: string, page: string): Promise<RumPageStats> {
+  return request(tenantId, "GET", `/rum/pages/${encodeURIComponent(page)}/stats`);
+}
+
+// ---- Network / SNMP ----
+
+export interface CreateNetworkDeviceInput {
+  name: string;
+  host: string;
+  snmpVersion?: string;
+  community: string;
+  port?: number;
+}
+
+export function listNetworkDevices(tenantId: string): Promise<NetworkDevice[]> {
+  return request(tenantId, "GET", "/network-devices");
+}
+
+export function createNetworkDevice(tenantId: string, input: CreateNetworkDeviceInput): Promise<NetworkDevice> {
+  return request(tenantId, "POST", "/network-devices", input);
+}
+
+export function updateNetworkDevice(
+  tenantId: string,
+  id: string,
+  input: Partial<CreateNetworkDeviceInput & { isActive: boolean }>,
+): Promise<NetworkDevice> {
+  return request(tenantId, "PATCH", `/network-devices/${id}`, input);
+}
+
+export function deleteNetworkDevice(tenantId: string, id: string): Promise<void> {
+  return request(tenantId, "DELETE", `/network-devices/${id}`);
+}
+
+export function getNetworkDeviceInterfaces(tenantId: string, deviceId: string): Promise<NetworkInterfaceSample[]> {
+  return request(tenantId, "GET", `/network-devices/${deviceId}/interfaces`);
+}
+
+export function getNetworkInterfaceHistory(
+  tenantId: string,
+  deviceId: string,
+  ifIndex: number,
+  limit = 30,
+): Promise<NetworkInterfaceSample[]> {
+  return request(tenantId, "GET", `/network-devices/${deviceId}/interfaces/${ifIndex}/history?limit=${limit}`);
 }
