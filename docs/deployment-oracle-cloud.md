@@ -144,10 +144,14 @@ Edit `.env` and fill in:
   ```bash
   openssl rand -base64 32
   ```
-- `JWT_SECRET`, `INTERNAL_API_KEY` — same command:
+- `JWT_SECRET`, `INTERNAL_API_KEY`, `CREDENTIALS_ENCRYPTION_KEY` — same command:
   ```bash
   openssl rand -base64 48
   ```
+  `CREDENTIALS_ENCRYPTION_KEY` encrypts secrets at rest (cloud-provider
+  credentials, SNMP community strings, MFA/TOTP secrets). Set it **once,
+  before first launch** — changing it later makes existing ciphertext
+  undecryptable, so re-enter any secrets already stored under a previous key.
 
 Leave everything under "Optional" alone for now — SMTP, email intake,
 OAuth, and Freshdesk migration can all be configured later without

@@ -122,28 +122,19 @@ openssl rand -base64 32   # each DB password
 openssl rand -base64 48   # JWT_SECRET, INTERNAL_API_KEY, encryption key
 ```
 
-> **⚠️ Important — encryption key.** The stock `.env.prod.example` and
-> `docker-compose.prod.yml` **do not wire `CREDENTIALS_ENCRYPTION_KEY`**.
-> Without it, every secret encrypted at rest — cloud-provider credentials, SNMP
-> community strings, and MFA/TOTP secrets — falls back to a known,
-> source-controlled dev key. That is effectively no encryption.
-
-Before deploying for real, add a line to `.env`:
-
-```bash
-CREDENTIALS_ENCRYPTION_KEY=<paste a fresh `openssl rand -base64 48`>
-```
-
-…and pass it through to the API container by adding one line to the `api`
-service's `environment:` block in `docker-compose.prod.yml`:
-
-```yaml
-      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY}
-```
-
-> **Never rotate this in place.** Set the encryption key **once, before first
-> launch**. Changing it after secrets are stored makes existing ciphertext
-> undecryptable. If you have already stored cloud/SNMP/MFA secrets under the
+> **⚠️ Important — encryption key.** `CREDENTIALS_ENCRYPTION_KEY` encrypts
+> every secret stored at rest — cloud-provider credentials, SNMP community
+> strings, MFA/TOTP secrets. If you leave it unset in `.env`, the app falls
+> back to a known, source-controlled dev key, which is effectively no
+> encryption. Set a real value before deploying for real:
+>
+> ```bash
+> CREDENTIALS_ENCRYPTION_KEY=<paste a fresh `openssl rand -base64 48`>
+> ```
+>
+> **Never rotate this in place.** Set it **once, before first launch**.
+> Changing it after secrets are stored makes existing ciphertext
+> undecryptable. If you've already stored cloud/SNMP/MFA secrets under the
 > dev default, re-enter them after setting a real key.
 
 Everything under "Optional" in the template — SMTP, email intake, OAuth,
