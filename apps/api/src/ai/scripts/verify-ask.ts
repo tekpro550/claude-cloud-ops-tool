@@ -24,7 +24,9 @@ const NO_SETTINGS = {
 class ImmediateAnswerClient implements AiCompletionClient {
   readonly enabled = true;
   returnValue: string;
-  constructor(returnValue: string) { this.returnValue = returnValue; }
+  constructor(returnValue: string) {
+    this.returnValue = returnValue;
+  }
   async complete(_s: string, _u: string): Promise<string> {
     return this.returnValue;
   }
@@ -32,7 +34,9 @@ class ImmediateAnswerClient implements AiCompletionClient {
 
 class DisabledFake implements AiCompletionClient {
   readonly enabled = false;
-  async complete(): Promise<string> { throw new Error('should not be called'); }
+  async complete(): Promise<string> {
+    throw new Error('should not be called');
+  }
 }
 
 function assert(condition: boolean, message: string) {
@@ -54,14 +58,19 @@ async function main() {
   // --- Pure unit checks (no Postgres needed) ---
 
   // 1. parseToolCall: valid TOOL_CALL line
-  const parsed = parseToolCall('TOOL_CALL: {"tool":"search_tickets","args":{"q":"login"}}');
+  const parsed = parseToolCall(
+    'TOOL_CALL: {"tool":"search_tickets","args":{"q":"login"}}',
+  );
   assert(parsed !== null, 'parseToolCall parses a valid TOOL_CALL line');
   assert(parsed!.tool === 'search_tickets', 'tool name extracted');
   assert((parsed!.args as any).q === 'login', 'args extracted');
   console.log('  OK  parseToolCall: valid line');
 
   // 2. parseToolCall: non-TOOL_CALL line returns null
-  assert(parseToolCall('Sure, here is the answer.') === null, 'non-TOOL_CALL line returns null');
+  assert(
+    parseToolCall('Sure, here is the answer.') === null,
+    'non-TOOL_CALL line returns null',
+  );
   console.log('  OK  parseToolCall: non-TOOL_CALL returns null');
 
   // 3. isAllowedTool: known tool is allowed
@@ -73,8 +82,14 @@ async function main() {
 
   // 4. buildToolsSystemPrompt contains tool names
   const systemPrompt = buildToolsSystemPrompt();
-  assert(systemPrompt.includes('search_tickets'), 'system prompt lists search_tickets');
-  assert(systemPrompt.includes('TOOL_CALL:'), 'system prompt describes TOOL_CALL format');
+  assert(
+    systemPrompt.includes('search_tickets'),
+    'system prompt lists search_tickets',
+  );
+  assert(
+    systemPrompt.includes('TOOL_CALL:'),
+    'system prompt describes TOOL_CALL format',
+  );
   console.log('  OK  buildToolsSystemPrompt contains tool names and format');
 
   // --- Integration checks (Postgres required) ---
@@ -82,26 +97,39 @@ async function main() {
   await migrator.connect();
 
   const slug = `ask-verify-${Date.now()}`;
-  const { rows: [tenant] } = await migrator.query(
+  const {
+    rows: [tenant],
+  } = await migrator.query(
     `INSERT INTO tenants (name, slug, plan_tier) VALUES ($1, $2, 'internal') RETURNING id`,
     ['Ask Verify', slug],
   );
 
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
   const dataSource = app.get(DataSource);
   const fakeConfig = { get: (_k: string, def: unknown) => def } as any;
 
   try {
-    const client = new ImmediateAnswerClient('Your cloud spend is under control this month.');
+    const client = new ImmediateAnswerClient(
+      'Your cloud spend is under control this month.',
+    );
     const service = new AskService(dataSource, client, NO_SETTINGS, fakeConfig);
 
     // --- 5. Create a session ---
     const session = await service.createSession(tenant.id);
-    assert(typeof session.id === 'string' && session.id.length > 0, 'session created with id');
+    assert(
+      typeof session.id === 'string' && session.id.length > 0,
+      'session created with id',
+    );
     console.log('  OK  createSession returns an id');
 
     // --- 6. Ask a question and get an answer ---
-    const answer = await service.ask(tenant.id, session.id, 'How is my cloud spend?');
+    const answer = await service.ask(
+      tenant.id,
+      session.id,
+      'How is my cloud spend?',
+    );
     assert(answer.role === 'assistant', 'response role is assistant');
     assert(answer.content.length > 0, 'response has content');
     console.log('  OK  ask returns assistant response');
@@ -122,7 +150,11 @@ async function main() {
     // --- 9. Wrong session id throws NotFoundException ---
     let threw = false;
     try {
-      await service.ask(tenant.id, '00000000-0000-0000-0000-000000000000', 'hi');
+      await service.ask(
+        tenant.id,
+        '00000000-0000-0000-0000-000000000000',
+        'hi',
+      );
     } catch {
       threw = true;
     }
@@ -130,7 +162,12 @@ async function main() {
     console.log('  OK  unknown session throws NotFoundException');
 
     // --- 10. Disabled client throws BadRequestException ---
-    const disabledService = new AskService(dataSource, new DisabledFake(), NO_SETTINGS, fakeConfig);
+    const disabledService = new AskService(
+      dataSource,
+      new DisabledFake(),
+      NO_SETTINGS,
+      fakeConfig,
+    );
     const sess2 = await disabledService.createSession(tenant.id);
     let disabledThrew = false;
     try {
@@ -142,7 +179,9 @@ async function main() {
     console.log('  OK  disabled client throws BadRequestException');
 
     // --- 11. RLS: session from another tenant is not visible ---
-    const { rows: [otherTenant] } = await migrator.query(
+    const {
+      rows: [otherTenant],
+    } = await migrator.query(
       `INSERT INTO tenants (name, slug, plan_tier) VALUES ($1, $2, 'internal') RETURNING id`,
       ['Ask Other', `ask-other-${Date.now()}`],
     );
@@ -160,8 +199,12 @@ async function main() {
 
     console.log('\nAll Ask assistant checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ask_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ask_sessions WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM ask_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ask_sessions WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

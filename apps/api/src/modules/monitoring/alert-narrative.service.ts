@@ -22,7 +22,8 @@ export class AlertNarrativeService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 
@@ -41,7 +42,11 @@ export class AlertNarrativeService {
 
       const checkLines = context.recentChecks
         .map(
-          (c: { status: string; response_time_ms: number | null; checked_at: string }) =>
+          (c: {
+            status: string;
+            response_time_ms: number | null;
+            checked_at: string;
+          }) =>
             `  [${new Date(c.checked_at).toISOString()}] status=${c.status}${
               c.response_time_ms !== null
                 ? `, response_time=${c.response_time_ms}ms`

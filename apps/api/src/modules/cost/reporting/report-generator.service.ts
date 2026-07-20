@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import {
@@ -43,7 +48,8 @@ export class ReportGeneratorService {
     private readonly costDashboard: CostDashboardService,
     private readonly costAllocation: CostAllocationService,
     private readonly commitments: CommitmentsService,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly aiSettings: TenantAiSettingsService,
   ) {}
 

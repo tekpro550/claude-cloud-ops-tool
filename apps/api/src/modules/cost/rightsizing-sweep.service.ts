@@ -190,9 +190,7 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
       [openRec.id, recommendationType, reasonText, estimatedSaving],
     );
     // Refresh rationale on update too
-    void this.rationale
-      .generateRationale(tenantId, openRec.id)
-      .catch(() => {});
+    void this.rationale.generateRationale(tenantId, openRec.id).catch(() => {});
     return true;
   }
 }

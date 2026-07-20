@@ -15,34 +15,38 @@ export const ASK_TOOLS: AskTool[] = [
   {
     name: 'search_tickets',
     description: 'Search support tickets by keyword, status, or priority.',
-    paramsSchema: '{"q": "string", "status": "string (optional)", "limit": "number (optional, max 20)"}',
+    paramsSchema:
+      '{"q": "string", "status": "string (optional)", "limit": "number (optional, max 20)"}',
   },
   {
     name: 'list_alerts',
-    description: 'List monitoring alerts, optionally filtered by status (open/acknowledged/resolved).',
+    description:
+      'List monitoring alerts, optionally filtered by status (open/acknowledged/resolved).',
     paramsSchema: '{"status": "string (optional: open|acknowledged|resolved)"}',
   },
   {
     name: 'get_cost_summary',
-    description: 'Get the month-to-date cloud cost summary (total spend, forecasts, open alerts).',
+    description:
+      'Get the month-to-date cloud cost summary (total spend, forecasts, open alerts).',
     paramsSchema: '{}',
   },
   {
     name: 'search_logs',
     description: 'Search log entries by keyword, level, and/or time range.',
-    paramsSchema: '{"q": "string (optional)", "level": "string (optional: debug|info|warn|error)", "from": "ISO timestamp (optional)", "to": "ISO timestamp (optional)", "limit": "number (optional, max 50)"}',
+    paramsSchema:
+      '{"q": "string (optional)", "level": "string (optional: debug|info|warn|error)", "from": "ISO timestamp (optional)", "to": "ISO timestamp (optional)", "limit": "number (optional, max 50)"}',
   },
   {
     name: 'list_monitors',
-    description: 'List configured monitors (uptime, ping, SSL, synthetic, etc.).',
+    description:
+      'List configured monitors (uptime, ping, SSL, synthetic, etc.).',
     paramsSchema: '{}',
   },
 ];
 
 export function buildToolsSystemPrompt(): string {
   const toolLines = ASK_TOOLS.map(
-    (t) =>
-      `  ${t.name}(${t.paramsSchema})\n    ${t.description}`,
+    (t) => `  ${t.name}(${t.paramsSchema})\n    ${t.description}`,
   ).join('\n\n');
 
   return (
@@ -69,7 +73,10 @@ export function parseToolCall(line: string): ToolCallRequest | null {
   if (!line.trimStart().startsWith(prefix)) return null;
   const json = line.trimStart().slice(prefix.length).trim();
   try {
-    const parsed = JSON.parse(json) as { tool?: string; args?: Record<string, unknown> };
+    const parsed = JSON.parse(json) as {
+      tool?: string;
+      args?: Record<string, unknown>;
+    };
     if (typeof parsed.tool !== 'string') return null;
     return { tool: parsed.tool, args: parsed.args ?? {} };
   } catch {

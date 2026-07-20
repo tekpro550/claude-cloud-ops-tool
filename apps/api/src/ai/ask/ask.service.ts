@@ -29,45 +29,38 @@ export class AskService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly aiSettings: TenantAiSettingsService,
     private readonly config: ConfigService,
   ) {}
 
   async createSession(tenantId: string): Promise<{ id: string }> {
-    const [session] = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
-        qr.query(
-          `INSERT INTO ask_sessions (tenant_id) VALUES ($1) RETURNING id`,
-          [tenantId],
-        ),
+    const [session] = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(
+        `INSERT INTO ask_sessions (tenant_id) VALUES ($1) RETURNING id`,
+        [tenantId],
+      ),
     );
     return { id: session.id };
   }
 
   async getMessages(tenantId: string, sessionId: string) {
-    const messages = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
-        qr.query(
-          `SELECT id, role, content, tool_calls, created_at
+    const messages = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(
+        `SELECT id, role, content, tool_calls, created_at
            FROM ask_messages
            WHERE session_id = $1
            ORDER BY created_at ASC`,
-          [sessionId],
-        ),
+        [sessionId],
+      ),
     );
     // Verify session belongs to tenant (the RLS-filtered query returns [] if not)
-    const [session] = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
-        qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
+    const [session] = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
     );
-    if (!session) throw new NotFoundException(`Ask session ${sessionId} not found`);
+    if (!session)
+      throw new NotFoundException(`Ask session ${sessionId} not found`);
     return messages;
   }
 
@@ -84,28 +77,26 @@ export class AskService {
     }
 
     // Verify session exists under this tenant
-    const [session] = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
-        qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
+    const [session] = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
     );
-    if (!session) throw new NotFoundException(`Ask session ${sessionId} not found`);
+    if (!session)
+      throw new NotFoundException(`Ask session ${sessionId} not found`);
 
     const client =
       (await this.aiSettings.resolveClient(tenantId)) ?? this.envClient;
     if (!client.enabled) {
-      throw new BadRequestException('AI assist is not configured for this tenant');
+      throw new BadRequestException(
+        'AI assist is not configured for this tenant',
+      );
     }
 
     // Persist user message
     await this.saveMessage(tenantId, sessionId, 'user', userMessage, null);
 
     // Load conversation history for context (last 20 messages)
-    const history: Array<{ role: string; content: string }> = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
+    const history: Array<{ role: string; content: string }> =
+      await withTenantContext(this.dataSource, tenantId, (qr) =>
         qr.query(
           `SELECT role, content FROM ask_messages
            WHERE session_id = $1
@@ -113,7 +104,7 @@ export class AskService {
            LIMIT 20`,
           [sessionId],
         ),
-    );
+      );
 
     // Run tool-use loop
     const { answer, toolCallLog } = await this.runLoop(
@@ -158,7 +149,8 @@ export class AskService {
       const trimmed = raw.trim();
 
       // Look for a TOOL_CALL directive on the first meaningful line
-      const firstLine = trimmed.split('\n').find((l) => l.trim().length > 0) ?? '';
+      const firstLine =
+        trimmed.split('\n').find((l) => l.trim().length > 0) ?? '';
       const toolCall = parseToolCall(firstLine);
 
       if (!toolCall) {
@@ -167,7 +159,9 @@ export class AskService {
       }
 
       if (!isAllowedTool(toolCall.tool)) {
-        this.logger.warn(`Ask assistant requested unknown tool: ${toolCall.tool}`);
+        this.logger.warn(
+          `Ask assistant requested unknown tool: ${toolCall.tool}`,
+        );
         conversationText +=
           `\n\nAssistant: TOOL_CALL: ${JSON.stringify(toolCall)}` +
           `\n\nTOOL_RESULT: Error: unknown tool "${toolCall.tool}"`;
@@ -234,7 +228,8 @@ export class AskService {
         const params = new URLSearchParams();
         if (args.q) params.set('q', String(args.q));
         if (args.status) params.set('status', String(args.status));
-        if (args.limit) params.set('limit', String(Math.min(Number(args.limit), 20)));
+        if (args.limit)
+          params.set('limit', String(Math.min(Number(args.limit), 20)));
         url = `${baseUrl}/tickets?${params}`;
         break;
       }
@@ -253,7 +248,8 @@ export class AskService {
         if (args.level) params.set('level', String(args.level));
         if (args.from) params.set('from', String(args.from));
         if (args.to) params.set('to', String(args.to));
-        if (args.limit) params.set('limit', String(Math.min(Number(args.limit), 50)));
+        if (args.limit)
+          params.set('limit', String(Math.min(Number(args.limit), 50)));
         url = `${baseUrl}/logs/search?${params}`;
         break;
       }

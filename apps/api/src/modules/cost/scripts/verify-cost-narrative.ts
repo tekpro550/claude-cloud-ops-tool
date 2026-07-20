@@ -18,7 +18,8 @@ const NO_SETTINGS = {
 class FakeNarrativeClient implements AiCompletionClient {
   readonly enabled = true;
   callCount = 0;
-  returnValue = 'EC2 spend spiked 80% vs baseline. RDS also elevated. Expected $12k overrun.';
+  returnValue =
+    'EC2 spend spiked 80% vs baseline. RDS also elevated. Expected $12k overrun.';
   async complete(_s: string, _u: string): Promise<string> {
     this.callCount++;
     return this.returnValue;
@@ -27,7 +28,9 @@ class FakeNarrativeClient implements AiCompletionClient {
 
 class DisabledFake implements AiCompletionClient {
   readonly enabled = false;
-  async complete(): Promise<string> { throw new Error('should not be called'); }
+  async complete(): Promise<string> {
+    throw new Error('should not be called');
+  }
 }
 
 function assert(condition: boolean, message: string) {
@@ -50,12 +53,16 @@ async function main() {
   await migrator.connect();
 
   const slug = `cost-narrative-verify-${Date.now()}`;
-  const { rows: [tenant] } = await migrator.query(
+  const {
+    rows: [tenant],
+  } = await migrator.query(
     `INSERT INTO tenants (name, slug, plan_tier) VALUES ($1, $2, 'internal') RETURNING id`,
     ['Cost Narrative Verify', slug],
   );
 
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
   const dataSource = app.get(DataSource);
 
   try {
@@ -72,10 +79,17 @@ async function main() {
     const result2 = await service.getNarrative(tenant.id);
     assert(result2.cached === true, 'second call is served from cache');
     assert(fake.callCount === 1, 'AI was not called a second time');
-    assert(result2.narrative === result1.narrative, 'cached narrative matches original');
+    assert(
+      result2.narrative === result1.narrative,
+      'cached narrative matches original',
+    );
 
     // --- 3. Disabled client throws BadRequestException ---
-    const disabledService = new CostNarrativeService(dataSource, new DisabledFake(), NO_SETTINGS);
+    const disabledService = new CostNarrativeService(
+      dataSource,
+      new DisabledFake(),
+      NO_SETTINGS,
+    );
     let threw = false;
     try {
       await disabledService.getNarrative(tenant.id);
@@ -86,7 +100,9 @@ async function main() {
 
     console.log('\nAll cost narrative checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM cost_narratives WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM cost_narratives WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

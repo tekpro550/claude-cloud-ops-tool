@@ -26,7 +26,9 @@ class FakeRerankClient implements AiCompletionClient {
 
 class DisabledFake implements AiCompletionClient {
   readonly enabled = false;
-  async complete(): Promise<string> { throw new Error('should not be called'); }
+  async complete(): Promise<string> {
+    throw new Error('should not be called');
+  }
 }
 
 function assert(condition: boolean, message: string) {
@@ -49,16 +51,22 @@ async function main() {
   await migrator.connect();
 
   const slug = `ticket-similar-verify-${Date.now()}`;
-  const { rows: [tenant] } = await migrator.query(
+  const {
+    rows: [tenant],
+  } = await migrator.query(
     `INSERT INTO tenants (name, slug, plan_tier) VALUES ($1, $2, 'internal') RETURNING id`,
     ['Similar Tickets Verify', slug],
   );
-  const { rows: [contact] } = await migrator.query(
+  const {
+    rows: [contact],
+  } = await migrator.query(
     `INSERT INTO contacts (tenant_id, name, email) VALUES ($1, $2, $3) RETURNING id`,
     [tenant.id, 'Similar Contact', `sim@${slug}.example`],
   );
 
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
   const dataSource = app.get(DataSource);
   const tickets = app.get(TicketsService);
 
@@ -94,7 +102,11 @@ async function main() {
     });
 
     // --- 1. Trgm finds candidates and AI re-ranks them ---
-    const service = new TicketSimilarService(dataSource, new FakeRerankClient(), NO_SETTINGS);
+    const service = new TicketSimilarService(
+      dataSource,
+      new FakeRerankClient(),
+      NO_SETTINGS,
+    );
     const similar = await service.getSimilar(tenant.id, target.id);
     assert(similar.length > 0, 'trgm + AI finds similar tickets');
     assert(similar[0].ai_ranked === true, 'results are AI-ranked');
@@ -103,15 +115,23 @@ async function main() {
 
     // --- 2. Cached suggestions are returned ---
     const cached = await service.getCached(tenant.id, target.id);
-    assert(cached.length > 0, 'cached suggestions are persisted after getSimilar');
+    assert(
+      cached.length > 0,
+      'cached suggestions are persisted after getSimilar',
+    );
     console.log('  OK  getCached returns persisted suggestions');
 
     // --- 3. Disabled client falls back to trgm-only ---
     const disabledService = new TicketSimilarService(
-      dataSource, new DisabledFake(), NO_SETTINGS,
+      dataSource,
+      new DisabledFake(),
+      NO_SETTINGS,
     );
     const trgmOnly = await disabledService.getSimilar(tenant.id, target.id);
-    assert(trgmOnly.every((r) => r.ai_ranked === false), 'disabled client uses trgm-only');
+    assert(
+      trgmOnly.every((r) => r.ai_ranked === false),
+      'disabled client uses trgm-only',
+    );
     console.log('  OK  disabled client falls back to trgm-only, no throw');
 
     // --- 4. Ticket with no similar results returns empty array ---
@@ -121,17 +141,34 @@ async function main() {
       source: 'web_form',
     });
     const noSimilar = await service.getSimilar(tenant.id, isolated.id);
-    assert(Array.isArray(noSimilar), 'returns array even with no similar tickets');
+    assert(
+      Array.isArray(noSimilar),
+      'returns array even with no similar tickets',
+    );
     console.log('  OK  no-similar-candidates returns empty array');
 
     console.log('\nAll ticket similar checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_similar_suggestions WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(
+      `DELETE FROM ticket_similar_suggestions WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

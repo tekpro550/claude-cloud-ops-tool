@@ -17,7 +17,8 @@ export class TicketSimilarService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 
@@ -46,7 +47,12 @@ export class TicketSimilarService {
     }
 
     try {
-      const ranked = await this.aiRerank(client, tenantId, ticketId, candidates);
+      const ranked = await this.aiRerank(
+        client,
+        tenantId,
+        ticketId,
+        candidates,
+      );
       // Persist for later retrieval
       await this.persistSuggestions(tenantId, ticketId, ranked, true);
       return ranked;
@@ -110,26 +116,21 @@ export class TicketSimilarService {
     ticketId: string,
     candidates: Array<{ similar_id: string; trgm_score: number }>,
   ): Promise<Array<{ ticket_id: string; score: number; ai_ranked: boolean }>> {
-    const [source] = await withTenantContext(
-      this.dataSource,
-      tenantId,
-      (qr) =>
-        qr.query(
-          `SELECT subject FROM tickets WHERE id = $1`,
-          [ticketId],
-        ),
+    const [source] = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(`SELECT subject FROM tickets WHERE id = $1`, [ticketId]),
     );
     if (!source) return [];
 
     const candidateSubjects: { id: string; subject: string }[] =
       await withTenantContext(this.dataSource, tenantId, (qr) =>
-        qr.query(
-          `SELECT id, subject FROM tickets WHERE id = ANY($1::uuid[])`,
-          [candidates.map((c) => c.similar_id)],
-        ),
+        qr.query(`SELECT id, subject FROM tickets WHERE id = ANY($1::uuid[])`, [
+          candidates.map((c) => c.similar_id),
+        ]),
       );
 
-    const idToSubject = new Map(candidateSubjects.map((c) => [c.id, c.subject]));
+    const idToSubject = new Map(
+      candidateSubjects.map((c) => [c.id, c.subject]),
+    );
     const list = candidates
       .map((c, i) => `${i}: ${idToSubject.get(c.similar_id) ?? '?'}`)
       .join('\n');
@@ -162,7 +163,11 @@ export class TicketSimilarService {
   private async persistSuggestions(
     tenantId: string,
     ticketId: string,
-    suggestions: Array<{ ticket_id: string; score: number; ai_ranked: boolean }>,
+    suggestions: Array<{
+      ticket_id: string;
+      score: number;
+      ai_ranked: boolean;
+    }>,
     aiRanked: boolean,
   ): Promise<void> {
     if (suggestions.length === 0) return;

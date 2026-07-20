@@ -20,7 +20,8 @@ export class RightsizingRationaleService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 

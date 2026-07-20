@@ -43,7 +43,11 @@ function makeStubServices() {
   const commitments = {
     listRecommendations: async () => [],
     listCommitments: async () => [],
-    getCoverage: async () => ({ coveragePct: 60, utilizationPct: 80, wastedDollars: 0 }),
+    getCoverage: async () => ({
+      coveragePct: 60,
+      utilizationPct: 80,
+      wastedDollars: 0,
+    }),
   };
   return { costDashboard, costAllocation, commitments };
 }
@@ -53,7 +57,8 @@ async function main() {
   await ds.initialize();
 
   try {
-    const { ReportGeneratorService } = await import('../report-generator.service');
+    const { ReportGeneratorService } =
+      await import('../report-generator.service');
     const stubs = makeStubServices();
 
     await teardown(ds);
@@ -68,17 +73,31 @@ async function main() {
       new DisabledCompletionClient(),
       { resolveClient: async () => new DisabledCompletionClient() } as any,
     );
-    const tableNoAi = await svcNoAi.generate(FAKE_TENANT_ID, 'cost_dashboard', {}, false);
+    const tableNoAi = await svcNoAi.generate(
+      FAKE_TENANT_ID,
+      'cost_dashboard',
+      {},
+      false,
+    );
     assert(!tableNoAi.aiSummary, 'no aiSummary when includeAiSummary=false');
     console.log('OK no aiSummary when flag is false');
 
     // 2. includeAiSummary=true + disabled client → aiSummary is undefined (graceful)
-    const tableDisabled = await svcNoAi.generate(FAKE_TENANT_ID, 'cost_dashboard', {}, true);
-    assert(!tableDisabled.aiSummary, 'disabled client returns no aiSummary (graceful)');
+    const tableDisabled = await svcNoAi.generate(
+      FAKE_TENANT_ID,
+      'cost_dashboard',
+      {},
+      true,
+    );
+    assert(
+      !tableDisabled.aiSummary,
+      'disabled client returns no aiSummary (graceful)',
+    );
     console.log('OK disabled AI client omits aiSummary gracefully');
 
     // 3. includeAiSummary=true + enabled fake client → aiSummary string
-    const summaryText = 'AWS spend is on track at $1,500 MTD with EC2 as the top cost driver. No anomalies detected. Consider reviewing S3 storage lifecycle policies.';
+    const summaryText =
+      'AWS spend is on track at $1,500 MTD with EC2 as the top cost driver. No anomalies detected. Consider reviewing S3 storage lifecycle policies.';
     const fakeClient = {
       enabled: true,
       async complete(_s: string, user: string) {
@@ -95,14 +114,25 @@ async function main() {
       fakeClient,
       { resolveClient: async () => null } as any,
     );
-    const tableWithAi = await svcWithAi.generate(FAKE_TENANT_ID, 'cost_dashboard', {}, true);
-    assert.equal(tableWithAi.aiSummary, summaryText, 'AI summary stored in table');
+    const tableWithAi = await svcWithAi.generate(
+      FAKE_TENANT_ID,
+      'cost_dashboard',
+      {},
+      true,
+    );
+    assert.equal(
+      tableWithAi.aiSummary,
+      summaryText,
+      'AI summary stored in table',
+    );
     console.log('OK AI summary generated and returned in report table');
 
     // 4. AI failure doesn't break the report — still returns table without summary
     const brokenClient = {
       enabled: true,
-      async complete() { throw new Error('network error'); },
+      async complete() {
+        throw new Error('network error');
+      },
     };
     const svcBroken = new (ReportGeneratorService as any)(
       ds,
@@ -112,7 +142,12 @@ async function main() {
       brokenClient,
       { resolveClient: async () => null } as any,
     );
-    const tableBroken = await svcBroken.generate(FAKE_TENANT_ID, 'cost_dashboard', {}, true);
+    const tableBroken = await svcBroken.generate(
+      FAKE_TENANT_ID,
+      'cost_dashboard',
+      {},
+      true,
+    );
     assert(tableBroken.title, 'report table still returned on AI failure');
     assert(!tableBroken.aiSummary, 'aiSummary is undefined on AI failure');
     console.log('OK AI failure does not break report delivery');

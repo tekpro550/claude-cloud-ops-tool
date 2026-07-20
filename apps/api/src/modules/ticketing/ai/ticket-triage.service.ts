@@ -15,7 +15,8 @@ export class TicketTriageService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
     private readonly config: ConfigService,
   ) {}
@@ -26,7 +27,8 @@ export class TicketTriageService {
       const mode = await this.getTriageMode(tenantId);
       if (mode === 'off') return;
 
-      const client = (await this.settings.resolveClient(tenantId)) ?? this.envClient;
+      const client =
+        (await this.settings.resolveClient(tenantId)) ?? this.envClient;
       if (!client.enabled) return;
 
       const allowlists = await this.loadAllowlists(tenantId);

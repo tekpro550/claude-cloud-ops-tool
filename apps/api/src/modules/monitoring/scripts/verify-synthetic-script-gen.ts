@@ -16,13 +16,19 @@ const NO_SETTINGS = {
 class FakeScriptClient implements AiCompletionClient {
   readonly enabled = true;
   returnValue: string;
-  constructor(returnValue: string) { this.returnValue = returnValue; }
-  async complete(_s: string, _u: string): Promise<string> { return this.returnValue; }
+  constructor(returnValue: string) {
+    this.returnValue = returnValue;
+  }
+  async complete(_s: string, _u: string): Promise<string> {
+    return this.returnValue;
+  }
 }
 
 class DisabledFake implements AiCompletionClient {
   readonly enabled = false;
-  async complete(): Promise<string> { throw new Error('should not be called'); }
+  async complete(): Promise<string> {
+    throw new Error('should not be called');
+  }
 }
 
 const VALID_SCRIPT = JSON.stringify({
@@ -41,8 +47,14 @@ function ok(message: string) {
 
 async function main() {
   // --- 1. Valid AI output → valid SyntheticScript returned ---
-  const valid = new SyntheticScriptGenService(new FakeScriptClient(VALID_SCRIPT), NO_SETTINGS);
-  const script = await valid.generateScript('t1', 'Login to example.com and check welcome');
+  const valid = new SyntheticScriptGenService(
+    new FakeScriptClient(VALID_SCRIPT),
+    NO_SETTINGS,
+  );
+  const script = await valid.generateScript(
+    't1',
+    'Login to example.com and check welcome',
+  );
   assert.deepEqual(script.steps.length, 4, 'all 4 steps are present');
   assert.equal(script.steps[0].action, 'goto', 'first step is goto');
   assert.equal(script.maxStepMs, 10000, 'maxStepMs preserved');
@@ -50,11 +62,17 @@ async function main() {
 
   // --- 2. AI returns JSON wrapped in prose/fences — JSON is extracted ---
   const fenced = new SyntheticScriptGenService(
-    new FakeScriptClient(`Here's the script:\n\`\`\`json\n${VALID_SCRIPT}\n\`\`\``),
+    new FakeScriptClient(
+      `Here's the script:\n\`\`\`json\n${VALID_SCRIPT}\n\`\`\``,
+    ),
     NO_SETTINGS,
   );
   const fencedScript = await fenced.generateScript('t1', 'Login flow');
-  assert.equal(fencedScript.steps.length, 4, 'JSON extracted from fenced prose');
+  assert.equal(
+    fencedScript.steps.length,
+    4,
+    'JSON extracted from fenced prose',
+  );
   ok('JSON is extracted even when wrapped in markdown fences');
 
   // --- 3. Disallowed action → BadRequestException ---
@@ -64,8 +82,10 @@ async function main() {
   });
   let badActionThrew = false;
   try {
-    await new SyntheticScriptGenService(new FakeScriptClient(badAction), NO_SETTINGS)
-      .generateScript('t1', 'description');
+    await new SyntheticScriptGenService(
+      new FakeScriptClient(badAction),
+      NO_SETTINGS,
+    ).generateScript('t1', 'description');
   } catch (e) {
     badActionThrew = e instanceof BadRequestException;
   }
@@ -75,19 +95,26 @@ async function main() {
   // --- 4. Invalid JSON → BadRequestException ---
   let invalidJsonThrew = false;
   try {
-    await new SyntheticScriptGenService(new FakeScriptClient('not json at all'), NO_SETTINGS)
-      .generateScript('t1', 'description');
+    await new SyntheticScriptGenService(
+      new FakeScriptClient('not json at all'),
+      NO_SETTINGS,
+    ).generateScript('t1', 'description');
   } catch (e) {
     invalidJsonThrew = e instanceof BadRequestException;
   }
-  assert.ok(invalidJsonThrew, 'non-JSON AI response throws BadRequestException');
+  assert.ok(
+    invalidJsonThrew,
+    'non-JSON AI response throws BadRequestException',
+  );
   ok('non-JSON AI response is rejected');
 
   // --- 5. Empty description → BadRequestException ---
   let emptyThrew = false;
   try {
-    await new SyntheticScriptGenService(new FakeScriptClient(VALID_SCRIPT), NO_SETTINGS)
-      .generateScript('t1', '');
+    await new SyntheticScriptGenService(
+      new FakeScriptClient(VALID_SCRIPT),
+      NO_SETTINGS,
+    ).generateScript('t1', '');
   } catch (e) {
     emptyThrew = e instanceof BadRequestException;
   }
@@ -97,8 +124,10 @@ async function main() {
   // --- 6. Disabled client → BadRequestException ---
   let disabledThrew = false;
   try {
-    await new SyntheticScriptGenService(new DisabledFake(), NO_SETTINGS)
-      .generateScript('t1', 'something');
+    await new SyntheticScriptGenService(
+      new DisabledFake(),
+      NO_SETTINGS,
+    ).generateScript('t1', 'something');
   } catch (e) {
     disabledThrew = e instanceof BadRequestException;
   }
@@ -108,8 +137,10 @@ async function main() {
   // --- 7. Description > 2000 chars → BadRequestException ---
   let longThrew = false;
   try {
-    await new SyntheticScriptGenService(new FakeScriptClient(VALID_SCRIPT), NO_SETTINGS)
-      .generateScript('t1', 'x'.repeat(2001));
+    await new SyntheticScriptGenService(
+      new FakeScriptClient(VALID_SCRIPT),
+      NO_SETTINGS,
+    ).generateScript('t1', 'x'.repeat(2001));
   } catch (e) {
     longThrew = e instanceof BadRequestException;
   }

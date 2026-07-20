@@ -1,5 +1,10 @@
 import { createHash } from 'crypto';
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../database/context/tenant-context';
@@ -20,7 +25,8 @@ export class CostNarrativeService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 

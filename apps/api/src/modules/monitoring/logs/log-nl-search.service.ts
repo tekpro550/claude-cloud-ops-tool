@@ -17,7 +17,7 @@ import { LogsService, SearchLogsQuery } from './logs.service';
 const ALLOWED_LOG_LEVELS = ['error', 'warn', 'info', 'debug'] as const;
 
 const NL_SYSTEM =
-  'You are a log search assistant. Parse the user\'s natural-language log query into a JSON object with these optional fields: ' +
+  "You are a log search assistant. Parse the user's natural-language log query into a JSON object with these optional fields: " +
   '{ "q": "full-text search phrase", "level": "error"|"warn"|"info"|"debug", ' +
   '"sourceName": "log source name", "fromRelative": "30m"|"1h"|"24h"|"7d"|"30d", "to": "ISO timestamp" }. ' +
   'Only include fields you can confidently extract. For "level", only use values from the allowed list. ' +
@@ -29,7 +29,8 @@ export class LogNlSearchService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
     private readonly logs: LogsService,
   ) {}
@@ -68,10 +69,7 @@ export class LogNlSearchService {
 
     // Resolve sourceName → sourceId if provided
     if (parsed.sourceName) {
-      const sourceId = await this.resolveSourceId(
-        tenantId,
-        parsed.sourceName,
-      );
+      const sourceId = await this.resolveSourceId(tenantId, parsed.sourceName);
       if (sourceId) {
         parsed.sourceId = sourceId;
       }

@@ -41,7 +41,8 @@ export class KbMiningService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 
@@ -163,9 +164,7 @@ export class KbMiningService {
 
     // Extract title from first # heading
     const titleMatch = bodyMd.match(/^#\s+(.+)/m);
-    const title = titleMatch
-      ? titleMatch[1].trim()
-      : 'KB Article (draft)';
+    const title = titleMatch ? titleMatch[1].trim() : 'KB Article (draft)';
 
     return withTenantContext(this.dataSource, tenantId, async (qr) => {
       const [article] = await qr.query(
@@ -173,13 +172,7 @@ export class KbMiningService {
            (tenant_id, title, body_md, source_ticket_ids, created_by)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [
-          tenantId,
-          title,
-          bodyMd,
-          dto.ticketIds,
-          dto.agentId ?? null,
-        ],
+        [tenantId, title, bodyMd, dto.ticketIds, dto.agentId ?? null],
       );
       return article;
     });
@@ -196,10 +189,9 @@ export class KbMiningService {
 
   async get(tenantId: string, id: string) {
     return withTenantContext(this.dataSource, tenantId, async (qr) => {
-      const [row] = await qr.query(
-        `SELECT * FROM kb_articles WHERE id = $1`,
-        [id],
-      );
+      const [row] = await qr.query(`SELECT * FROM kb_articles WHERE id = $1`, [
+        id,
+      ]);
       if (!row) throw new NotFoundException(`KB article ${id} not found`);
       return row;
     });

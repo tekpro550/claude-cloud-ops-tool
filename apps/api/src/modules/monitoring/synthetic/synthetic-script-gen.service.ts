@@ -4,10 +4,7 @@ import {
   AiCompletionClient,
 } from '../../../ai/ai-completion.client';
 import { TenantAiSettingsService } from '../../../ai/tenant-ai-settings.service';
-import {
-  SyntheticScript,
-  validateSyntheticScript,
-} from './synthetic-script';
+import { SyntheticScript, validateSyntheticScript } from './synthetic-script';
 
 const GEN_SYSTEM =
   'You are a browser automation expert. Given a plain-English description of a user journey, ' +
@@ -24,7 +21,8 @@ const GEN_SYSTEM =
 @Injectable()
 export class SyntheticScriptGenService {
   constructor(
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 

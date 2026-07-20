@@ -19,7 +19,8 @@ const NO_SETTINGS = {
 
 class FakeTriageClient implements AiCompletionClient {
   readonly enabled = true;
-  returnValue = '{"priority":"high","typeId":null,"tags":[],"skill":null,"rationale":"Urgent issue"}';
+  returnValue =
+    '{"priority":"high","typeId":null,"tags":[],"skill":null,"rationale":"Urgent issue"}';
   async complete(_s: string, _u: string): Promise<string> {
     return this.returnValue;
   }
@@ -27,7 +28,8 @@ class FakeTriageClient implements AiCompletionClient {
 
 class FakeSentimentClient implements AiCompletionClient {
   readonly enabled = true;
-  returnValue = '{"sentiment":"negative","score":0.9,"rationale":"Customer is frustrated"}';
+  returnValue =
+    '{"sentiment":"negative","score":0.9,"rationale":"Customer is frustrated"}';
   async complete(_s: string, _u: string): Promise<string> {
     return this.returnValue;
   }
@@ -35,11 +37,14 @@ class FakeSentimentClient implements AiCompletionClient {
 
 class DisabledFake implements AiCompletionClient {
   readonly enabled = false;
-  async complete(): Promise<string> { throw new Error('should not be called'); }
+  async complete(): Promise<string> {
+    throw new Error('should not be called');
+  }
 }
 
 function assert(condition: boolean, message: string) {
-  if (!condition) throw new Error(`AI triage/sentiment verify FAILED: ${message}`);
+  if (!condition)
+    throw new Error(`AI triage/sentiment verify FAILED: ${message}`);
   console.log(`  OK  ${message}`);
 }
 
@@ -58,16 +63,22 @@ async function main() {
   await migrator.connect();
 
   const slug = `ai-triage-verify-${Date.now()}`;
-  const { rows: [tenant] } = await migrator.query(
+  const {
+    rows: [tenant],
+  } = await migrator.query(
     `INSERT INTO tenants (name, slug, plan_tier) VALUES ($1, $2, 'internal') RETURNING id`,
     ['AI Triage Verify', slug],
   );
-  const { rows: [contact] } = await migrator.query(
+  const {
+    rows: [contact],
+  } = await migrator.query(
     `INSERT INTO contacts (tenant_id, name, email) VALUES ($1, $2, $3) RETURNING id`,
     [tenant.id, 'Triage Contact', `triage@${slug}.example`],
   );
 
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
   const dataSource = app.get(DataSource);
   const tickets = app.get(TicketsService);
 
@@ -100,9 +111,15 @@ async function main() {
     );
     await triageService.triageTicket(tenant.id, ticket.id);
 
-    const suggestion = await triageService.getTriageSuggestion(tenant.id, ticket.id);
+    const suggestion = await triageService.getTriageSuggestion(
+      tenant.id,
+      ticket.id,
+    );
     assert(!!suggestion, 'triage suggestion was persisted');
-    assert(suggestion.suggested_priority === 'high', 'valid priority is stored');
+    assert(
+      suggestion.suggested_priority === 'high',
+      'valid priority is stored',
+    );
     assert(suggestion.applied === false, 'suggest mode does not auto-apply');
 
     // --- 3. Apply mode updates the ticket ---
@@ -117,15 +134,20 @@ async function main() {
       fakeConfig,
     );
     await triageApply.triageTicket(tenant.id, ticket.id);
-    const { rows: [updatedTicket] } = await migrator.query(
-      `SELECT priority FROM tickets WHERE id = $1`,
-      [ticket.id],
+    const {
+      rows: [updatedTicket],
+    } = await migrator.query(`SELECT priority FROM tickets WHERE id = $1`, [
+      ticket.id,
+    ]);
+    assert(
+      updatedTicket.priority === 'high',
+      'apply mode updates ticket priority',
     );
-    assert(updatedTicket.priority === 'high', 'apply mode updates ticket priority');
 
     // --- 4. Allowlist gating: unknown priority is rejected ---
     const fakeInvalid = new FakeTriageClient();
-    fakeInvalid.returnValue = '{"priority":"CRITICAL","typeId":null,"tags":[],"skill":null,"rationale":"x"}';
+    fakeInvalid.returnValue =
+      '{"priority":"CRITICAL","typeId":null,"tags":[],"skill":null,"rationale":"x"}';
     const triageInvalid = new TicketTriageService(
       dataSource,
       fakeInvalid,
@@ -133,8 +155,14 @@ async function main() {
       fakeConfig,
     );
     await triageInvalid.triageTicket(tenant.id, ticket.id);
-    const latestSuggestion = await triageInvalid.getTriageSuggestion(tenant.id, ticket.id);
-    assert(latestSuggestion.suggested_priority === null, 'off-allowlist priority is null');
+    const latestSuggestion = await triageInvalid.getTriageSuggestion(
+      tenant.id,
+      ticket.id,
+    );
+    assert(
+      latestSuggestion.suggested_priority === null,
+      'off-allowlist priority is null',
+    );
 
     // --- 5. Disabled client is a no-op ---
     const disabledTriage = new TicketTriageService(
@@ -159,7 +187,9 @@ async function main() {
       NO_SETTINGS,
     );
     await sentimentService.detectSentiment(tenant.id, ticket.id);
-    const { rows: [sentimentTicket] } = await migrator.query(
+    const {
+      rows: [sentimentTicket],
+    } = await migrator.query(
       `SELECT sentiment, sentiment_score FROM tickets WHERE id = $1`,
       [ticket.id],
     );
@@ -168,7 +198,8 @@ async function main() {
 
     // --- 7. Invalid sentiment label is rejected ---
     const invalidSentimentClient = new FakeSentimentClient();
-    invalidSentimentClient.returnValue = '{"sentiment":"furious","score":0.9,"rationale":"x"}';
+    invalidSentimentClient.returnValue =
+      '{"sentiment":"furious","score":0.9,"rationale":"x"}';
     const invalidSentiment = new TicketSentimentService(
       dataSource,
       invalidSentimentClient,
@@ -176,21 +207,41 @@ async function main() {
     );
     await invalidSentiment.detectSentiment(tenant.id, ticket.id);
     // sentiment should remain unchanged (furious is not in allowlist)
-    const { rows: [sentimentAfter] } = await migrator.query(
-      `SELECT sentiment FROM tickets WHERE id = $1`,
-      [ticket.id],
+    const {
+      rows: [sentimentAfter],
+    } = await migrator.query(`SELECT sentiment FROM tickets WHERE id = $1`, [
+      ticket.id,
+    ]);
+    assert(
+      sentimentAfter.sentiment === 'negative',
+      'off-allowlist sentiment is rejected',
     );
-    assert(sentimentAfter.sentiment === 'negative', 'off-allowlist sentiment is rejected');
 
     console.log('\nAll AI triage + sentiment checks passed.');
   } finally {
-    await migrator.query(`DELETE FROM ticket_ai_triage WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM ticket_number_counters WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM tenant_ai_settings WHERE tenant_id = $1`, [tenant.id]);
-    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [tenant.id]);
+    await migrator.query(`DELETE FROM ticket_ai_triage WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_messages WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM ticket_activities WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM tickets WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(
+      `DELETE FROM ticket_number_counters WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(
+      `DELETE FROM tenant_ai_settings WHERE tenant_id = $1`,
+      [tenant.id],
+    );
+    await migrator.query(`DELETE FROM contacts WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM tenants WHERE id = $1`, [tenant.id]);
     await migrator.end();
     await app.close();

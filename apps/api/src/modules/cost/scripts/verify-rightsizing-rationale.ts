@@ -45,8 +45,10 @@ async function main() {
   await ds.initialize();
 
   try {
-    const { RightsizingRationaleService } = await import('../rightsizing-rationale.service');
-    const { DisabledCompletionClient } = await import('../../../ai/ai-completion.client');
+    const { RightsizingRationaleService } =
+      await import('../rightsizing-rationale.service');
+    const { DisabledCompletionClient } =
+      await import('../../../ai/ai-completion.client');
 
     await teardown(ds);
     const { recId } = await setup(ds);
@@ -62,11 +64,16 @@ async function main() {
       `SELECT ai_rationale FROM rightsizing_recommendations WHERE id = $1`,
       [recId],
     );
-    assert.equal(before.ai_rationale, null, 'disabled client leaves rationale null');
+    assert.equal(
+      before.ai_rationale,
+      null,
+      'disabled client leaves rationale null',
+    );
     console.log('OK disabled client skips rationale');
 
     // 2. Fake client generates and stores rationale
-    const generated = 'web-server-01 has averaged only 2.1% CPU over the past 14 days, qualifying it as idle. Rightsizing or terminating this instance could save approximately $45.50/month. Consider moving workloads to a smaller instance or implementing auto-scaling.';
+    const generated =
+      'web-server-01 has averaged only 2.1% CPU over the past 14 days, qualifying it as idle. Rightsizing or terminating this instance could save approximately $45.50/month. Consider moving workloads to a smaller instance or implementing auto-scaling.';
     const fakeClient = {
       enabled: true,
       async complete(_s: string, user: string) {
@@ -76,11 +83,9 @@ async function main() {
         return generated;
       },
     };
-    const svc = new (RightsizingRationaleService as any)(
-      ds,
-      fakeClient,
-      { resolveClient: async () => null } as any,
-    );
+    const svc = new (RightsizingRationaleService as any)(ds, fakeClient, {
+      resolveClient: async () => null,
+    } as any);
     await svc.generateRationale(FAKE_TENANT_ID, recId);
     const [after] = await ds.query(
       `SELECT ai_rationale, ai_rationale_model FROM rightsizing_recommendations WHERE id = $1`,
@@ -88,28 +93,35 @@ async function main() {
     );
     assert.equal(after.ai_rationale, generated, 'rationale stored');
     assert.equal(after.ai_rationale_model, 'ai', 'model recorded');
-    console.log('OK fake client stores rationale with resource context in prompt');
+    console.log(
+      'OK fake client stores rationale with resource context in prompt',
+    );
 
     // 3. Non-existent recommendation doesn't throw
-    await svc.generateRationale(FAKE_TENANT_ID, '00000000-0000-0000-0000-000000000000');
+    await svc.generateRationale(
+      FAKE_TENANT_ID,
+      '00000000-0000-0000-0000-000000000000',
+    );
     console.log('OK non-existent recommendation handled gracefully');
 
     // 4. RLS: tenant B cannot see tenant A's recommendation
     const [tenantB] = await ds.query(
       `INSERT INTO tenants (name) VALUES ('B') RETURNING id`,
     );
-    const svcB = new (RightsizingRationaleService as any)(
-      ds,
-      fakeClient,
-      { resolveClient: async () => null } as any,
-    );
+    const svcB = new (RightsizingRationaleService as any)(ds, fakeClient, {
+      resolveClient: async () => null,
+    } as any);
     // This should not throw but also shouldn't touch tenant A's data
     await svcB.generateRationale(tenantB.id, recId);
     const [checkA] = await ds.query(
       `SELECT ai_rationale FROM rightsizing_recommendations WHERE id = $1`,
       [recId],
     );
-    assert.equal(checkA.ai_rationale, generated, 'RLS: tenant B cannot modify tenant A recommendation');
+    assert.equal(
+      checkA.ai_rationale,
+      generated,
+      'RLS: tenant B cannot modify tenant A recommendation',
+    );
     console.log('OK RLS blocks cross-tenant rationale write');
 
     await ds.query(`DELETE FROM tenants WHERE id = $1`, [tenantB.id]);

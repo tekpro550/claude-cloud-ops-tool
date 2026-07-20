@@ -26,7 +26,11 @@ async function main() {
     apiKey: null,
     baseUrl: null,
   });
-  assert.equal(noKey.enabled, false, 'buildCompletionClient no key returns disabled');
+  assert.equal(
+    noKey.enabled,
+    false,
+    'buildCompletionClient no key returns disabled',
+  );
   console.log('OK buildCompletionClient no key');
 
   // 4. buildCompletionClient openai_compatible with no baseUrl returns disabled
@@ -36,7 +40,11 @@ async function main() {
     apiKey: 'k',
     baseUrl: null,
   });
-  assert.equal(noUrl.enabled, false, 'openai_compatible no baseUrl returns disabled');
+  assert.equal(
+    noUrl.enabled,
+    false,
+    'openai_compatible no baseUrl returns disabled',
+  );
   console.log('OK buildCompletionClient openai_compatible no baseUrl');
 
   // 5. Fake client works with runAssist

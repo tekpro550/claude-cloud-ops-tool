@@ -9,7 +9,9 @@ import { AppDataSource } from '../../../../database/data-source';
 
 const FAKE_TENANT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 
-async function setup(ds: DataSource): Promise<{ ticketId: string; contactId: string }> {
+async function setup(
+  ds: DataSource,
+): Promise<{ ticketId: string; contactId: string }> {
   await ds.query(
     `INSERT INTO tenants (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
     [FAKE_TENANT_ID, 'Sentiment Test Tenant'],
@@ -18,12 +20,20 @@ async function setup(ds: DataSource): Promise<{ ticketId: string; contactId: str
     `INSERT INTO users (id, tenant_id, email, password_hash, name, role)
      VALUES ($1, $2, $3, 'x', 'Test Agent', 'admin')
      ON CONFLICT (id) DO NOTHING`,
-    ['aaaaaaaa-0000-0000-0001-000000000001', FAKE_TENANT_ID, 'sent-agent@test.com'],
+    [
+      'aaaaaaaa-0000-0000-0001-000000000001',
+      FAKE_TENANT_ID,
+      'sent-agent@test.com',
+    ],
   );
   await ds.query(
     `INSERT INTO agents (id, tenant_id, user_id)
      VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`,
-    ['aaaaaaaa-0000-0000-0002-000000000001', FAKE_TENANT_ID, 'aaaaaaaa-0000-0000-0001-000000000001'],
+    [
+      'aaaaaaaa-0000-0000-0002-000000000001',
+      FAKE_TENANT_ID,
+      'aaaaaaaa-0000-0000-0001-000000000001',
+    ],
   );
   await ds.query(
     `INSERT INTO contacts (id, tenant_id, name, email)
@@ -42,7 +52,10 @@ async function setup(ds: DataSource): Promise<{ ticketId: string; contactId: str
      VALUES ($1, $2, 'reply', 'contact', 'This is completely unacceptable. Fix it NOW or I am cancelling!')`,
     [FAKE_TENANT_ID, ticket.id],
   );
-  return { ticketId: ticket.id, contactId: 'aaaaaaaa-0000-0000-0003-000000000001' };
+  return {
+    ticketId: ticket.id,
+    contactId: 'aaaaaaaa-0000-0000-0003-000000000001',
+  };
 }
 
 async function teardown(ds: DataSource) {
@@ -55,8 +68,10 @@ async function main() {
 
   try {
     // Import after DataSource is initialized
-    const { TicketSentimentService } = await import('../ticket-sentiment.service');
-    const { DisabledCompletionClient } = await import('../../../../ai/ai-completion.client');
+    const { TicketSentimentService } =
+      await import('../ticket-sentiment.service');
+    const { DisabledCompletionClient } =
+      await import('../../../../ai/ai-completion.client');
 
     await teardown(ds);
     const { ticketId } = await setup(ds);
@@ -74,7 +89,11 @@ async function main() {
       `SELECT sentiment FROM tickets WHERE id = $1`,
       [ticketId],
     );
-    assert.equal(noupdate.sentiment, null, 'disabled client leaves sentiment null');
+    assert.equal(
+      noupdate.sentiment,
+      null,
+      'disabled client leaves sentiment null',
+    );
     console.log('OK disabled client skips detection');
 
     // 2. Fake client returning negative sentiment updates the ticket
@@ -83,14 +102,16 @@ async function main() {
       enabled: true,
       async complete(_s: string, _u: string) {
         callCount++;
-        return JSON.stringify({ sentiment: 'at_risk', score: 0.95, rationale: 'churn signals' });
+        return JSON.stringify({
+          sentiment: 'at_risk',
+          score: 0.95,
+          rationale: 'churn signals',
+        });
       },
     };
-    const svc = new (TicketSentimentService as any)(
-      ds,
-      fakeClient,
-      { resolveClient: async () => null } as any,
-    );
+    const svc = new (TicketSentimentService as any)(ds, fakeClient, {
+      resolveClient: async () => null,
+    } as any);
     await svc.detectSentiment(FAKE_TENANT_ID, ticketId);
     const [updated] = await ds.query(
       `SELECT sentiment, sentiment_score FROM tickets WHERE id = $1`,
@@ -109,13 +130,13 @@ async function main() {
     // 4. Allowlist gating: bad sentiment value is ignored
     const badFakeClient = {
       enabled: true,
-      async complete() { return JSON.stringify({ sentiment: 'INJECTED_SQL', score: 1 }); },
+      async complete() {
+        return JSON.stringify({ sentiment: 'INJECTED_SQL', score: 1 });
+      },
     };
-    const badSvc = new (TicketSentimentService as any)(
-      ds,
-      badFakeClient,
-      { resolveClient: async () => null } as any,
-    );
+    const badSvc = new (TicketSentimentService as any)(ds, badFakeClient, {
+      resolveClient: async () => null,
+    } as any);
     // Clear debounce by nulling sentiment_updated_at
     await ds.query(
       `UPDATE tickets SET sentiment_updated_at = null WHERE id = $1`,
@@ -126,11 +147,18 @@ async function main() {
       `SELECT sentiment FROM tickets WHERE id = $1`,
       [ticketId],
     );
-    assert.equal(afterBad.sentiment, 'at_risk', 'bad sentiment output ignored, value unchanged');
+    assert.equal(
+      afterBad.sentiment,
+      'at_risk',
+      'bad sentiment output ignored, value unchanged',
+    );
     console.log('OK allowlist gates bad sentiment values');
 
     // 5. Non-existent ticket doesn't throw
-    await svc.detectSentiment(FAKE_TENANT_ID, '00000000-0000-0000-0000-000000000000');
+    await svc.detectSentiment(
+      FAKE_TENANT_ID,
+      '00000000-0000-0000-0000-000000000000',
+    );
     console.log('OK non-existent ticket handled gracefully');
 
     console.log('\nAll verify-ticket-sentiment checks passed.');

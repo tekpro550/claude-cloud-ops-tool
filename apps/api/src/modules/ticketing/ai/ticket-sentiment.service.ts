@@ -8,7 +8,12 @@ import {
 } from '../../../ai/ai-completion.client';
 import { TenantAiSettingsService } from '../../../ai/tenant-ai-settings.service';
 
-const SENTIMENT_LABELS = ['positive', 'neutral', 'negative', 'at_risk'] as const;
+const SENTIMENT_LABELS = [
+  'positive',
+  'neutral',
+  'negative',
+  'at_risk',
+] as const;
 type SentimentLabel = (typeof SENTIMENT_LABELS)[number];
 
 /** Minimum gap between sentiment re-evaluations for the same ticket (ms). */
@@ -27,7 +32,8 @@ export class TicketSentimentService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Inject(AI_COMPLETION_CLIENT) private readonly envClient: AiCompletionClient,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
     private readonly settings: TenantAiSettingsService,
   ) {}
 
@@ -100,12 +106,11 @@ export class TicketSentimentService {
         [ticketId],
       );
       if (!ticket) return null;
-      const messages: { author_type: string; body: string }[] =
-        await qr.query(
-          `SELECT author_type, body FROM ticket_messages
+      const messages: { author_type: string; body: string }[] = await qr.query(
+        `SELECT author_type, body FROM ticket_messages
            WHERE ticket_id = $1 ORDER BY created_at ASC LIMIT 20`,
-          [ticketId],
-        );
+        [ticketId],
+      );
       const lines = [`Subject: ${ticket.subject}`, ''];
       for (const m of messages) {
         const who = m.author_type === 'contact' ? 'Customer' : 'Agent';

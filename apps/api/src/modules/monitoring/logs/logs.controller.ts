@@ -35,10 +35,7 @@ export class LogsController {
   ) {}
 
   @Post('search/nl')
-  searchNl(
-    @CurrentTenantId() tenantId: string,
-    @Body() dto: NlSearchBodyDto,
-  ) {
+  searchNl(@CurrentTenantId() tenantId: string, @Body() dto: NlSearchBodyDto) {
     return this.nlSearch.nlSearch(tenantId, dto.query);
   }
 
