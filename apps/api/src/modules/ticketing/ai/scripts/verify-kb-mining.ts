@@ -56,7 +56,8 @@ async function main() {
 
   try {
     const { KbMiningService } = await import('../kb-mining.service');
-    const { DisabledCompletionClient } = await import('../../../../ai/ai-completion.client');
+    const { DisabledCompletionClient } =
+      await import('../../../../ai/ai-completion.client');
 
     await teardown(ds);
     const ticketIds = await setup(ds);
@@ -74,18 +75,26 @@ async function main() {
       (c: any) => c.subject && c.subject.toLowerCase().includes('vpn'),
     );
     assert(vpnCluster, 'VPN tickets clustered together');
-    assert(vpnCluster.ticket_count >= 2, 'at least 2 similar tickets in cluster');
-    console.log(`OK suggestClusters found VPN cluster (${vpnCluster.ticket_count} tickets)`);
+    assert(
+      vpnCluster.ticket_count >= 2,
+      'at least 2 similar tickets in cluster',
+    );
+    console.log(
+      `OK suggestClusters found VPN cluster (${vpnCluster.ticket_count} tickets)`,
+    );
 
     // 2. draftArticle with disabled client returns null (AI required)
-    const noDraft = await svc.draftArticle(FAKE_TENANT_ID, { ticketIds: ticketIds.slice(0, 2) });
+    const noDraft = await svc.draftArticle(FAKE_TENANT_ID, {
+      ticketIds: ticketIds.slice(0, 2),
+    });
     assert.equal(noDraft, null, 'disabled client returns null draft');
     console.log('OK disabled client returns null for draftArticle');
 
     // 3. draftArticle with fake client returns article
     const fakeArticle = {
       title: 'Resolving VPN Connectivity Issues When Working Remotely',
-      bodyMd: '## Problem\nUsers cannot connect to VPN from home.\n## Solution\nCheck your network settings and try restarting the VPN client.',
+      bodyMd:
+        '## Problem\nUsers cannot connect to VPN from home.\n## Solution\nCheck your network settings and try restarting the VPN client.',
       tags: ['vpn', 'remote-work', 'networking'],
     };
     const fakeDraft = {
@@ -95,11 +104,9 @@ async function main() {
         return JSON.stringify(fakeArticle);
       },
     };
-    const svcWithAi = new (KbMiningService as any)(
-      ds,
-      fakeDraft,
-      { resolveClient: async () => null } as any,
-    );
+    const svcWithAi = new (KbMiningService as any)(ds, fakeDraft, {
+      resolveClient: async () => null,
+    } as any);
     const draft = await svcWithAi.draftArticle(FAKE_TENANT_ID, {
       ticketIds: ticketIds.slice(0, 2),
     });
@@ -112,25 +119,33 @@ async function main() {
       `INSERT INTO kb_articles (tenant_id, title, body_md, source_ticket_ids, tags)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, status`,
-      [FAKE_TENANT_ID, fakeArticle.title, fakeArticle.bodyMd, ticketIds, fakeArticle.tags],
+      [
+        FAKE_TENANT_ID,
+        fakeArticle.title,
+        fakeArticle.bodyMd,
+        ticketIds,
+        fakeArticle.tags,
+      ],
     );
     assert.equal(article.status, 'draft', 'new article defaults to draft');
     console.log('OK KB article created with draft status');
 
     // 5. RLS: tenant B cannot see tenant A's articles
-    const [tenantB] = await ds.query(`INSERT INTO tenants (name) VALUES ('B') RETURNING id`);
+    const [tenantB] = await ds.query(
+      `INSERT INTO tenants (name) VALUES ('B') RETURNING id`,
+    );
     // Run query as tenant B — should see 0 rows
     await ds.query(`SET LOCAL app.current_tenant = '${tenantB.id}'`);
-    const crossTenantRows = await ds.query(
-      `SELECT id FROM kb_articles WHERE id = $1`,
-      [article.id],
-    );
+    await ds.query(`SELECT id FROM kb_articles WHERE id = $1`, [article.id]);
     // Note: SET LOCAL works per-transaction; outside withTenantContext it may not be enforced
     // but we verify the RLS policy exists at minimum
     const [policyCheck] = await ds.query(
       `SELECT COUNT(*) AS cnt FROM pg_policies WHERE tablename = 'kb_articles' AND policyname = 'tenant_isolation'`,
     );
-    assert(Number(policyCheck.cnt) > 0, 'RLS tenant_isolation policy exists on kb_articles');
+    assert(
+      Number(policyCheck.cnt) > 0,
+      'RLS tenant_isolation policy exists on kb_articles',
+    );
     console.log('OK kb_articles has RLS tenant_isolation policy');
 
     await ds.query(`DELETE FROM tenants WHERE id = $1`, [tenantB.id]);

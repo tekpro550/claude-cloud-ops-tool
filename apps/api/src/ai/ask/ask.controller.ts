@@ -12,8 +12,6 @@ import { CurrentTenantId } from '../../modules/platform/http/current-tenant.deco
 import { TenantHeaderGuard } from '../../modules/platform/http/tenant-header.guard';
 import { AskService } from './ask.service';
 
-class CreateSessionDto {}
-
 class AskMessageDto {
   message: string;
 }
