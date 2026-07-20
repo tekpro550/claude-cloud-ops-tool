@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AiModule } from './ai/ai.module';
 import { CostModule } from './modules/cost/cost.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -18,6 +19,7 @@ import { TicketingModule } from './modules/ticketing/ticketing.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
+    AiModule,
     TicketingModule,
     MonitoringModule,
     CostModule,

@@ -15,11 +15,27 @@ import { CurrentTenantId } from '../platform/http/current-tenant.decorator';
 import { TenantHeaderGuard } from '../platform/http/tenant-header.guard';
 import { CreateMonitorDto, UpdateMonitorDto } from './monitors.dto';
 import { MonitorsService } from './monitors.service';
+import { SyntheticScriptGenService } from './synthetic/synthetic-script-gen.service';
+
+class GenerateScriptBodyDto {
+  description: string;
+}
 
 @UseGuards(TenantHeaderGuard)
 @Controller('monitors')
 export class MonitorsController {
-  constructor(private readonly monitors: MonitorsService) {}
+  constructor(
+    private readonly monitors: MonitorsService,
+    private readonly scriptGen: SyntheticScriptGenService,
+  ) {}
+
+  @Post('synthetic/generate')
+  generateSyntheticScript(
+    @CurrentTenantId() tenantId: string,
+    @Body() dto: GenerateScriptBodyDto,
+  ) {
+    return this.scriptGen.generateScript(tenantId, dto.description);
+  }
 
   @Get()
   list(@CurrentTenantId() tenantId: string) {

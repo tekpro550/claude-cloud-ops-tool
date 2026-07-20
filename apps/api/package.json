@@ -102,7 +102,19 @@
     "cost-dashboard:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-dashboard.ts",
     "ai-settings:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ai-settings.ts",
     "kb-autopopulate:verify": "ts-node -r dotenv/config src/modules/ticketing/scripts/verify-kb-autopopulate.ts",
-    "cost-anomaly:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-anomaly.ts"
+    "cost-anomaly:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-anomaly.ts",
+    "ai-foundation:verify": "ts-node -r dotenv/config src/ai/scripts/verify-ai-foundation.ts",
+    "ai-triage:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ai-triage.ts",
+    "ticket-similar:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ticket-similar.ts",
+    "cost-narrative:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-cost-narrative.ts",
+    "alert-narrative:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-alert-narrative.ts",
+    "log-nl-search:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-log-nl-search.ts",
+    "synthetic-script-gen:verify": "ts-node -r dotenv/config src/modules/monitoring/scripts/verify-synthetic-script-gen.ts",
+    "ask:verify": "ts-node -r dotenv/config src/ai/scripts/verify-ask.ts",
+    "ticket-sentiment:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-ticket-sentiment.ts",
+    "rightsizing-rationale:verify": "ts-node -r dotenv/config src/modules/cost/scripts/verify-rightsizing-rationale.ts",
+    "kb-mining:verify": "ts-node -r dotenv/config src/modules/ticketing/ai/scripts/verify-kb-mining.ts",
+    "report-ai-summary:verify": "ts-node -r dotenv/config src/modules/cost/reporting/scripts/verify-report-ai-summary.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.1086.0",

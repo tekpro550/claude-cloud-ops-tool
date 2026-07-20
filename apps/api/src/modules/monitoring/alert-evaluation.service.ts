@@ -13,6 +13,7 @@ import {
   metricValueSql,
 } from './metric-alert-rule';
 import { generateReasonText, generateRepeatNoteText } from './reason-text';
+import { AlertNarrativeService } from './alert-narrative.service';
 
 // How far back an anomaly rule looks for its baseline, excluding the newest
 // `for_consecutive` samples being evaluated against it.
@@ -76,6 +77,7 @@ export class AlertEvaluationService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly eventBus: EventBusService,
     private readonly config: ConfigService,
+    private readonly alertNarrative: AlertNarrativeService,
   ) {}
 
   async evaluate(
@@ -98,6 +100,10 @@ export class AlertEvaluationService {
           outcome.alertId,
           outcome.reasonText,
         );
+        // Fire narrative generation async — never block alerting on AI
+        void this.alertNarrative
+          .generateNarrative(tenantId, outcome.alertId)
+          .catch(() => {});
         return;
       case 'repeat':
         if (outcome.ticketId && outcome.noteBody) {

@@ -619,6 +619,54 @@ below is **verified against the code now in `main`**, not just commit messages.
 All 11 tasks of the competitive-parity plan (`docs/implementation-plan-competitive-parity.md`)
 are now complete.
 
+- **All 11 AI value-add features (AI plan, Tasks 0–11).** `src/ai/` is now a
+  `@Global()` `AiModule` that provides `AI_COMPLETION_CLIENT` and
+  `TenantAiSettingsService` to every module without cross-module imports.
+  Features delivered across all three modules:
+  - **Task 1 (M1): Ticket auto-triage.** `TicketTriageService` fires on
+    `TicketsService.create` (fire-and-forget). AI suggests priority/type/tags/skill
+    from tenant allowlists; `auto_triage_mode=apply` auto-applies them. Table
+    `ticket_ai_triage` stores each suggestion with `applied` flag.
+    (`verify-ai-triage.ts`)
+  - **Task 2 (M3): Cost spike narrative.** `CostNarrativeService` caches AI
+    narratives by `sha256(input_hash)` in `cost_narratives`. Endpoint
+    `GET /cost/anomalies/narrative`. (`verify-cost-narrative.ts`)
+  - **Task 3 (M1): Ticket sentiment detection.** `TicketSentimentService` fires
+    on every inbound customer message (fire-and-forget, 5-min debounce). Stores
+    `sentiment` + `sentiment_score` on `tickets`. Allowlist gates the four
+    labels (`positive/neutral/negative/at_risk`). (`verify-ticket-sentiment.ts`)
+  - **Task 4 (M3): Rightsizing rationale.** `RightsizingRationaleService` fires
+    after each `RightsizingSweepService` upsert. Fills `ai_rationale` on
+    `rightsizing_recommendations`. (`verify-rightsizing-rationale.ts`)
+  - **Task 5 (M2): Alert RCA narrative.** `AlertNarrativeService` fires on alert
+    creation from `AlertEvaluationService`. Loads last N `monitor_checks`, calls
+    AI, stores `narrative` on `alerts`. (`verify-alert-narrative.ts`)
+  - **Task 6 (M2): Natural-language log search.** `LogNlSearchService` at
+    `POST /logs/search/nl`. AI parses a plain-English query into structured
+    `{q?,level?,sourceName?,fromRelative?,to?}`, validated against allowlists,
+    then delegates to `LogsService.search`. (`verify-log-nl-search.ts`)
+  - **Task 7 (M1): Similar ticket detection.** `TicketSimilarService` uses
+    `pg_trgm` for candidates, AI re-ranks. Table `ticket_similar_suggestions`.
+    `GET /tickets/:id/similar`. (`verify-ticket-similar.ts`)
+  - **Task 8 (M2): Synthetic script generation.** `SyntheticScriptGenService` at
+    `POST /synthetic/generate`. AI drafts a step list; `validateSyntheticScript()`
+    is the allowlist gate before returning. (`verify-synthetic-script-gen.ts`)
+  - **Task 9 (M3): AI executive summary in scheduled reports.**
+    `ReportGeneratorService.generate(…, includeAiSummary=true)` appends a 2-4
+    sentence AI narrative to the `ReportTable.aiSummary` field. `scheduled_reports`
+    gains `include_ai_summary boolean`. AI failure is fire-and-forget; the report
+    still delivers. (`verify-report-ai-summary.ts`)
+  - **Task 10 (M1): KB article mining.** `KbMiningService` clusters resolved
+    tickets by `pg_trgm` subject similarity (`suggestClusters`) and drafts KB
+    articles from ticket digests (`draftArticle`). Table `kb_articles`
+    (draft/published/archived). `KbMiningController` at `/kb-articles`.
+    (`verify-kb-mining.ts`)
+  - **Task 11 (all): Unified "Ask" assistant.** `AskService` at `POST /ask`.
+    Session-based (tables `ask_sessions` + `ask_messages`), tool-use loop (≤3
+    rounds), fixed tool catalog: `tickets_summary`, `sla_attainment`,
+    `open_alerts`, `uptime_summary`, `cost_by_service`, `cost_forecast`.
+    Cross-module reads use internal HTTP. (`verify-ask.ts`)
+
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the
   remaining SSO protocol. Note `X-Tenant-Id` header auth also remains a fallback

@@ -8,6 +8,8 @@ import { CostAllocationController } from './cost-allocation.controller';
 import { CostAllocationService } from './cost-allocation.service';
 import { CostAnomaliesController } from './cost-anomalies.controller';
 import { CostAnomaliesService } from './cost-anomalies.service';
+import { CostNarrativeService } from './cost-narrative.service';
+import { RightsizingRationaleService } from './rightsizing-rationale.service';
 import { CostAnomalyCheckService } from './cost-anomaly-check.service';
 import { CostBillingSyncService } from './cost-billing-sync.service';
 import { CostBudgetsController } from './cost-budgets.controller';
@@ -62,8 +64,10 @@ import { TenantCostSettingsService } from './tenant-cost-settings.service';
     CostAnomaliesService,
     CostAccountsService,
     RightsizingSweepService,
+    RightsizingRationaleService,
     RecommendationsService,
     CostSavingsSweepService,
+    CostNarrativeService,
     SavingsLogService,
     TenantCostSettingsService,
     CostDashboardService,

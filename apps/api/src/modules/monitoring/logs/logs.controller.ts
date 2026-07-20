@@ -20,11 +20,27 @@ import {
   UpdateLogSourceDto,
 } from './logs.dto';
 import { LogsService } from './logs.service';
+import { LogNlSearchService } from './log-nl-search.service';
+
+class NlSearchBodyDto {
+  query: string;
+}
 
 @UseGuards(TenantHeaderGuard)
 @Controller('logs')
 export class LogsController {
-  constructor(private readonly logs: LogsService) {}
+  constructor(
+    private readonly logs: LogsService,
+    private readonly nlSearch: LogNlSearchService,
+  ) {}
+
+  @Post('search/nl')
+  searchNl(
+    @CurrentTenantId() tenantId: string,
+    @Body() dto: NlSearchBodyDto,
+  ) {
+    return this.nlSearch.nlSearch(tenantId, dto.query);
+  }
 
   @Get('search')
   search(

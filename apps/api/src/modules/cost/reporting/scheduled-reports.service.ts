@@ -91,12 +91,14 @@ export class ScheduledReportsService {
       params: Record<string, unknown>;
       format: 'csv' | 'pdf';
       name: string;
+      include_ai_summary?: boolean;
     },
   ): Promise<RenderedReportFile> {
     const table = await this.generator.generate(
       tenantId,
       report.report_kind,
       report.params ?? {},
+      report.include_ai_summary ?? false,
     );
     const safeName = report.name.replace(/[^\w.-]+/g, '_');
     if (report.format === 'csv') {
