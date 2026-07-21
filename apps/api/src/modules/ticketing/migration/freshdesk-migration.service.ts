@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryRunner } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
+import { sanitizeTicketBody } from '../sanitize-html';
 import { LocalDiskStorage } from '../attachments/object-storage';
 import {
   FreshdeskAgent,
@@ -375,7 +376,10 @@ export class FreshdeskMigrationService {
             inserted.id,
             conv.private ? 'note' : 'reply',
             authorType,
-            conv.body_text ?? '',
+            // Imported bodies render via dangerouslySetInnerHTML like every
+            // other message, so they must pass the same sanitizer as
+            // addMessage — historical Freshdesk data is untrusted input.
+            sanitizeTicketBody(conv.body_text ?? ''),
             new Date(conv.created_at),
           ],
         );

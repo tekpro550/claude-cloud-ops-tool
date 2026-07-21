@@ -44,26 +44,32 @@ export class TicketSentimentService {
    */
   async detectSentiment(tenantId: string, ticketId: string): Promise<void> {
     try {
-      // Debounce: skip if last update was < MIN_SENTIMENT_GAP_MS ago
-      const recentUpdate = await withTenantContext(
-        this.dataSource,
-        tenantId,
-        async (qr) => {
-          const [row] = await qr.query(
-            `SELECT sentiment_updated_at FROM tickets WHERE id = $1`,
-            [ticketId],
-          );
-          return row?.sentiment_updated_at ?? null;
-        },
-      );
-      if (recentUpdate) {
-        const gapMs = Date.now() - new Date(recentUpdate as string).getTime();
-        if (gapMs < MIN_SENTIMENT_GAP_MS) return;
-      }
-
       const client =
         (await this.settings.resolveClient(tenantId)) ?? this.envClient;
       if (!client.enabled) return;
+
+      // Debounce via an atomic claim: only the caller whose UPDATE matches
+      // gets to run the AI, so two near-simultaneous inbound messages can't
+      // both pass a read-then-act check and double-call the provider. The
+      // timestamp is consumed even if the AI call then fails — that's
+      // deliberate back-off against a failing provider.
+      const claimed = await withTenantContext(
+        this.dataSource,
+        tenantId,
+        async (qr) => {
+          // UPDATE ... RETURNING comes back as [rows, affectedCount]
+          const [rows] = await qr.query(
+            `UPDATE tickets SET sentiment_updated_at = now()
+             WHERE id = $1
+               AND (sentiment_updated_at IS NULL
+                    OR sentiment_updated_at < now() - ($2 || ' milliseconds')::interval)
+             RETURNING id`,
+            [ticketId, MIN_SENTIMENT_GAP_MS],
+          );
+          return rows.length > 0;
+        },
+      );
+      if (!claimed) return;
 
       const transcript = await this.loadTranscript(tenantId, ticketId);
       if (!transcript) return;
