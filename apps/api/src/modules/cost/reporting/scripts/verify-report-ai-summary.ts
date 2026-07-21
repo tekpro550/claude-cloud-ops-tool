@@ -5,7 +5,7 @@
  * Requires: docker compose up -d
  */
 import 'reflect-metadata';
-import assert from 'assert';
+import * as assert from 'assert';
 import { DataSource } from 'typeorm';
 import { AppDataSource } from '../../../../database/data-source';
 import { DisabledCompletionClient } from '../../../../ai/ai-completion.client';

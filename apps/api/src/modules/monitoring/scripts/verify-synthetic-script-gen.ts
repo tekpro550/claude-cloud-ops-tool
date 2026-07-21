@@ -3,7 +3,7 @@
  * Uses a fake AI client — no Playwright or real AI API needed.
  */
 import 'reflect-metadata';
-import assert from 'assert';
+import * as assert from 'assert';
 import { BadRequestException } from '@nestjs/common';
 import { AiCompletionClient } from '../../../ai/ai-completion.client';
 import { TenantAiSettingsService } from '../../../ai/tenant-ai-settings.service';

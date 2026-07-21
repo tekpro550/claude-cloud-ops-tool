@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import assert from 'assert';
+import * as assert from 'assert';
 import {
   DisabledCompletionClient,
   buildCompletionClient,
