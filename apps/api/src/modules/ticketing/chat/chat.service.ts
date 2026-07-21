@@ -3,10 +3,14 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
 import { AddChatMessageDto, CreateChatSessionDto } from './chat.dto';
+import { ChatAiResponderService } from './chat-ai-responder.service';
 
 @Injectable()
 export class ChatService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly aiResponder: ChatAiResponderService,
+  ) {}
 
   createSession(tenantId: string, dto: CreateChatSessionDto) {
     return withTenantContext(this.dataSource, tenantId, async (qr) => {
@@ -72,6 +76,16 @@ export class ChatService {
          WHERE id = $1`,
         [sessionId, dto.authorType, dto.authorId ?? null],
       );
+      return message;
+    }).then((message) => {
+      // Fire-and-forget AI first-responder on a visitor turn. It self-gates on
+      // the session being open, AI-enabled, and unclaimed, so this is a no-op
+      // once a human agent is handling the chat.
+      if (dto.authorType === 'visitor') {
+        void this.aiResponder
+          .respond(tenantId, sessionId)
+          .catch(() => undefined);
+      }
       return message;
     });
   }

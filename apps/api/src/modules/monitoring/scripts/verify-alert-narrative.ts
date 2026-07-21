@@ -113,6 +113,28 @@ async function main() {
     );
     alertId = alert.id;
 
+    // Seed cross-signal evidence inside the correlation window: an error log
+    // and APM traces with an elevated error rate.
+    const {
+      rows: [logSource],
+    } = await migrator.query(
+      `INSERT INTO log_sources (tenant_id, name, is_active)
+       VALUES ($1, 'payments-api', true) RETURNING id`,
+      [tenant.id],
+    );
+    await migrator.query(
+      `INSERT INTO log_entries (tenant_id, log_source_id, level, message, ts)
+       VALUES ($1, $2, 'error', 'connection pool exhausted talking to db-primary', now() - interval '2 minutes')`,
+      [tenant.id, logSource.id],
+    );
+    for (let i = 0; i < 4; i++) {
+      await migrator.query(
+        `INSERT INTO apm_traces (tenant_id, service, transaction, ts, duration_ms, status, root)
+         VALUES ($1, 'checkout', 'POST /pay', now() - interval '5 minutes', 900, $2, true)`,
+        [tenant.id, i < 2 ? 'error' : 'ok'],
+      );
+    }
+
     // --- 1. Narrative is generated and persisted ---
     const fake = new FakeNarrativeClient();
     const service = new AlertNarrativeService(dataSource, fake, NO_SETTINGS);
@@ -141,6 +163,20 @@ async function main() {
     );
     assert(fake.lastUser.includes('down'), 'AI prompt includes alert reason');
 
+    // --- 2b. Cross-signal evidence from the same window reaches the prompt ---
+    assert(
+      fake.lastUser.includes('connection pool exhausted'),
+      'AI prompt includes correlated error log line',
+    );
+    assert(
+      fake.lastUser.includes('payments-api'),
+      'AI prompt names the log source',
+    );
+    assert(
+      fake.lastUser.includes('APM error rate: 50%'),
+      'AI prompt includes the APM error-rate movement',
+    );
+
     // --- 3. Disabled client is a no-op (no throw) ---
     const disabledService = new AlertNarrativeService(
       dataSource,
@@ -159,6 +195,15 @@ async function main() {
 
     console.log('\nAll alert narrative checks passed.');
   } finally {
+    await migrator.query(`DELETE FROM apm_traces WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM log_entries WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
+    await migrator.query(`DELETE FROM log_sources WHERE tenant_id = $1`, [
+      tenant.id,
+    ]);
     await migrator.query(`DELETE FROM alerts WHERE tenant_id = $1`, [
       tenant.id,
     ]);

@@ -130,6 +130,17 @@ jobs:
       - name: Verify unified Ask assistant
         run: pnpm --filter @cloud-ops-tool/api ask:verify
 
+      # AI value-add wave 2 (cross-signal RCA is covered by alert-narrative
+      # above; these are the NL builders and chat responder).
+      - name: Verify NL automation-rule builder
+        run: pnpm --filter @cloud-ops-tool/api automation-rule-gen:verify
+
+      - name: Verify NL custom-report builder
+        run: pnpm --filter @cloud-ops-tool/api report-nl:verify
+
+      - name: Verify chat AI responder + KB deflection
+        run: pnpm --filter @cloud-ops-tool/api chat-ai:verify
+
   web:
     runs-on: ubuntu-latest
 

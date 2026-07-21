@@ -9,6 +9,9 @@ import { TicketSentimentService } from './ai/ticket-sentiment.service';
 import { TicketSimilarService } from './ai/ticket-similar.service';
 import { KbMiningService } from './ai/kb-mining.service';
 import { KbMiningController } from './ai/kb-mining.controller';
+import { KbSearchService } from './ai/kb-search.service';
+import { ChatAiResponderService } from './chat/chat-ai-responder.service';
+import { PortalKbController } from './portal/portal-kb.controller';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AgentsController } from './agents.controller';
@@ -20,6 +23,7 @@ import { AttachmentsService } from './attachments/attachments.service';
 import { LocalDiskStorage } from './attachments/object-storage';
 import { AutomationRulesController } from './automation/automation-rules.controller';
 import { AutomationRulesService } from './automation/automation-rules.service';
+import { AutomationRuleGenService } from './automation/automation-rule-gen.service';
 import { TimeAutomationSweepService } from './automation/time-automation-sweep.service';
 import { BusinessHoursSettingsController } from './business-hours-settings.controller';
 import { BusinessHoursSettingsService } from './business-hours-settings.service';
@@ -54,6 +58,7 @@ import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
 import { ReportDefinitionsController } from './reports/report-definitions.controller';
 import { ReportDefinitionsService } from './reports/report-definitions.service';
+import { ReportNlService } from './reports/report-nl.service';
 import { OverdueSweepService } from './sla/overdue-sweep.service';
 import { SlaPoliciesController } from './sla-policies.controller';
 import { SlaPoliciesService } from './sla-policies.service';
@@ -120,6 +125,7 @@ import { TicketsService } from './tickets.service';
     ReportDefinitionsController,
     TicketAiController,
     KbMiningController,
+    PortalKbController,
   ],
   providers: [
     TicketsService,
@@ -136,6 +142,7 @@ import { TicketsService } from './tickets.service';
     TicketTypesService,
     SlaPoliciesService,
     AutomationRulesService,
+    AutomationRuleGenService,
     TimeAutomationSweepService,
     CannedResponsesService,
     CannedResponseFoldersService,
@@ -152,6 +159,8 @@ import { TicketsService } from './tickets.service';
     PortalAuthService,
     PortalTicketsService,
     ChatService,
+    ChatAiResponderService,
+    KbSearchService,
     SolutionsService,
     AttachmentsService,
     LocalDiskStorage,
@@ -159,6 +168,7 @@ import { TicketsService } from './tickets.service';
     TicketWatchersService,
     ReportsService,
     ReportDefinitionsService,
+    ReportNlService,
     TicketAiService,
     TicketTriageService,
     TicketSentimentService,
