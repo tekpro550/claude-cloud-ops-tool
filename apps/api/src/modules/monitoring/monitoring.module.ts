@@ -8,6 +8,7 @@ import { AgentTokenGuard } from './agent-token.guard';
 import { AgentTokensController } from './agent-tokens.controller';
 import { AgentTokensService } from './agent-tokens.service';
 import { AlertEvaluationService } from './alert-evaluation.service';
+import { AlertNarrativeService } from './alert-narrative.service';
 import { AlertRulesController } from './alert-rules.controller';
 import { AlertRulesService } from './alert-rules.service';
 import { AlertsController } from './alerts.controller';
@@ -45,6 +46,7 @@ import { LogAlertSweepService } from './logs/log-alert-sweep.service';
 import { LogIngestionController } from './logs/log-ingestion.controller';
 import { LogIngestionService } from './logs/log-ingestion.service';
 import { LogSourceTokenGuard } from './logs/log-source-token.guard';
+import { LogNlSearchService } from './logs/log-nl-search.service';
 import { LogsController } from './logs/logs.controller';
 import { LogsService } from './logs/logs.service';
 import { MonitorSchedulerService } from './monitor-scheduler.service';
@@ -72,6 +74,7 @@ import { StatusPagesService } from './status-pages/status-pages.service';
 import { PlaywrightSyntheticRunner } from './synthetic/playwright-synthetic-runner';
 import { SYNTHETIC_RUNNER } from './synthetic/synthetic-runner';
 import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.service';
+import { SyntheticScriptGenService } from './synthetic/synthetic-script-gen.service';
 
 /**
  * Monitoring Service boundary from section 4 of the architecture plan
@@ -116,6 +119,7 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     MonitoringDashboardService,
     MonitorSchedulerService,
     AlertEvaluationService,
+    AlertNarrativeService,
     AlertRulesService,
     AlertsService,
     AgentTokensService,
@@ -131,6 +135,7 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     DiskForecastsService,
     DiskForecastSweepService,
     SyntheticSchedulerService,
+    SyntheticScriptGenService,
     {
       provide: SYNTHETIC_RUNNER,
       useClass: PlaywrightSyntheticRunner,
@@ -139,6 +144,7 @@ import { SyntheticSchedulerService } from './synthetic/synthetic-scheduler.servi
     LogIngestionService,
     LogSourceTokenGuard,
     LogAlertSweepService,
+    LogNlSearchService,
     ApmService,
     ApmIngestTokenGuard,
     RumService,

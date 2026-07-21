@@ -91,6 +91,45 @@ jobs:
       - name: Verify email intake (mail -> ticket) against synthetic messages
         run: pnpm --filter @cloud-ops-tool/api email-intake:verify
 
+      # AI value-add features (Tasks 0-11). Each exercises its feature end to
+      # end against real Postgres + Redis using an in-process fake completion
+      # client (no external AI provider / API key needed).
+      - name: Verify AI foundation (completion client + tenant settings)
+        run: pnpm --filter @cloud-ops-tool/api ai-foundation:verify
+
+      - name: Verify ticket auto-triage
+        run: pnpm --filter @cloud-ops-tool/api ai-triage:verify
+
+      - name: Verify ticket sentiment detection
+        run: pnpm --filter @cloud-ops-tool/api ticket-sentiment:verify
+
+      - name: Verify similar-ticket detection
+        run: pnpm --filter @cloud-ops-tool/api ticket-similar:verify
+
+      - name: Verify KB article mining
+        run: pnpm --filter @cloud-ops-tool/api kb-mining:verify
+
+      - name: Verify cost spike narrative
+        run: pnpm --filter @cloud-ops-tool/api cost-narrative:verify
+
+      - name: Verify rightsizing rationale
+        run: pnpm --filter @cloud-ops-tool/api rightsizing-rationale:verify
+
+      - name: Verify alert RCA narrative
+        run: pnpm --filter @cloud-ops-tool/api alert-narrative:verify
+
+      - name: Verify natural-language log search
+        run: pnpm --filter @cloud-ops-tool/api log-nl-search:verify
+
+      - name: Verify synthetic script generation
+        run: pnpm --filter @cloud-ops-tool/api synthetic-script-gen:verify
+
+      - name: Verify AI executive summary in scheduled reports
+        run: pnpm --filter @cloud-ops-tool/api report-ai-summary:verify
+
+      - name: Verify unified Ask assistant
+        run: pnpm --filter @cloud-ops-tool/api ask:verify
+
   web:
     runs-on: ubuntu-latest
 

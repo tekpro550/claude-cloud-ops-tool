@@ -1,16 +1,14 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventBusModule } from '../../event-bus/event-bus.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { PlatformModule } from '../platform/platform.module';
-import {
-  AI_COMPLETION_CLIENT,
-  createCompletionClient,
-} from './ai/ai-completion.client';
-import { TenantAiSettingsController } from './ai/tenant-ai-settings.controller';
-import { TenantAiSettingsService } from './ai/tenant-ai-settings.service';
 import { TicketAiController } from './ai/ticket-ai.controller';
 import { TicketAiService } from './ai/ticket-ai.service';
+import { TicketTriageService } from './ai/ticket-triage.service';
+import { TicketSentimentService } from './ai/ticket-sentiment.service';
+import { TicketSimilarService } from './ai/ticket-similar.service';
+import { KbMiningService } from './ai/kb-mining.service';
+import { KbMiningController } from './ai/kb-mining.controller';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AgentsController } from './agents.controller';
@@ -121,7 +119,7 @@ import { TicketsService } from './tickets.service';
     ReportsController,
     ReportDefinitionsController,
     TicketAiController,
-    TenantAiSettingsController,
+    KbMiningController,
   ],
   providers: [
     TicketsService,
@@ -162,12 +160,10 @@ import { TicketsService } from './tickets.service';
     ReportsService,
     ReportDefinitionsService,
     TicketAiService,
-    TenantAiSettingsService,
-    {
-      provide: AI_COMPLETION_CLIENT,
-      inject: [ConfigService],
-      useFactory: createCompletionClient,
-    },
+    TicketTriageService,
+    TicketSentimentService,
+    TicketSimilarService,
+    KbMiningService,
   ],
 })
 export class TicketingModule {}

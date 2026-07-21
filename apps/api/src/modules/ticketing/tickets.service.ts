@@ -14,6 +14,8 @@ import { AssignmentService } from './assignment/assignment.service';
 import { CustomFieldsService } from './custom-fields/custom-fields.service';
 import { validateCustomFields } from './custom-fields/custom-field-validate';
 import { TicketWatchersService } from './ticket-watchers/ticket-watchers.service';
+import { TicketTriageService } from './ai/ticket-triage.service';
+import { TicketSentimentService } from './ai/ticket-sentiment.service';
 import { AddTicketMessageDto } from './dto/add-ticket-message.dto';
 import { ComposeOutboundDto } from './dto/compose-outbound.dto';
 import { CreateTicketDto, InlineContactDto } from './dto/create-ticket.dto';
@@ -117,6 +119,8 @@ export class TicketsService {
     private readonly automationRules: AutomationRulesService,
     private readonly notifications: NotificationsService,
     private readonly solutions: SolutionsService,
+    private readonly triage: TicketTriageService,
+    private readonly sentiment: TicketSentimentService,
   ) {}
 
   async create(tenantId: string, dto: CreateTicketDto) {
@@ -244,12 +248,15 @@ export class TicketsService {
           dto.requiredSkill ?? null,
         ],
       );
-      return this.automationRules.runRules(
+      const result = await this.automationRules.runRules(
         tenantId,
         'ticket_created',
         ticket,
         queryRunner,
       );
+      // Fire triage async after commit — never block ticket creation on AI
+      void this.triage.triageTicket(tenantId, ticket.id).catch(() => {});
+      return result;
     });
   }
 
@@ -976,6 +983,11 @@ export class TicketsService {
             ),
           );
       }
+    }
+
+    // Fire sentiment detection async after commit for inbound customer messages
+    if (dto.type === 'reply' && dto.authorType === 'contact') {
+      void this.sentiment.detectSentiment(tenantId, ticketId).catch(() => {});
     }
 
     return message;

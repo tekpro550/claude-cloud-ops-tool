@@ -4,6 +4,8 @@ export interface ReportTable {
   title: string;
   columns: string[];
   rows: (string | number)[][];
+  /** AI-generated executive summary, prepended when present */
+  aiSummary?: string;
 }
 
 /** RFC 4180 CSV: quote a field only when it needs it, double embedded quotes. */
@@ -13,7 +15,13 @@ function csvEscape(value: string | number): string {
 }
 
 export function toCsv(table: ReportTable): string {
-  const lines = [table.columns.map(csvEscape).join(',')];
+  const lines: string[] = [];
+  if (table.aiSummary) {
+    // Prepend summary as a comment-style header section before the data columns
+    lines.push(csvEscape(`AI Summary: ${table.aiSummary}`));
+    lines.push('');
+  }
+  lines.push(table.columns.map(csvEscape).join(','));
   for (const row of table.rows) {
     lines.push(row.map(csvEscape).join(','));
   }
@@ -50,6 +58,14 @@ export function toPdf(table: ReportTable): Promise<Buffer> {
 
     doc.font('Helvetica-Bold').fontSize(16).text(table.title);
     doc.moveDown(0.75);
+
+    if (table.aiSummary) {
+      doc
+        .font('Helvetica-Oblique')
+        .fontSize(10)
+        .text(table.aiSummary, { align: 'left' });
+      doc.moveDown(0.75);
+    }
 
     const widths = columnWidths(table);
     doc.font('Courier-Bold').fontSize(9);

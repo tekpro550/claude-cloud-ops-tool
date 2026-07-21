@@ -1,6 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import {
+  AI_COMPLETION_CLIENT,
+  AiCompletionClient,
+} from '../../../ai/ai-completion.client';
+import { TenantAiSettingsService } from '../../../ai/tenant-ai-settings.service';
 import { withTenantContext } from '../../../database/context/tenant-context';
 import { CommitmentsService } from '../commitments/commitments.service';
 import { CostAllocationService } from '../cost-allocation.service';
@@ -24,31 +34,86 @@ export type ReportKind = (typeof REPORT_KINDS)[number];
  * Ticketing over its internal HTTP contract like every other cross-module
  * call in this codebase -- not a direct import of a Ticketing service here.
  */
+const SUMMARY_SYSTEM =
+  'You are a cloud cost analyst. Given a structured cost report summary, write a concise ' +
+  'executive summary (2-4 sentences) for a non-technical business audience: key spend trends, ' +
+  'notable services or anomalies, and any actionable recommendations. Plain text only, no markdown.';
+
 @Injectable()
 export class ReportGeneratorService {
+  private readonly logger = new Logger(ReportGeneratorService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly costDashboard: CostDashboardService,
     private readonly costAllocation: CostAllocationService,
     private readonly commitments: CommitmentsService,
+    @Inject(AI_COMPLETION_CLIENT)
+    private readonly envClient: AiCompletionClient,
+    private readonly aiSettings: TenantAiSettingsService,
   ) {}
 
   async generate(
     tenantId: string,
     reportKind: string,
     params: Record<string, unknown>,
+    includeAiSummary = false,
   ): Promise<ReportTable> {
+    let table: ReportTable;
     switch (reportKind as ReportKind) {
       case 'cost_dashboard':
-        return this.costDashboardTable(tenantId);
+        table = await this.costDashboardTable(tenantId);
+        break;
       case 'cost_by_service':
-        return this.costByServiceTable(tenantId);
+        table = await this.costByServiceTable(tenantId);
+        break;
       case 'cost_by_tag':
-        return this.costByTagTable(tenantId, params);
+        table = await this.costByTagTable(tenantId, params);
+        break;
       case 'commitment_coverage':
-        return this.commitmentCoverageTable(tenantId);
+        table = await this.commitmentCoverageTable(tenantId);
+        break;
       default:
         throw new BadRequestException(`Unknown report kind "${reportKind}"`);
+    }
+
+    if (includeAiSummary) {
+      table.aiSummary = await this.buildAiSummary(tenantId, table);
+    }
+    return table;
+  }
+
+  /**
+   * Fire-and-forget safe: returns undefined on any AI failure so the report
+   * is still delivered without a summary rather than failing entirely.
+   */
+  private async buildAiSummary(
+    tenantId: string,
+    table: ReportTable,
+  ): Promise<string | undefined> {
+    try {
+      const client =
+        (await this.aiSettings.resolveClient(tenantId)) ?? this.envClient;
+      if (!client.enabled) return undefined;
+
+      // Serialize the table as compact text for the AI prompt
+      const rows = table.rows
+        .slice(0, 30) // cap context length
+        .map((r) => r.join('\t'))
+        .join('\n');
+      const prompt =
+        `Report: ${table.title}\n` +
+        `Columns: ${table.columns.join(', ')}\n` +
+        `Data (up to 30 rows):\n${rows}`;
+
+      const raw = await client.complete(SUMMARY_SYSTEM, prompt);
+      const trimmed = raw.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    } catch (err) {
+      this.logger.warn(
+        `AI summary generation failed for report: ${(err as Error).message}`,
+      );
+      return undefined;
     }
   }
 

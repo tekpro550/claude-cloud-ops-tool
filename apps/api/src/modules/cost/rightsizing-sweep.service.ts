@@ -13,6 +13,7 @@ import {
   generateRightsizingReasonText,
   RightsizingRecommendationType,
 } from './rightsizing-reason-text';
+import { RightsizingRationaleService } from './rightsizing-rationale.service';
 
 interface CloudMetricMonitorRow {
   monitor_id: string;
@@ -49,6 +50,7 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly config: ConfigService,
+    private readonly rationale: RightsizingRationaleService,
   ) {}
 
   onModuleInit(): void {
@@ -164,9 +166,10 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!openRec) {
-      await queryRunner.query(
+      const [newRec] = await queryRunner.query(
         `INSERT INTO rightsizing_recommendations (tenant_id, resource_id, recommendation_type, reason_text, estimated_monthly_saving)
-         VALUES ($1, $2, $3, $4, $5)`,
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
         [
           tenantId,
           monitor.resource_id,
@@ -175,6 +178,10 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
           estimatedSaving,
         ],
       );
+      // Fire-and-forget AI rationale after transaction completes
+      void this.rationale
+        .generateRationale(tenantId, newRec.id)
+        .catch(() => {});
       return true;
     }
 
@@ -182,6 +189,8 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
       `UPDATE rightsizing_recommendations SET recommendation_type = $2, reason_text = $3, estimated_monthly_saving = $4, updated_at = now() WHERE id = $1`,
       [openRec.id, recommendationType, reasonText, estimatedSaving],
     );
+    // Refresh rationale on update too
+    void this.rationale.generateRationale(tenantId, openRec.id).catch(() => {});
     return true;
   }
 }
