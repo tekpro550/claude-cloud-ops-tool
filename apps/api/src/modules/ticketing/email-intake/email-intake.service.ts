@@ -44,7 +44,9 @@ export class EmailIntakeService implements OnModuleInit, OnModuleDestroy {
       this.config.get<string>('EMAIL_INTAKE_POLL_INTERVAL_MS', '30000'),
     );
     this.timer = setInterval(() => void this.pollOnce(), intervalMs);
-    void this.pollOnce();
+    void this.pollOnce().catch((err) =>
+      this.logger.error(`pollOnce tick failed: ${(err as Error).message}`),
+    );
   }
 
   onModuleDestroy(): void {

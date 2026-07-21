@@ -170,9 +170,9 @@ export class TicketSimilarService {
     }>,
     aiRanked: boolean,
   ): Promise<void> {
-    if (suggestions.length === 0) return;
     await withTenantContext(this.dataSource, tenantId, async (qr) => {
-      // Clear old suggestions for this ticket
+      // Always clear old suggestions first — an empty re-rank means "nothing
+      // is similar anymore", so stale rows must not survive for getCached.
       await qr.query(
         `DELETE FROM ticket_similar_suggestions WHERE ticket_id = $1`,
         [ticketId],

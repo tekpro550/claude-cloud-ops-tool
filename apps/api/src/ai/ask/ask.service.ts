@@ -46,7 +46,14 @@ export class AskService {
   }
 
   async getMessages(tenantId: string, sessionId: string) {
-    const messages = await withTenantContext(this.dataSource, tenantId, (qr) =>
+    // Authorize first: RLS scopes the lookup, so another tenant's session id
+    // resolves to nothing and 404s before any messages are fetched.
+    const [session] = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
+    );
+    if (!session)
+      throw new NotFoundException(`Ask session ${sessionId} not found`);
+    return withTenantContext(this.dataSource, tenantId, (qr) =>
       qr.query(
         `SELECT id, role, content, tool_calls, created_at
            FROM ask_messages
@@ -55,13 +62,6 @@ export class AskService {
         [sessionId],
       ),
     );
-    // Verify session belongs to tenant (the RLS-filtered query returns [] if not)
-    const [session] = await withTenantContext(this.dataSource, tenantId, (qr) =>
-      qr.query(`SELECT id FROM ask_sessions WHERE id = $1`, [sessionId]),
-    );
-    if (!session)
-      throw new NotFoundException(`Ask session ${sessionId} not found`);
-    return messages;
   }
 
   async ask(
@@ -94,14 +94,19 @@ export class AskService {
     // Persist user message
     await this.saveMessage(tenantId, sessionId, 'user', userMessage, null);
 
-    // Load conversation history for context (last 20 messages)
+    // Load conversation history for context: the NEWEST 20 messages, replayed
+    // in chronological order (a plain ASC LIMIT would keep the oldest 20 and
+    // drop the user's most recent turns once a session grows past the window).
     const history: Array<{ role: string; content: string }> =
       await withTenantContext(this.dataSource, tenantId, (qr) =>
         qr.query(
-          `SELECT role, content FROM ask_messages
-           WHERE session_id = $1
-           ORDER BY created_at ASC
-           LIMIT 20`,
+          `SELECT role, content FROM (
+             SELECT role, content, created_at FROM ask_messages
+             WHERE session_id = $1
+             ORDER BY created_at DESC
+             LIMIT 20
+           ) latest
+           ORDER BY created_at ASC`,
           [sessionId],
         ),
       );

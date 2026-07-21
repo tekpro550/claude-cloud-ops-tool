@@ -56,7 +56,11 @@ export class SyntheticSchedulerService
       30000,
     );
     this.timer = setInterval(() => {
-      void this.runSweepOnce();
+      void this.runSweepOnce().catch((err) =>
+        this.logger.error(
+          `runSweepOnce tick failed: ${(err as Error).message}`,
+        ),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -77,7 +81,13 @@ export class SyntheticSchedulerService
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let checkedCount = 0;
       for (const tenant of tenants) {
-        checkedCount += await this.sweepTenant(tenant.id);
+        try {
+          checkedCount += await this.sweepTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return checkedCount;
     } finally {

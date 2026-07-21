@@ -51,7 +51,9 @@ export class ScheduledReportSweepService
       3600000, // 1h -- the finest cadence is daily, so hourly polling is plenty
     );
     this.timer = setInterval(() => {
-      void this.sweepOnce();
+      void this.sweepOnce().catch((err) =>
+        this.logger.error(`sweepOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -72,7 +74,13 @@ export class ScheduledReportSweepService
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let count = 0;
       for (const tenant of tenants) {
-        count += await this.sweepTenant(tenant.id);
+        try {
+          count += await this.sweepTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return count;
     } finally {

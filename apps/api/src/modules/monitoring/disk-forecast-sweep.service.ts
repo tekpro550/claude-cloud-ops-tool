@@ -38,7 +38,11 @@ export class DiskForecastSweepService implements OnModuleInit, OnModuleDestroy {
       3600000,
     );
     this.timer = setInterval(() => {
-      void this.runSweepOnce();
+      void this.runSweepOnce().catch((err) =>
+        this.logger.error(
+          `runSweepOnce tick failed: ${(err as Error).message}`,
+        ),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -56,8 +60,15 @@ export class DiskForecastSweepService implements OnModuleInit, OnModuleDestroy {
     try {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let recorded = 0;
-      for (const tenant of tenants)
-        recorded += await this.sweepTenant(tenant.id);
+      for (const tenant of tenants) {
+        try {
+          recorded += await this.sweepTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
+      }
       return recorded;
     } finally {
       this.running = false;

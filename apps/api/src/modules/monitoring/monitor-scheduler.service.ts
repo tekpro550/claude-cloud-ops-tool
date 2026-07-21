@@ -75,7 +75,11 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       15000,
     );
     this.timer = setInterval(() => {
-      void this.runSweepOnce();
+      void this.runSweepOnce().catch((err) =>
+        this.logger.error(
+          `runSweepOnce tick failed: ${(err as Error).message}`,
+        ),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -94,8 +98,14 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let checkedCount = 0;
       for (const tenant of tenants) {
-        checkedCount += await this.sweepActivelyPolled(tenant.id);
-        checkedCount += await this.sweepStaleAgents(tenant.id);
+        try {
+          checkedCount += await this.sweepActivelyPolled(tenant.id);
+          checkedCount += await this.sweepStaleAgents(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return checkedCount;
     } finally {
