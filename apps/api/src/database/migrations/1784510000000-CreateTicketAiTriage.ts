@@ -11,7 +11,7 @@ export class CreateTicketAiTriage1784510000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE ticket_ai_triage (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
         suggested_priority text,
         suggested_type_id uuid,
@@ -30,6 +30,9 @@ export class CreateTicketAiTriage1784510000000 implements MigrationInterface {
         ADD COLUMN IF NOT EXISTS auto_triage_mode text NOT NULL DEFAULT 'off'
         CHECK (auto_triage_mode IN ('off','suggest','apply'));
     `);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ticket_ai_triage TO app_user;`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

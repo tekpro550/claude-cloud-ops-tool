@@ -11,7 +11,7 @@ export class CreateKbArticles1784570000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE kb_articles (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         title text NOT NULL,
         body_md text NOT NULL,
         status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
@@ -25,6 +25,9 @@ export class CreateKbArticles1784570000000 implements MigrationInterface {
       CREATE POLICY tenant_isolation ON kb_articles
         USING (tenant_id = current_setting('app.current_tenant')::uuid);
     `);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON kb_articles TO app_user;`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -11,18 +11,18 @@ const FAKE_TENANT_ID = 'bbbbbbbb-0000-0000-0000-000000000001';
 
 async function setup(ds: DataSource): Promise<{ recId: string }> {
   await ds.query(
-    `INSERT INTO tenants (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO tenants (id, name, slug) VALUES ($1, $2, 'rationale-verify') ON CONFLICT (id) DO NOTHING`,
     [FAKE_TENANT_ID, 'Rationale Test Tenant'],
   );
   const [cred] = await ds.query(
-    `INSERT INTO cloud_credentials (tenant_id, name, provider, config_encrypted)
+    `INSERT INTO cloud_credentials (tenant_id, label, provider, config_encrypted)
      VALUES ($1, 'test', 'aws', pgp_sym_encrypt('{}', 'dev-only-credentials-key-change-me-in-prod'))
      RETURNING id`,
     [FAKE_TENANT_ID],
   );
   const [resource] = await ds.query(
-    `INSERT INTO resources (tenant_id, cloud_credential_id, external_id, name, kind, region)
-     VALUES ($1, $2, 'i-rationale-test', 'web-server-01', 'ec2', 'us-east-1')
+    `INSERT INTO resources (tenant_id, cloud_credential_id, name, resource_type)
+     VALUES ($1, $2, 'web-server-01', 'server')
      RETURNING id`,
     [FAKE_TENANT_ID, cred.id],
   );
@@ -106,7 +106,7 @@ async function main() {
 
     // 4. RLS: tenant B cannot see tenant A's recommendation
     const [tenantB] = await ds.query(
-      `INSERT INTO tenants (name) VALUES ('B') RETURNING id`,
+      `INSERT INTO tenants (name, slug) VALUES ('B', 'rationale-verify-b') RETURNING id`,
     );
     const svcB = new (RightsizingRationaleService as any)(ds, fakeClient, {
       resolveClient: async () => null,

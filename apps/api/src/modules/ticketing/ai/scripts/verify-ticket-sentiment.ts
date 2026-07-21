@@ -13,7 +13,7 @@ async function setup(
   ds: DataSource,
 ): Promise<{ ticketId: string; contactId: string }> {
   await ds.query(
-    `INSERT INTO tenants (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO tenants (id, name, slug) VALUES ($1, $2, 'sentiment-verify') ON CONFLICT (id) DO NOTHING`,
     [FAKE_TENANT_ID, 'Sentiment Test Tenant'],
   );
   await ds.query(
@@ -43,7 +43,7 @@ async function setup(
   );
   const [ticket] = await ds.query(
     `INSERT INTO tickets (tenant_id, ticket_number, subject, contact_id, source, priority)
-     VALUES ($1, 9901, 'Our service is DOWN and we lose thousands per minute!!!', $2, 'web', 'urgent')
+     VALUES ($1, 9901, 'Our service is DOWN and we lose thousands per minute!!!', $2, 'web_form', 'urgent')
      RETURNING id`,
     [FAKE_TENANT_ID, 'aaaaaaaa-0000-0000-0003-000000000001'],
   );

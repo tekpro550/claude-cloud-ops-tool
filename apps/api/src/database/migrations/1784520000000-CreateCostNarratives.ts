@@ -12,7 +12,7 @@ export class CreateCostNarratives1784520000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE cost_narratives (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         input_hash text NOT NULL,
         narrative text NOT NULL,
         model text,
@@ -23,6 +23,9 @@ export class CreateCostNarratives1784520000000 implements MigrationInterface {
       CREATE POLICY tenant_isolation ON cost_narratives
         USING (tenant_id = current_setting('app.current_tenant')::uuid);
     `);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON cost_narratives TO app_user;`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

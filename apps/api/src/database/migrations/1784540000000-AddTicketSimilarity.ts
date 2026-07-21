@@ -15,7 +15,7 @@ export class AddTicketSimilarity1784540000000 implements MigrationInterface {
 
       CREATE TABLE ticket_similar_suggestions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
         similar_ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
         score numeric(5,4) NOT NULL,
@@ -27,6 +27,9 @@ export class AddTicketSimilarity1784540000000 implements MigrationInterface {
       CREATE POLICY tenant_isolation ON ticket_similar_suggestions
         USING (tenant_id = current_setting('app.current_tenant')::uuid);
     `);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ticket_similar_suggestions TO app_user;`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

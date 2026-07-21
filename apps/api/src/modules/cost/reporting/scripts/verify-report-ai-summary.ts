@@ -14,7 +14,7 @@ const FAKE_TENANT_ID = 'dddddddd-0000-0000-0000-000000000001';
 
 async function setup(ds: DataSource) {
   await ds.query(
-    `INSERT INTO tenants (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO tenants (id, name, slug) VALUES ($1, $2, 'report-ai-verify') ON CONFLICT (id) DO NOTHING`,
     [FAKE_TENANT_ID, 'Report AI Summary Test'],
   );
 }
@@ -102,7 +102,10 @@ async function main() {
       enabled: true,
       async complete(_s: string, user: string) {
         assert(user.includes('Cost Dashboard'), 'report title in prompt');
-        assert(user.includes('EC2'), 'table data in prompt');
+        // The cost_dashboard table is metric/value rows, so assert on a real
+        // row label plus the stubbed MTD figure actually reaching the prompt.
+        assert(user.includes('Month to date'), 'table row label in prompt');
+        assert(user.includes('1500.00'), 'table data in prompt');
         return summaryText;
       },
     };

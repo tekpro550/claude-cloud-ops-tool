@@ -68,6 +68,8 @@ export class KbMiningService {
 
       for (const anchor of tickets) {
         if (assigned.has(anchor.id)) continue;
+        // Exclude only tickets already claimed by an earlier cluster — not the
+        // whole candidate pool, which would leave nothing to match against.
         const similar: { id: string }[] = await qr.query(
           `SELECT id FROM tickets
            WHERE id <> $1
@@ -78,7 +80,7 @@ export class KbMiningService {
           [
             anchor.id,
             anchor.subject,
-            tickets.map((t) => t.id),
+            Array.from(assigned),
             CLUSTER_THRESHOLD,
             CLUSTER_LIMIT - 1,
           ],

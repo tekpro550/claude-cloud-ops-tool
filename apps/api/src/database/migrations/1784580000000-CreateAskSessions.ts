@@ -11,7 +11,7 @@ export class CreateAskSessions1784580000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE ask_sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         created_at timestamptz NOT NULL DEFAULT now()
       );
       ALTER TABLE ask_sessions ENABLE ROW LEVEL SECURITY;
@@ -20,7 +20,7 @@ export class CreateAskSessions1784580000000 implements MigrationInterface {
 
       CREATE TABLE ask_messages (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id uuid NOT NULL REFERENCES tenants(id),
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         session_id uuid NOT NULL REFERENCES ask_sessions(id) ON DELETE CASCADE,
         role text NOT NULL CHECK (role IN ('user','assistant')),
         content text NOT NULL,
@@ -31,6 +31,9 @@ export class CreateAskSessions1784580000000 implements MigrationInterface {
       CREATE POLICY tenant_isolation ON ask_messages
         USING (tenant_id = current_setting('app.current_tenant')::uuid);
     `);
+    await queryRunner.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ask_sessions, ask_messages TO app_user;`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

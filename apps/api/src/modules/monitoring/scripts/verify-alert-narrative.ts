@@ -64,8 +64,8 @@ async function main() {
   const {
     rows: [resource],
   } = await migrator.query(
-    `INSERT INTO resources (tenant_id, name, kind, provider) VALUES ($1, $2, $3, $4) RETURNING id`,
-    [tenant.id, 'Test Server', 'server', 'aws'],
+    `INSERT INTO resources (tenant_id, name, resource_type) VALUES ($1, $2, $3) RETURNING id`,
+    [tenant.id, 'Test Server', 'server'],
   );
 
   let monitorId: string;
@@ -101,14 +101,14 @@ async function main() {
       rows: [rule],
     } = await migrator.query(
       `INSERT INTO alert_rules (tenant_id, monitor_id, severity, condition, is_enabled)
-       VALUES ($1, $2, 'high', '{"statusIn":["down"]}', true) RETURNING id`,
+       VALUES ($1, $2, 'critical', '{"statusIn":["down"]}', true) RETURNING id`,
       [tenant.id, monitorId],
     );
     const {
       rows: [alert],
     } = await migrator.query(
       `INSERT INTO alerts (tenant_id, monitor_id, alert_rule_id, severity, reason_text)
-       VALUES ($1, $2, $3, 'high', 'HTTP Monitor is down') RETURNING id`,
+       VALUES ($1, $2, $3, 'critical', 'HTTP Monitor is down') RETURNING id`,
       [tenant.id, monitorId, rule.id],
     );
     alertId = alert.id;

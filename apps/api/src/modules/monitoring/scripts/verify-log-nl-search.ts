@@ -69,8 +69,8 @@ async function main() {
     const {
       rows: [source],
     } = await migrator.query(
-      `INSERT INTO log_sources (tenant_id, name, is_active, token_hash)
-       VALUES ($1, $2, true, 'fakehash') RETURNING id`,
+      `INSERT INTO log_sources (tenant_id, name, is_active)
+       VALUES ($1, $2, true) RETURNING id`,
       [tenant.id, 'api-server'],
     );
 
