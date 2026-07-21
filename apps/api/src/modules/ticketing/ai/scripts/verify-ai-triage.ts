@@ -93,10 +93,10 @@ async function main() {
       source: 'web_form',
     });
 
-    // Manually set tenant_ai_settings mode to 'suggest'
+    // Manually set tenant_ai_settings mode to 'suggest' (model is NOT NULL)
     await migrator.query(
-      `INSERT INTO tenant_ai_settings (tenant_id, auto_triage_mode)
-       VALUES ($1, 'suggest')
+      `INSERT INTO tenant_ai_settings (tenant_id, model, auto_triage_mode)
+       VALUES ($1, 'test-model', 'suggest')
        ON CONFLICT (tenant_id) DO UPDATE SET auto_triage_mode = 'suggest'`,
       [tenant.id],
     );

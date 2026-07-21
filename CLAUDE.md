@@ -662,10 +662,13 @@ are now complete.
     (draft/published/archived). `KbMiningController` at `/kb-articles`.
     (`verify-kb-mining.ts`)
   - **Task 11 (all): Unified "Ask" assistant.** `AskService` at `POST /ask`.
-    Session-based (tables `ask_sessions` + `ask_messages`), tool-use loop (≤3
-    rounds), fixed tool catalog: `tickets_summary`, `sla_attainment`,
-    `open_alerts`, `uptime_summary`, `cost_by_service`, `cost_forecast`.
-    Cross-module reads use internal HTTP. (`verify-ask.ts`)
+    Session-based (tables `ask_sessions` + `ask_messages`), prompt-driven
+    tool-use loop (≤`MAX_TOOL_ROUNDS` = 6 rounds), fixed tool catalog:
+    `search_tickets`, `list_alerts`, `get_cost_summary`, `search_logs`,
+    `list_monitors` (see `ai/ask/ask-tools.ts`). Each tool is an allowlisted
+    GET to the app's own REST API carrying `X-Tenant-Id`, so reads ride the
+    normal guard/RLS stack rather than importing another module's services.
+    (`verify-ask.ts`)
 
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the

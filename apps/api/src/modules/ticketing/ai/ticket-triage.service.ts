@@ -51,9 +51,10 @@ export class TicketTriageService {
       const suggestion = this.parseSuggestion(raw, allowlists);
 
       await withTenantContext(this.dataSource, tenantId, async (qr) => {
-        await qr.query(
+        const [triageRow] = await qr.query(
           `INSERT INTO ticket_ai_triage (tenant_id, ticket_id, suggested_priority, suggested_type_id, suggested_tags, suggested_skill, rationale, model)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING id`,
           [
             tenantId,
             ticketId,
@@ -82,12 +83,11 @@ export class TicketTriageService {
               `UPDATE tickets SET ${sets.join(', ')} WHERE id = $${params.length}`,
               params,
             );
+            // Mark the row we just inserted as applied (Postgres UPDATE has no
+            // ORDER BY/LIMIT, so target it by its returned primary key).
             await qr.query(
-              `UPDATE ticket_ai_triage SET applied = true
-               WHERE ticket_id = $1
-               ORDER BY created_at DESC
-               LIMIT 1`,
-              [ticketId],
+              `UPDATE ticket_ai_triage SET applied = true WHERE id = $1`,
+              [triageRow.id],
             );
           }
         }
@@ -110,9 +110,14 @@ export class TicketTriageService {
   }
 
   private async getTriageMode(tenantId: string): Promise<string> {
-    const rows = await this.dataSource.query(
-      `SELECT auto_triage_mode FROM tenant_ai_settings WHERE tenant_id = $1`,
-      [tenantId],
+    // Must run inside the tenant context: tenant_ai_settings has FORCE RLS, so a
+    // bare dataSource.query (no app.current_tenant set) matches zero rows and the
+    // tenant's configured mode would be silently ignored.
+    const rows = await withTenantContext(this.dataSource, tenantId, (qr) =>
+      qr.query(
+        `SELECT auto_triage_mode FROM tenant_ai_settings WHERE tenant_id = $1`,
+        [tenantId],
+      ),
     );
     return (
       rows[0]?.auto_triage_mode ??
