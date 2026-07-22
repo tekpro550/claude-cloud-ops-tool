@@ -18,6 +18,9 @@ export class PortalKbController {
 
   @Get('search')
   search(@CurrentTenantId() tenantId: string, @Query('q') q: string) {
-    return this.kbSearch.searchPublished(tenantId, q ?? '', 3);
+    // useAi=false: this route is unauthenticated (tenant UUID only), so an AI
+    // re-rank here would be a per-request paid-provider call an anonymous
+    // caller could amplify. Portal deflection stays trigram-only.
+    return this.kbSearch.searchPublished(tenantId, q ?? '', 3, false);
   }
 }

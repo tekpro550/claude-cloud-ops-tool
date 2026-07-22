@@ -181,6 +181,122 @@ async function main() {
     assert.equal(offMsgs.length, 0, 'ai_enabled=false produces no AI reply');
     ok('ai_enabled=false disables the responder');
 
+    // 5. Long conversation (>HISTORY_LIMIT messages): the responder must still
+    //    see the newest visitor turn (regression guard for the ASC-LIMIT bug
+    //    that took the OLDEST N messages).
+    const [long] = await ds.query(
+      `INSERT INTO chat_sessions (tenant_id, visitor_name, status, ai_enabled)
+       VALUES ($1, 'Wordy', 'open', true) RETURNING id`,
+      [T],
+    );
+    for (let i = 0; i < 14; i++) {
+      await ds.query(
+        `INSERT INTO chat_messages (tenant_id, chat_session_id, author_type, body, created_at)
+         VALUES ($1, $2, $3, $4, now() - ($5 || ' seconds')::interval)`,
+        [
+          T,
+          long.id,
+          i % 2 === 0 ? 'visitor' : 'agent',
+          `filler message ${i}`,
+          200 - i,
+        ],
+      );
+    }
+    // Newest message is this fresh password question:
+    await ds.query(
+      `INSERT INTO chat_messages (tenant_id, chat_session_id, author_type, body)
+       VALUES ($1, $2, 'visitor', 'I still need to reset my password please')`,
+      [T, long.id],
+    );
+    const longFake = new FakeClient('Here is how to reset your password.');
+    const longResponder = new (ChatAiResponderService as any)(
+      ds,
+      longFake,
+      NO_SETTINGS,
+      new (KbSearchService as any)(ds, new FakeClient('x'), NO_SETTINGS),
+    );
+    await longResponder.respond(T, long.id);
+    const [longAi] = [
+      await ds.query(
+        `SELECT id FROM chat_messages WHERE chat_session_id = $1 AND author_type = 'ai'`,
+        [long.id],
+      ),
+    ];
+    assert.equal(
+      longAi.length,
+      1,
+      'responder still answers past the history window',
+    );
+    assert(
+      longFake.lastUser.includes('reset my password please'),
+      'newest visitor turn (not the oldest N) reaches the AI prompt',
+    );
+    ok('responder handles a conversation longer than the history window');
+
+    // 6. Mid-flight human claim: an agent grabs the session DURING the AI call,
+    //    so the guarded INSERT matches 0 rows. This must not throw (regression
+    //    guard for the INSERT-result destructuring) and must post no AI reply.
+    const [race] = await ds.query(
+      `INSERT INTO chat_sessions (tenant_id, visitor_name, status, ai_enabled)
+       VALUES ($1, 'Racer', 'open', true) RETURNING id`,
+      [T],
+    );
+    await ds.query(
+      `INSERT INTO chat_messages (tenant_id, chat_session_id, author_type, body)
+       VALUES ($1, $2, 'visitor', 'anyone there?')`,
+      [T, race.id],
+    );
+    const claimDuringCall: AiCompletionClient = {
+      enabled: true,
+      async complete() {
+        // Simulate a human agent claiming the session while the model runs.
+        await ds.query(
+          `UPDATE chat_sessions SET assigned_agent_id = $2 WHERE id = $1`,
+          [race.id, agentId],
+        );
+        return 'A reply that should never be inserted.';
+      },
+    };
+    const raceResponder = new (ChatAiResponderService as any)(
+      ds,
+      claimDuringCall,
+      NO_SETTINGS,
+      new (KbSearchService as any)(ds, new FakeClient('x'), NO_SETTINGS),
+    );
+    await raceResponder.respond(T, race.id); // must not throw
+    const [raceAi] = [
+      await ds.query(
+        `SELECT id FROM chat_messages WHERE chat_session_id = $1 AND author_type = 'ai'`,
+        [race.id],
+      ),
+    ];
+    assert.equal(
+      raceAi.length,
+      0,
+      'no AI reply when a human claims mid-flight (0-row insert handled)',
+    );
+    ok('mid-flight claim: 0-row insert is handled without error');
+
+    // 7. KB search respects an empty AI re-rank (nothing genuinely relevant)
+    //    instead of falling back to looser trigram matches.
+    const emptyRerank = new (KbSearchService as any)(
+      ds,
+      {
+        enabled: true,
+        async complete() {
+          return '[]';
+        },
+      } as AiCompletionClient,
+      NO_SETTINGS,
+    );
+    const emptyHits = await emptyRerank.searchPublished(T, 'reset password', 3);
+    assert.equal(
+      emptyHits.length,
+      0,
+      'empty AI re-rank suppresses trigram fallback',
+    );
+    ok('KB search honors an empty AI re-rank result');
+
     console.log('\nAll chat-ai + kb-deflection checks passed.');
   } finally {
     await ds.query(`DELETE FROM tenants WHERE id = $1`, [T]).catch(() => {});

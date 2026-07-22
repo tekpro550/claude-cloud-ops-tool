@@ -8,6 +8,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { withTenantContext } from '../../../database/context/tenant-context';
+import { htmlToPlainText, sanitizeTicketBody } from '../sanitize-html';
 import {
   AI_COMPLETION_CLIENT,
   AiCompletionClient,
@@ -164,9 +165,16 @@ export class KbMiningService {
       );
     }
 
-    // Extract title from first # heading
+    // Extract title from first # heading (from the raw draft), then strip any
+    // markup from both fields — KB content is rendered downstream, so raw HTML
+    // in an AI/agent-authored body is a stored-XSS vector. sanitizeTicketBody
+    // removes disallowed tags; the frontend must still render markdown with raw
+    // HTML disabled.
     const titleMatch = bodyMd.match(/^#\s+(.+)/m);
-    const title = titleMatch ? titleMatch[1].trim() : 'KB Article (draft)';
+    const title = htmlToPlainText(
+      titleMatch ? titleMatch[1].trim() : 'KB Article (draft)',
+    );
+    const safeBody = sanitizeTicketBody(bodyMd);
 
     return withTenantContext(this.dataSource, tenantId, async (qr) => {
       const [article] = await qr.query(
@@ -174,7 +182,7 @@ export class KbMiningService {
            (tenant_id, title, body_md, source_ticket_ids, created_by)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [tenantId, title, bodyMd, dto.ticketIds, dto.agentId ?? null],
+        [tenantId, title, safeBody, dto.ticketIds, dto.agentId ?? null],
       );
       return article;
     });
@@ -213,18 +221,20 @@ export class KbMiningService {
         params.push(val);
         sets.push(`${col} = $${params.length}`);
       };
-      if (dto.title !== undefined) assign('title', dto.title);
-      if (dto.bodyMd !== undefined) assign('body_md', dto.bodyMd);
+      if (dto.title !== undefined) assign('title', htmlToPlainText(dto.title));
+      if (dto.bodyMd !== undefined)
+        assign('body_md', sanitizeTicketBody(dto.bodyMd));
       if (dto.status !== undefined) assign('status', dto.status);
       if (dto.tags !== undefined) assign('tags', dto.tags);
       sets.push('updated_at = now()');
       params.push(id);
 
-      const [updated] = await qr.query(
+      // UPDATE ... RETURNING yields [rows, affectedCount] via TypeORM.
+      const [rows] = await qr.query(
         `UPDATE kb_articles SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
         params,
       );
-      return updated;
+      return rows[0];
     });
   }
 

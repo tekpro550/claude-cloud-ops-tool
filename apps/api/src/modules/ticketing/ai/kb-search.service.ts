@@ -17,15 +17,20 @@ export interface KbSearchHit {
 }
 
 const CANDIDATE_LIMIT = 12;
-const TRGM_THRESHOLD = 0.1;
 const DEFAULT_TOP_N = 3;
 
 /**
  * Searches PUBLISHED knowledge-base articles for a free-text query. Uses
- * pg_trgm for candidates (index-backed by kb_articles_*_trgm), then optionally
- * re-ranks the top candidates with AI — same graceful-degradation shape as
- * TicketSimilarService: with no AI configured it returns the trigram order,
- * so KB search and portal deflection work with or without a provider.
+ * pg_trgm for candidates (the `%` clauses are index-backed by
+ * kb_articles_*_trgm), then optionally re-ranks the top candidates with AI —
+ * same graceful-degradation shape as TicketSimilarService: with no AI (or
+ * useAi=false) it returns the trigram order, so KB search and portal
+ * deflection work with or without a provider.
+ *
+ * `useAi=false` is important for the portal deflection endpoint: that route is
+ * unauthenticated (tenant UUID only), so calling a paid provider per request
+ * there is an AI-cost amplification vector — portal deflection stays
+ * trigram-only, and AI re-rank is reserved for the authenticated agent search.
  *
  * Shared by the portal deflection endpoint and the chat AI responder.
  */
@@ -44,6 +49,7 @@ export class KbSearchService {
     tenantId: string,
     query: string,
     topN = DEFAULT_TOP_N,
+    useAi = true,
   ): Promise<KbSearchHit[]> {
     const q = (query ?? '').trim();
     if (q.length === 0) return [];
@@ -51,15 +57,19 @@ export class KbSearchService {
     const candidates = await this.trgmCandidates(tenantId, q);
     if (candidates.length === 0) return [];
 
-    const client =
-      (await this.settings.resolveClient(tenantId)) ?? this.envClient;
-
-    if (client.enabled) {
-      try {
-        const ranked = await this.aiRerank(client, q, candidates);
-        if (ranked.length > 0) return ranked.slice(0, topN);
-      } catch (err) {
-        this.logger.warn(`KB AI re-rank failed: ${(err as Error).message}`);
+    if (useAi) {
+      const client =
+        (await this.settings.resolveClient(tenantId)) ?? this.envClient;
+      if (client.enabled) {
+        try {
+          // Trust the AI's relevance filter: an empty array means "none of
+          // these are genuinely relevant", so return it as-is rather than
+          // falling back to the looser trigram matches.
+          const ranked = await this.aiRerank(client, q, candidates);
+          return ranked.slice(0, topN);
+        } catch (err) {
+          this.logger.warn(`KB AI re-rank failed: ${(err as Error).message}`);
+        }
       }
     }
 
@@ -68,11 +78,17 @@ export class KbSearchService {
       title: c.title,
       score: c.sim,
       ai_ranked: false,
-      snippet: c.body_md
-        .replace(/[#*`>]/g, '')
-        .slice(0, 200)
-        .trim(),
+      snippet: this.snippet(c.body_md),
     }));
+  }
+
+  /** Strip markdown/HTML so a snippet can never carry live markup to a renderer. */
+  private snippet(bodyMd: string): string {
+    return bodyMd
+      .replace(/<[^>]*>/g, '')
+      .replace(/[#*`>]/g, '')
+      .slice(0, 200)
+      .trim();
   }
 
   private trgmCandidates(tenantId: string, query: string) {
@@ -82,11 +98,10 @@ export class KbSearchService {
                 GREATEST(similarity(title, $1), similarity(body_md, $1)) AS sim
          FROM kb_articles
          WHERE status = 'published'
-           AND (title % $1 OR body_md % $1
-                OR GREATEST(similarity(title, $1), similarity(body_md, $1)) > $2)
+           AND (title % $1 OR body_md % $1)
          ORDER BY sim DESC
-         LIMIT $3`,
-        [query, TRGM_THRESHOLD, CANDIDATE_LIMIT],
+         LIMIT $2`,
+        [query, CANDIDATE_LIMIT],
       ),
     ) as Promise<{ id: string; title: string; body_md: string; sim: number }[]>;
   }
@@ -123,10 +138,7 @@ export class KbSearchService {
           title: c.title,
           score: Math.min(1, Math.max(0, Number(r.score))),
           ai_ranked: true,
-          snippet: c.body_md
-            .replace(/[#*`>]/g, '')
-            .slice(0, 200)
-            .trim(),
+          snippet: this.snippet(c.body_md),
         };
       });
   }

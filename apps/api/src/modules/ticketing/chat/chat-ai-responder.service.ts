@@ -97,12 +97,22 @@ export class ChatAiResponderService {
       }
       if (!reply) return;
 
-      // Re-check the claim inside the write transaction: an agent may have
-      // grabbed the session while the AI call was in flight. The INSERT is
-      // gated on the session still being unclaimed and AI-enabled, so a
-      // late-arriving human always wins and the AI stays silent.
+      // Re-check atomically inside the write transaction. A transaction-scoped
+      // advisory lock on the session serializes concurrent responders (two
+      // near-simultaneous visitor turns each spawn a respond()), and the INSERT
+      // is gated on three conditions evaluated under that lock:
+      //   - the session is still open, ai_enabled, and unclaimed (human handoff
+      //     always wins — a late agent claim suppresses the reply), and
+      //   - the newest message is still a visitor turn, so a responder that
+      //     already answered (or a human/AI reply that landed first) blocks a
+      //     duplicate AI reply.
+      // INSERT ... RETURNING returns the rows array directly (unlike UPDATE,
+      // which returns [rows, count]) — do not destructure it.
       await withTenantContext(this.dataSource, tenantId, async (qr) => {
-        const [rows] = await qr.query(
+        await qr.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+          sessionId,
+        ]);
+        const rows = await qr.query(
           `INSERT INTO chat_messages (tenant_id, chat_session_id, author_type, body)
            SELECT $1, $2, 'ai', $3
            WHERE EXISTS (
@@ -110,6 +120,11 @@ export class ChatAiResponderService {
              WHERE id = $2 AND status = 'open'
                AND ai_enabled = true AND assigned_agent_id IS NULL
            )
+           AND (
+             SELECT author_type FROM chat_messages
+             WHERE chat_session_id = $2
+             ORDER BY created_at DESC LIMIT 1
+           ) = 'visitor'
            RETURNING id`,
           [tenantId, sessionId, reply.slice(0, 4000)],
         );
@@ -134,9 +149,17 @@ export class ChatAiResponderService {
         [sessionId],
       );
       if (!session) return null;
+      // Newest HISTORY_LIMIT messages, replayed chronologically — a plain
+      // ASC LIMIT would keep the OLDEST N and miss the visitor's latest turn
+      // once the conversation grows past the window.
       const messages: { author_type: string; body: string }[] = await qr.query(
-        `SELECT author_type, body FROM chat_messages
-         WHERE chat_session_id = $1 ORDER BY created_at ASC LIMIT $2`,
+        `SELECT author_type, body FROM (
+           SELECT author_type, body, created_at FROM chat_messages
+           WHERE chat_session_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2
+         ) latest
+         ORDER BY created_at ASC`,
         [sessionId, HISTORY_LIMIT],
       );
       return {
