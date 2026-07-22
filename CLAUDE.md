@@ -670,6 +670,40 @@ are now complete.
     normal guard/RLS stack rather than importing another module's services.
     (`verify-ask.ts`)
 
+- **AI value-add wave 2 (audit follow-on, 4 features).**
+  - **Cross-signal alert RCA (M2).** `AlertNarrativeService` now assembles
+    correlated evidence from the same ±`CORRELATION_WINDOW_MINUTES` window —
+    error/warn `log_entries` and APM error-rate movement (`apm_traces`,
+    window vs. preceding baseline) — into the RCA prompt alongside the
+    monitor checks. Correlation is by time window, not topology (log/APM
+    sources aren't linked to resources in the schema), disclosed in the
+    prompt. (`verify-alert-narrative.ts` extended.)
+  - **NL automation-rule builder (M1).** `AutomationRuleGenService` at
+    `POST /automation-rules/generate` drafts a rule from plain English;
+    output is gated against the exact allowlists `CreateAutomationRuleDto`
+    enforces (TRIGGERS/CONDITION_FIELDS/CONDITION_OPERATORS/ACTION_TYPES,
+    now exported from the DTO) and returned as a review draft — saving still
+    goes through the normal `POST /automation-rules` + ValidationPipe.
+    (`verify-automation-rule-gen.ts`, DB-free.)
+  - **NL custom reports (M1).** `ReportNlService` at `POST /reports/custom/nl`
+    maps a plain-English question to a `ReportConfig`, then **re-validates it
+    by running `buildReportQuery()`** — the same allowlist gate the saved
+    path uses is the security boundary, so a hallucinated metric/dimension/
+    filter token throws before any SQL runs. (`verify-report-nl.ts`, DB-free.)
+  - **Chat AI first-responder + KB deflection (all).**
+    `AddChatAiAndKbSearch` migration adds an `'ai'` chat author type,
+    `chat_sessions.ai_enabled` (the off switch), and pg_trgm GIN indexes on
+    `kb_articles`. `KbSearchService` searches **published** articles
+    (pg_trgm candidates + optional AI re-rank, graceful-degradation shape
+    like `TicketSimilarService`), exposed at `GET /kb-articles/search`
+    (agents) and `GET /portal/kb/search` (portal deflection, pre-submit,
+    `TenantHeaderGuard`). `ChatAiResponderService` fires fire-and-forget from
+    `ChatService.addMessage` on a visitor turn: it answers grounded in KB
+    excerpts **only while the session is open, `ai_enabled`, and unclaimed**
+    — the moment a human agent replies (`assigned_agent_id` set) it goes
+    silent (the handoff), re-checked atomically inside the insert so a
+    late-arriving agent always wins. (`verify-chat-ai.ts`.)
+
 **Still open (genuinely not built yet):**
 - **SAML SSO** — OIDC SSO ships; full SAML (XML signature validation) is the
   remaining SSO protocol. Note `X-Tenant-Id` header auth also remains a fallback

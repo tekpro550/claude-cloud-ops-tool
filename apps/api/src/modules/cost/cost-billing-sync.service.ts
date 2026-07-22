@@ -67,7 +67,9 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
       86400000,
     );
     this.timer = setInterval(() => {
-      void this.syncOnce();
+      void this.syncOnce().catch((err) =>
+        this.logger.error(`syncOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -88,7 +90,13 @@ export class CostBillingSyncService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let syncedCount = 0;
       for (const tenant of tenants) {
-        syncedCount += await this.syncTenant(tenant.id);
+        try {
+          syncedCount += await this.syncTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return syncedCount;
     } finally {

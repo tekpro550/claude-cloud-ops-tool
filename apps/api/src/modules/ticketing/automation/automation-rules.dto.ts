@@ -10,8 +10,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-const TRIGGERS = ['ticket_created', 'ticket_updated', 'time_based'] as const;
-const CONDITION_FIELDS = [
+export const TRIGGERS = [
+  'ticket_created',
+  'ticket_updated',
+  'time_based',
+] as const;
+export const CONDITION_FIELDS = [
   'status',
   'priority',
   'source',
@@ -21,8 +25,8 @@ const CONDITION_FIELDS = [
   'platform',
   'tags',
 ] as const;
-const CONDITION_OPERATORS = ['equals', 'contains'] as const;
-const ACTION_TYPES = [
+export const CONDITION_OPERATORS = ['equals', 'contains'] as const;
+export const ACTION_TYPES = [
   'set_status',
   'set_priority',
   'set_group',

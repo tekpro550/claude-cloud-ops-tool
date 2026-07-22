@@ -8,10 +8,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
+import { KbSearchService } from './kb-search.service';
 import {
   KbDraftArticleDto,
   KbMiningService,
@@ -33,7 +35,16 @@ class UpdateArticleBodyDto implements UpdateKbArticleDto {
 @UseGuards(TenantHeaderGuard)
 @Controller('kb-articles')
 export class KbMiningController {
-  constructor(private readonly kb: KbMiningService) {}
+  constructor(
+    private readonly kb: KbMiningService,
+    private readonly kbSearch: KbSearchService,
+  ) {}
+
+  /** Agent-facing search of published KB articles (pg_trgm + optional AI re-rank). */
+  @Get('search')
+  search(@CurrentTenantId() tenantId: string, @Query('q') q: string) {
+    return this.kbSearch.searchPublished(tenantId, q ?? '', 5);
+  }
 
   @Get('clusters')
   suggestClusters(@CurrentTenantId() tenantId: string) {

@@ -50,7 +50,9 @@ export class NetworkPollerService implements OnModuleInit, OnModuleDestroy {
       120000,
     );
     this.timer = setInterval(() => {
-      void this.pollOnce();
+      void this.pollOnce().catch((err) =>
+        this.logger.error(`pollOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -69,7 +71,13 @@ export class NetworkPollerService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let polledCount = 0;
       for (const tenant of tenants) {
-        polledCount += await this.pollTenant(tenant.id);
+        try {
+          polledCount += await this.pollTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return polledCount;
     } finally {

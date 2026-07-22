@@ -56,7 +56,11 @@ export class LogAlertSweepService implements OnModuleInit, OnModuleDestroy {
       30000,
     );
     this.timer = setInterval(() => {
-      void this.runSweepOnce();
+      void this.runSweepOnce().catch((err) =>
+        this.logger.error(
+          `runSweepOnce tick failed: ${(err as Error).message}`,
+        ),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -77,7 +81,13 @@ export class LogAlertSweepService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let firedCount = 0;
       for (const tenant of tenants) {
-        firedCount += await this.sweepTenant(tenant.id);
+        try {
+          firedCount += await this.sweepTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return firedCount;
     } finally {

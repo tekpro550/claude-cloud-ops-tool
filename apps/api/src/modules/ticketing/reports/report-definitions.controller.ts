@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { IsString, MaxLength } from 'class-validator';
 import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
 import { CurrentUserId } from '../../platform/http/current-user.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
@@ -17,11 +18,34 @@ import {
   CreateReportDefinitionDto,
 } from './report-definitions.dto';
 import { ReportDefinitionsService } from './report-definitions.service';
+import { ReportNlService } from './report-nl.service';
+
+class NlReportQuestionDto {
+  @IsString()
+  @MaxLength(2000)
+  question: string;
+}
 
 @UseGuards(TenantHeaderGuard)
 @Controller('reports/custom')
 export class ReportDefinitionsController {
-  constructor(private readonly definitions: ReportDefinitionsService) {}
+  constructor(
+    private readonly definitions: ReportDefinitionsService,
+    private readonly nl: ReportNlService,
+  ) {}
+
+  /**
+   * Translate a plain-English question into a validated ReportConfig draft
+   * (allowlist-gated via buildReportQuery). Returns the config only — the
+   * admin previews/saves it through the existing endpoints.
+   */
+  @Post('nl')
+  buildFromNl(
+    @CurrentTenantId() tenantId: string,
+    @Body() dto: NlReportQuestionDto,
+  ) {
+    return this.nl.buildConfig(tenantId, dto.question);
+  }
 
   @Get()
   list(@CurrentTenantId() tenantId: string) {

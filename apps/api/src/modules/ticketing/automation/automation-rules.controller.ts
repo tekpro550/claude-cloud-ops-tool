@@ -14,19 +14,37 @@ import { AuditLogService } from '../../platform/audit/audit-log.service';
 import { CurrentTenantId } from '../../platform/http/current-tenant.decorator';
 import { CurrentUserId } from '../../platform/http/current-user.decorator';
 import { TenantHeaderGuard } from '../../platform/http/tenant-header.guard';
+import { IsString, MaxLength } from 'class-validator';
 import {
   CreateAutomationRuleDto,
   UpdateAutomationRuleDto,
 } from './automation-rules.dto';
 import { AutomationRulesService } from './automation-rules.service';
+import { AutomationRuleGenService } from './automation-rule-gen.service';
+
+class GenerateRuleDto {
+  @IsString()
+  @MaxLength(2000)
+  description: string;
+}
 
 @UseGuards(TenantHeaderGuard)
 @Controller('automation-rules')
 export class AutomationRulesController {
   constructor(
     private readonly automationRules: AutomationRulesService,
+    private readonly ruleGen: AutomationRuleGenService,
     private readonly audit: AuditLogService,
   ) {}
+
+  /**
+   * Draft a rule from a plain-English description. Returns the draft only —
+   * the admin reviews it and saves via the normal POST /automation-rules.
+   */
+  @Post('generate')
+  generate(@CurrentTenantId() tenantId: string, @Body() dto: GenerateRuleDto) {
+    return this.ruleGen.generateRule(tenantId, dto.description);
+  }
 
   @Post()
   async create(

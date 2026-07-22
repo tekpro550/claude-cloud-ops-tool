@@ -59,7 +59,9 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
       21600000, // 6h -- utilization trends move slowly, no need for a tighter cadence
     );
     this.timer = setInterval(() => {
-      void this.sweepOnce();
+      void this.sweepOnce().catch((err) =>
+        this.logger.error(`sweepOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -80,7 +82,13 @@ export class RightsizingSweepService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let count = 0;
       for (const tenant of tenants) {
-        count += await this.sweepTenant(tenant.id);
+        try {
+          count += await this.sweepTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return count;
     } finally {

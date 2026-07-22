@@ -117,8 +117,10 @@ export class LogNlSearchService {
       ) {
         result.fromRelative = parsed.fromRelative;
       }
-      if (typeof parsed.to === 'string') {
-        result.to = parsed.to;
+      // Only accept a parseable timestamp — a malformed AI-produced value
+      // would otherwise become a Postgres cast error (500) downstream.
+      if (typeof parsed.to === 'string' && !isNaN(Date.parse(parsed.to))) {
+        result.to = new Date(parsed.to).toISOString();
       }
       return result;
     } catch {

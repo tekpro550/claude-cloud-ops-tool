@@ -71,7 +71,9 @@ export class CostSavingsSweepService implements OnModuleInit, OnModuleDestroy {
       21600000, // 6h -- same cadence as the rightsizing sweep it follows on from
     );
     this.timer = setInterval(() => {
-      void this.sweepOnce();
+      void this.sweepOnce().catch((err) =>
+        this.logger.error(`sweepOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -93,9 +95,15 @@ export class CostSavingsSweepService implements OnModuleInit, OnModuleDestroy {
       let logged = 0;
       let materialized = 0;
       for (const tenant of tenants) {
-        const result = await this.sweepTenant(tenant.id);
-        logged += result.logged;
-        materialized += result.materialized;
+        try {
+          const result = await this.sweepTenant(tenant.id);
+          logged += result.logged;
+          materialized += result.materialized;
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return { logged, materialized };
     } finally {

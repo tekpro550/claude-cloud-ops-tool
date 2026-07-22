@@ -1,7 +1,16 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+
+// Backstop: Node's default is to terminate the process on an unhandled
+// promise rejection. Background sweeps/schedulers catch their own errors,
+// but a missed one must never take the whole API down — log it instead.
+process.on('unhandledRejection', (reason) => {
+  const detail =
+    reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
+  new Logger('UnhandledRejection').error(detail);
+});
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

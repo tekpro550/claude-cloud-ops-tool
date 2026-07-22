@@ -9,12 +9,17 @@ import {
 import { TenantAiSettingsService } from '../../ai/tenant-ai-settings.service';
 
 const RECENT_CHECKS_LIMIT = 10;
+/** Cross-signal correlation window around the alert (minutes). */
+const CORRELATION_WINDOW_MINUTES = 30;
+const CORRELATED_LOG_LIMIT = 8;
 
 const NARRATIVE_SYSTEM =
-  'You are a site reliability engineer. Given an alert description and recent monitor check ' +
-  'history, write a 2-3 sentence root cause analysis. Identify the likely cause, the pattern ' +
-  'from the checks, and suggest the most important next diagnostic step. ' +
-  'Be specific. Return only the narrative, no JSON, no bullet points.';
+  'You are a site reliability engineer. Given an alert description, recent monitor check ' +
+  'history, and correlated evidence from the same time window (error/warning logs, APM ' +
+  'error-rate movement), write a 2-4 sentence root cause analysis. Identify the likely ' +
+  'cause, cite the strongest piece of correlated evidence if any exists, and suggest the ' +
+  'most important next diagnostic step. Be specific. Return only the narrative, no JSON, ' +
+  'no bullet points.';
 
 @Injectable()
 export class AlertNarrativeService {
@@ -55,13 +60,32 @@ export class AlertNarrativeService {
         )
         .join('\n');
 
+      const logLines = context.recentLogs
+        .map(
+          (l: { ts: string; level: string; source: string; message: string }) =>
+            `  [${new Date(l.ts).toISOString()}] ${l.level} (${l.source}): ${l.message.slice(0, 200)}`,
+        )
+        .join('\n');
+
       const user = [
         `Monitor: ${context.monitorName} (${context.monitorType})`,
         `Alert: ${context.reasonText}`,
         context.recentChecks.length > 0
           ? `\nRecent checks (newest first):\n${checkLines}`
           : '\nNo recent checks available.',
-      ].join('');
+        context.recentLogs.length > 0
+          ? `\nError/warning logs in the last ${CORRELATION_WINDOW_MINUTES} minutes ` +
+            `(tenant-wide — log sources are not linked to specific resources):\n${logLines}`
+          : '',
+        context.apm
+          ? `\nAPM error rate: ${context.apm.windowErrorPct}% over the last ` +
+            `${CORRELATION_WINDOW_MINUTES} minutes (${context.apm.windowTotal} traces) vs ` +
+            `${context.apm.baselineErrorPct}% in the preceding ${CORRELATION_WINDOW_MINUTES} minutes ` +
+            `(${context.apm.baselineTotal} traces).`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('');
 
       let narrative: string;
       try {
@@ -109,11 +133,56 @@ export class AlertNarrativeService {
         [alert.monitor_id, RECENT_CHECKS_LIMIT],
       );
 
+      // Cross-signal correlation is by time window, not topology: log sources
+      // and APM services aren't linked to monitored resources in the schema,
+      // so evidence is tenant-wide within the window (disclosed in the prompt).
+      const recentLogs = await qr.query(
+        `SELECT le.ts, le.level, le.message, ls.name AS source
+         FROM log_entries le
+         JOIN log_sources ls ON ls.id = le.log_source_id
+         WHERE le.level IN ('error','warn')
+           AND le.ts >= now() - ($1 || ' minutes')::interval
+         ORDER BY le.ts DESC
+         LIMIT $2`,
+        [CORRELATION_WINDOW_MINUTES, CORRELATED_LOG_LIMIT],
+      );
+
+      const [apmRow] = await qr.query(
+        `SELECT
+           count(*) FILTER (WHERE ts >= now() - ($1 || ' minutes')::interval) AS window_total,
+           count(*) FILTER (WHERE ts >= now() - ($1 || ' minutes')::interval AND status <> 'ok') AS window_errors,
+           count(*) FILTER (WHERE ts <  now() - ($1 || ' minutes')::interval) AS baseline_total,
+           count(*) FILTER (WHERE ts <  now() - ($1 || ' minutes')::interval AND status <> 'ok') AS baseline_errors
+         FROM apm_traces
+         WHERE ts >= now() - ($1 || ' minutes')::interval * 2`,
+        [CORRELATION_WINDOW_MINUTES],
+      );
+      const windowTotal = Number(apmRow?.window_total ?? 0);
+      const baselineTotal = Number(apmRow?.baseline_total ?? 0);
+      const apm =
+        windowTotal > 0
+          ? {
+              windowTotal,
+              windowErrorPct: Math.round(
+                (100 * Number(apmRow.window_errors)) / windowTotal,
+              ),
+              baselineTotal,
+              baselineErrorPct:
+                baselineTotal > 0
+                  ? Math.round(
+                      (100 * Number(apmRow.baseline_errors)) / baselineTotal,
+                    )
+                  : 0,
+            }
+          : null;
+
       return {
         monitorName: alert.monitor_name as string,
         monitorType: alert.monitor_type as string,
         reasonText: alert.reason_text as string,
         recentChecks,
+        recentLogs,
+        apm,
       };
     });
   }

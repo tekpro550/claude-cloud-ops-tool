@@ -70,7 +70,9 @@ export class CloudResourcePollerService
       300000,
     );
     this.timer = setInterval(() => {
-      void this.pollOnce();
+      void this.pollOnce().catch((err) =>
+        this.logger.error(`pollOnce tick failed: ${(err as Error).message}`),
+      );
     }, intervalMs);
     this.timer.unref?.();
   }
@@ -89,7 +91,13 @@ export class CloudResourcePollerService
       const tenants = await this.dataSource.query(`SELECT id FROM tenants`);
       let checkedCount = 0;
       for (const tenant of tenants) {
-        checkedCount += await this.pollTenant(tenant.id);
+        try {
+          checkedCount += await this.pollTenant(tenant.id);
+        } catch (err) {
+          this.logger.error(
+            `tenant ${tenant.id} sweep failed: ${(err as Error).message}`,
+          );
+        }
       }
       return checkedCount;
     } finally {
